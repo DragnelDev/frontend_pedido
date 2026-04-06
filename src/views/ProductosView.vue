@@ -1,33 +1,26 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue' // Elimina onMounted
+import { ref, watch } from 'vue'
 import http from '@/plugins/axios'
-import { useRouter, useRoute } from 'vue-router' // Importa useRoute
+import { useRouter, useRoute } from 'vue-router'
 import { usarCarrito } from '@/funciones/UsarCarrito'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
-import type { Producto } from '@/models/producto' // Asegúrate de que esta importación esté solo una vez
+import type { Producto } from '@/models/producto'
 
 const router = useRouter()
-const route = useRoute() // 👈 Objeto de ruta
+const route = useRoute()
 const productos = ref<Producto[]>([])
 const cargando = ref(false)
 const { agregarProducto } = usarCarrito()
 
-// 🔐 modal de login
 const mostrarModalLogin = ref(false)
 
 function estaLogueado(): boolean {
-  return !!localStorage.getItem('token') // cambia 'token' si usas otro nombre
+  return !!localStorage.getItem('token')
 }
 
-// ❌ ELIMINA la función 'obtenerProductos' ya que 'cargarProductos' la reemplazará.
-// ❌ ELIMINA la línea 'onMounted(obtenerProductos)'
-
 const añadirAlCarrito = (producto: Producto) => {
-  if (!estaLogueado()) {
-    mostrarModalLogin.value = true
-    return
-  }
+  if (!estaLogueado()) { mostrarModalLogin.value = true; return }
   agregarProducto(producto, 1)
 }
 
@@ -39,15 +32,10 @@ const irALogin = () => {
   router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
 }
 
-// ✅ Función ÚNICA para cargar productos, usando el término de búsqueda
 const cargarProductos = async (terminoBusqueda: string = '') => {
-  cargando.value = true // Construye la URL de la API: si hay término, lo añade como query parameter 'q'
-  const url = terminoBusqueda
-    ? `productos?q=${terminoBusqueda}` // Tu backend debe saber cómo filtrar con 'q'
-    : 'productos'
-
+  cargando.value = true
+  const url = terminoBusqueda ? `productos?q=${terminoBusqueda}` : 'productos'
   try {
-    // 2. Llama a tu backend
     const res = await http.get(url)
     productos.value = res.data
   } catch (error) {
@@ -57,55 +45,68 @@ const cargarProductos = async (terminoBusqueda: string = '') => {
   }
 }
 
-// ✅ 3. Observar cambios en el parámetro 'q' de la URL
-// Esta función se ejecuta al inicio (por { immediate: true }) y cada vez que el
-// MainHeader redirige con un nuevo término.
 watch(
-  () => route.query.q, // Observa el valor del query parameter 'q'
-  (newQ) => {
-    // newQ es el nuevo valor de 'q' o undefined si se eliminó
-    cargarProductos((newQ as string) || '')
-  },
-  { immediate: true }, // Esto asegura que la función se ejecute al montar el componente.
+  () => route.query.q,
+  (newQ) => { cargarProductos((newQ as string) || '') },
+  { immediate: true },
 )
 </script>
 
 <template>
-  <section class="py-5 bg-light">
+  <section class="productos-page">
     <div class="container">
-      <h3 class="fw-bold text-dark mb-4">Todos los productos</h3>
-
-      <!-- Estado de carga -->
-      <div v-if="cargando" class="text-center py-5 text-secondary">Cargando productos...</div>
-
-      <div v-else-if="productos.length === 0" class="text-center py-5 text-muted">
-        No hay productos disponibles.
+      <!-- Header -->
+      <div class="page-header">
+        <div>
+          <span class="section-tag">🍰 Catálogo</span>
+          <h2 class="page-titulo">Todos los productos</h2>
+        </div>
+        <p class="page-sub" v-if="!cargando && productos.length > 0">
+          {{ productos.length }} productos disponibles
+        </p>
       </div>
 
-      <!-- ✅ Tarjetas de productos -->
+      <!-- Cargando -->
+      <div v-if="cargando" class="estado-mensaje">
+        <div class="spinner">
+          <i class="pi pi-spin pi-spinner"></i>
+        </div>
+        <p>Cargando productos...</p>
+      </div>
+
+      <!-- Vacío -->
+      <div v-else-if="productos.length === 0" class="estado-mensaje">
+        <div class="empty-icon">🍩</div>
+        <p>No hay productos disponibles.</p>
+        <small>Vuelve pronto, ¡estamos horneando algo delicioso!</small>
+      </div>
+
+      <!-- Grid de productos -->
       <div v-else class="productos-grid">
         <div
           v-for="producto in productos"
           :key="producto.id"
-          class="card-oferta shadow-sm clickable-card"
+          class="producto-card"
         >
           <div class="imagen-wrapper">
-            <img :src="producto.imagenUrl || '/assets/images/default.jpg'" :alt="producto.nombre" />
+            <img
+              :src="producto.imagenUrl || '/assets/images/default.jpg'"
+              :alt="producto.nombre"
+            />
             <div class="overlay" @click="irADetalle(producto)">
               <i class="bi bi-eye-fill"></i>
+              <span>Ver detalle</span>
             </div>
           </div>
 
           <div class="info-box">
-            <h5>{{ producto.nombre }}</h5>
+            <h5 class="producto-nombre">{{ producto.nombre }}</h5>
             <p class="descripcion">{{ producto.descripcion }}</p>
-
-            <div class="precios">
-              <span class="precio-oferta">Bs. {{ producto.precio }}</span>
+            <div class="precio-row">
+              <span class="precio">Bs. {{ producto.precio }}</span>
             </div>
-
-            <button class="btn-comprar w-100" @click="añadirAlCarrito(producto)">
-              Añadir al carrito
+            <button class="btn-carrito" @click="añadirAlCarrito(producto)">
+              🛒 Añadir al carrito
             </button>
           </div>
         </div>
@@ -113,12 +114,12 @@ watch(
     </div>
   </section>
 
-  <!-- 🔒 Modal de login -->
+  <!-- Modal login -->
   <Dialog
     v-model:visible="mostrarModalLogin"
     modal
     header="Inicia sesión para continuar"
-    :style="{ width: '400px' }"
+    :style="{ width: '90vw', maxWidth: '400px' }"
   >
     <p class="mb-4">Debes iniciar sesión para agregar productos al carrito.</p>
     <div class="d-flex justify-content-end gap-2">
@@ -129,95 +130,196 @@ watch(
 </template>
 
 <style scoped>
-/* ✅ GRID principal: 3 columnas en desktop, 2 en tablet, 1 en móvil */
+.productos-page {
+  background: linear-gradient(180deg, #fff9fb 0%, #fce4ec 100%);
+  padding: 3rem 1rem;
+  min-height: 80vh;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.section-tag {
+  display: inline-block;
+  background: #fce4ec;
+  color: #e91e8c;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 0.3rem 1rem;
+  border-radius: 50px;
+  margin-bottom: 0.5rem;
+}
+
+.page-titulo {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0;
+}
+
+.page-sub {
+  font-size: 0.875rem;
+  color: #f48fb1;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Estados */
+.estado-mensaje {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: #c2185b;
+}
+
+.spinner {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #f48fb1;
+}
+
+.empty-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.estado-mensaje p {
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 0.3rem;
+}
+
+.estado-mensaje small {
+  color: #f48fb1;
+  font-size: 0.875rem;
+}
+
+/* Grid */
 .productos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1.5rem;
 }
 
-/* Tarjeta de producto */
-.card-oferta {
-  background-color: #faf0e6;
-  border-radius: 12px;
+/* Tarjeta */
+.producto-card {
+  background: white;
+  border-radius: 16px;
   overflow: hidden;
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
+  box-shadow: 0 4px 20px rgba(233, 30, 140, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  border-color: #1a202c;
-  border: 1px solid;
-}
-.card-oferta:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-  background-color: white;
+  border: 1px solid #fce4ec;
 }
 
-/* Imagen y overlay */
+.producto-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(233, 30, 140, 0.2);
+}
+
 .imagen-wrapper {
   position: relative;
-  height: 180px;
+  height: 200px;
   overflow: hidden;
 }
+
 .imagen-wrapper img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s ease;
 }
+
+.producto-card:hover .imagen-wrapper img {
+  transform: scale(1.06);
+}
+
 .overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(43, 108, 176, 0.45);
-  opacity: 0;
+  inset: 0;
+  background: rgba(194, 24, 91, 0.55);
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  transition: opacity 0.3s ease;
-}
-.overlay i {
-  font-size: 2rem;
+  justify-content: center;
+  gap: 0.4rem;
   color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  cursor: pointer;
 }
-.card-oferta:hover .overlay {
+
+.overlay i {
+  font-size: 1.8rem;
+}
+
+.producto-card:hover .overlay {
   opacity: 1;
 }
 
-/* Info y botones */
 .info-box {
-  padding: 1rem;
+  padding: 1.25rem;
   text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
-.info-box h5 {
-  font-weight: 600;
-  margin-bottom: 0.3rem;
-  color: #1a202c;
-}
-.descripcion {
-  font-size: 0.9rem;
-  color: #6b7280;
-  height: 38px;
-  overflow: hidden;
-}
-.precio-oferta {
-  color: #2b6cb0;
+
+.producto-nombre {
   font-weight: 700;
-  font-size: 1.1rem;
+  color: #880e4f;
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
 }
-.btn-comprar {
-  background-color: #2b6cb0;
+
+.descripcion {
+  font-size: 0.85rem;
+  color: #999;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.precio-row {
+  margin-bottom: 0.85rem;
+}
+
+.precio {
+  font-weight: 800;
+  color: #e91e8c;
+  font-size: 1.15rem;
+}
+
+.btn-carrito {
+  width: 100%;
+  background: linear-gradient(135deg, #e91e8c, #f48fb1);
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
-  transition: background-color 0.2s ease;
+  border-radius: 50px;
+  padding: 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
 }
-.btn-comprar:hover {
-  background-color: #1a365d;
+
+.btn-carrito:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
 }
 </style>

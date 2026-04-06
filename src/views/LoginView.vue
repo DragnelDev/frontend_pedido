@@ -113,6 +113,9 @@ async function onSubmit() {
           </span>
           <span v-else>🍰 Ingresar</span>
         </button>
+      <button type="button" class="btn-submit" @click="$router.push('/')">
+          Volver a Inicio
+      </button>
       </form>
 
       <!-- Registro -->
