@@ -38,7 +38,7 @@ const slides = ref([
                 <span class="badge-label">🍰 Berry Sweet</span>
                 <h1 class="hero-titulo">{{ slide.titulo }}</h1>
                 <p class="hero-texto">{{ slide.texto }}</p>
-                <RouterLink to="/shop" class="btn-hero">Pedir ahora</RouterLink>
+                <RouterLink to="/productos" class="btn-hero">Pedir ahora</RouterLink>
               </div>
               <div class="col-12 col-md-6 mt-4 mt-md-0 img-section">
                 <img :src="slide.imagen" alt="banner pastelería" class="hero-img" />

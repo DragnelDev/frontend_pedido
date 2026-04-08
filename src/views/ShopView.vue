@@ -1,34 +1,51 @@
 <template>
-  <section class="py-5" style="background-color: #fff0f3; min-height: 100vh;">
+  <section class="py-5" style="background-color: #fff0f3; min-height: 100vh">
     <div class="container">
-
       <div class="d-flex align-items-center gap-3 mb-4">
-        <h2 class="mb-0 fw-bold" style="color: #d63384;">Nuestra Pastelería</h2>
+        <h2 class="mb-0 fw-bold" style="color: #d63384">Nuestra Pastelería</h2>
         <span v-if="selectedCategory" class="badge rounded-pill bg-pink text-white px-3">
           {{ selectedCategory }}
         </span>
-        <button v-if="selectedCategory" class="btn btn-sm btn-outline-secondary border-0" @click="clearCategory">
+        <button
+          v-if="selectedCategory"
+          class="btn btn-sm btn-outline-secondary border-0"
+          @click="clearCategory"
+        >
           <i class="bi bi-x-circle"></i> Ver todo
         </button>
       </div>
 
-      <div class="row g-4">
+      <div v-if="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-3 text-muted">Cargando productos...</p>
+      </div>
+
+      <div v-else-if="error" class="alert alert-danger" role="alert">
+        {{ error }}
+      </div>
+
+      <div v-else class="row g-4">
         <div class="col-6 col-md-4 col-xl-3" v-for="p in visibleProducts" :key="p.id">
           <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
             <div class="position-relative">
-              <img :src="p.image" class="card-img-top" :alt="p.name" style="height: 200px; object-fit: cover;" />
-              <div class="category-tag">{{ p.category }}</div>
+              <img
+                :src="p.imagenUrl"
+                class="card-img-top"
+                :alt="p.nombre"
+                style="height: 200px; object-fit: cover"
+              />
+              <div class="category-tag">{{ p.categoria?.nombre }}</div>
             </div>
 
             <div class="card-body text-center">
-              <h5 class="fw-bold mb-1" style="color: #5c3d2e;">{{ p.name }}</h5>
-              <p class="text-muted small mb-3">{{ p.description }}</p>
+              <h5 class="fw-bold mb-1" style="color: #5c3d2e">{{ p.nombre }}</h5>
+              <p class="text-muted small mb-3">{{ p.descripcion }}</p>
 
               <div class="d-flex justify-content-between align-items-center mt-auto">
-                <span class="fs-5 fw-bold" style="color: #d63384;">{{ p.price }} Bs.</span>
-                <button class="btn btn-pink rounded-pill px-3 shadow-sm">
-                  Añadir
-                </button>
+                <span class="fs-5 fw-bold" style="color: #d63384">{{ p.precio }} Bs.</span>
+                <button class="btn btn-pink rounded-pill px-3 shadow-sm">Añadir</button>
               </div>
             </div>
           </div>
@@ -43,53 +60,42 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { productoService } from '@/servicios/productoService'
+import type { Producto } from '@/models/producto'
 
 const route = useRoute()
 const router = useRouter()
 
-// Datos actualizados para una pastelería
-const products = [
-  {
-    id: 1,
-    name: 'Pastel de Fresas',
-    category: 'Tortas',
-    description: 'Bizcocho de vainilla con crema natural.',
-    image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?q=80&w=500',
-    price: 150
-  },
-  {
-    id: 2,
-    name: 'Macarons Mix',
-    category: 'Galletas',
-    description: 'Caja de 12 unidades sabores surtidos.',
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRoLSGa1DDYtCdiB9fjV3NaYMspffc4taXfTQ&s',
-    price: 65
-  },
-  {
-    id: 3,
-    name: 'Cupcake Velvet',
-    category: 'Cupcakes',
-    description: 'Suave masa roja con frosting de queso.',
-    image: 'https://images.unsplash.com/photo-1614707267537-b85aaf00c4b7?q=80&w=500',
-    price: 15
-  },
-  {
-    id: 4,
-    name: 'Cheesecake Frutos Rojos',
-    category: 'Tortas',
-    description: 'Base crujiente y mermelada artesanal.',
-    image: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?q=80&w=500',
-    price: 120
+const products = ref<Producto[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+onMounted(async () => {
+  await cargarProductos()
+})
+
+async function cargarProductos() {
+  loading.value = true
+  error.value = null
+  try {
+    products.value = await productoService.obtenerProductos()
+  } catch (err) {
+    error.value = 'Error al cargar los productos'
+    console.error(err)
+  } finally {
+    loading.value = false
   }
-]
+}
 
 const selectedCategory = computed(() => (route.query.category as string) || '')
 
 const visibleProducts = computed(() => {
-  if (!selectedCategory.value) return products
-  return products.filter((p) => p.category.toLowerCase() === selectedCategory.value.toLowerCase())
+  if (!selectedCategory.value) return products.value
+  return products.value.filter(
+    (p) => p.categoria?.nombre?.toLowerCase() === selectedCategory.value.toLowerCase(),
+  )
 })
 
 function clearCategory() {
