@@ -33,16 +33,19 @@ const slides = ref([
       <SwiperSlide v-for="(slide, i) in slides" :key="i">
         <div class="slide-inner">
           <div class="container">
-            <div class="row align-items-center">
-              <div class="col-12 col-md-6 text-section">
+            <div class="row align-items-center justify-content-center">
+
+              <div class="col-12 col-md-6 text-section text-center text-md-start">
                 <span class="badge-label">🍰 Berry Sweet</span>
                 <h1 class="hero-titulo">{{ slide.titulo }}</h1>
                 <p class="hero-texto">{{ slide.texto }}</p>
-                <RouterLink to="/productos" class="btn-hero">Pedir ahora</RouterLink>
+                <RouterLink to="/shop" class="btn-hero">Pedir ahora</RouterLink>
               </div>
+
               <div class="col-12 col-md-6 mt-4 mt-md-0 img-section">
                 <img :src="slide.imagen" alt="banner pastelería" class="hero-img" />
               </div>
+
             </div>
           </div>
         </div>
@@ -138,11 +141,14 @@ const slides = ref([
 @media (max-width: 768px) {
   .slide-inner {
     padding: 2.5rem 1rem;
-    text-align: center;
   }
 
   .text-section {
     order: 1;
+    /* AGREGADO: Forzar a que los elementos internos (como el badge) se comporten centrados */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .img-section {
@@ -150,8 +156,9 @@ const slides = ref([
   }
 
   .btn-hero {
-    width: 100%;
-    text-align: center;
+    /* MODIFICADO: Quitamos el width 100% para que mantenga su tamaño bonito de píldora pero centrado */
+    width: auto;
+    max-width: max-content;
   }
 }
 </style>

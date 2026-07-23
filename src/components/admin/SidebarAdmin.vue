@@ -2,28 +2,18 @@
 import { useRouter, useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
+import { icon } from 'leaflet';
+
+const emit = defineEmits<{ (e: 'close'): void }>()
 
 const router = useRouter()
 const route = useRoute()
 const nombreUsuario = ref('')
 const rolUsuario = ref('')
-const sidebarOpen = ref(false)
+const imagenUsuario = ref('')
 
 function isActive(path: string) {
   return route.path.startsWith(path)
-}
-
-function toggleSidebar() {
-  sidebarOpen.value = !sidebarOpen.value
-}
-
-function closeSidebar() {
-  sidebarOpen.value = false
-}
-
-function navigateTo(path: string) {
-  router.push(path)
-  closeSidebar()
 }
 
 onMounted(() => {
@@ -35,6 +25,7 @@ onMounted(() => {
     const nombreCompleto = `${nombre} ${apellidos}`.trim()
     nombreUsuario.value = nombreCompleto || decoded?.email?.split('@')[0] || 'Usuario'
     rolUsuario.value = decoded?.rol || 'EMPLEADO'
+    imagenUsuario.value = decoded?.imagenUrl || ''
   }
 })
 
@@ -44,34 +35,42 @@ function cerrarSesion() {
   router.push('/login')
 }
 
+function navigate(path: string) {
+  router.push(path)
+  emit('close') // Cierra el sidebar en móvil al navegar
+}
+
+function irAlPerfil() {
+  router.push('/admin/perfil-empleado')
+  emit('close') // Cierra el menú lateral si está en un dispositivo móvil
+}
+
 const navItems = [
+  { label: 'Reportes', icon: 'pi pi-chart-bar', path: '/admin/reportes' },
+  { label: 'Registar Ventas', icon: 'pi pi-plus', path: '/admin/registrar-venta' },
   { label: 'Productos', icon: 'pi pi-box', path: '/admin/productos' },
   { label: 'Categorías', icon: 'pi pi-tags', path: '/admin/categorias' },
   { label: 'Pedidos', icon: 'pi pi-shopping-cart', path: '/admin/pedidos' },
   { label: 'Pagos', icon: 'pi pi-credit-card', path: '/admin/pagos' },
+  { label: 'Empleados', icon: 'pi pi-users', path: '/admin/empleados' },
+  { label: 'Clientes', icon: 'pi pi-user', path: '/admin/clientes' },
+  { label: 'usuarios', icon: 'pi pi-user-edit', path: '/admin/usuarios' },
 ]
 </script>
 
 <template>
-  <!-- Botón Hamburguesa (visible en móvil) -->
-  <button class="hamburger-btn" @click="toggleSidebar">
-    <i class="pi" :class="sidebarOpen ? 'pi-times' : 'pi-bars'"></i>
-  </button>
+  <nav class="sidebar-nav">
 
-  <!-- Overlay para cerrar sidebar en móvil -->
-  <div v-if="sidebarOpen" class="sidebar-overlay" @click="closeSidebar"></div>
-
-  <nav class="sidebar-nav" :class="{ 'sidebar-open': sidebarOpen }">
     <!-- Marca -->
     <div class="sidebar-brand">
       <div class="brand-icon">🍓</div>
-      <div>
+      <div class="brand-text">
         <div class="brand-name">Berry Sweet</div>
         <div class="brand-sub">Panel de administración</div>
       </div>
     </div>
 
-    <!-- Menú -->
+    <!-- Menú de navegación -->
     <div class="nav-menu">
       <p class="menu-label">Gestión</p>
       <button
@@ -79,23 +78,34 @@ const navItems = [
         :key="item.path"
         class="nav-btn"
         :class="{ activo: isActive(item.path) }"
-        @click="navigateTo(item.path)"
+        @click="navigate(item.path)"
       >
         <i :class="item.icon"></i>
         <span>{{ item.label }}</span>
       </button>
     </div>
 
-    <!-- Separador -->
+    <!-- Separador flexible -->
     <div class="sidebar-spacer"></div>
 
-    <!-- Usuario -->
-    <div class="user-card">
-      <div class="user-avatar">{{ nombreUsuario.charAt(0).toUpperCase() }}</div>
+    <!-- Tarjeta de usuario -->
+    <div 
+      class="user-card interactiva" 
+      @click="irAlPerfil" 
+      role="button" 
+      tabindex="0"
+      title="Ver mi perfil"
+      @keydown.enter="irAlPerfil"
+    >
+      <div class="user-avatar">
+        <img v-if="imagenUsuario" :src="imagenUsuario" :alt="nombreUsuario" class="avatar-img" />
+        <span v-else class="avatar-inicial">{{ nombreUsuario.charAt(0).toUpperCase() }}</span>
+      </div>
       <div class="user-info">
         <div class="user-name">{{ nombreUsuario }}</div>
         <div class="user-role">{{ rolUsuario }}</div>
       </div>
+      <i class="pi pi-chevron-right icon-ir"></i>
     </div>
 
     <!-- Cerrar sesión -->
@@ -103,6 +113,7 @@ const navItems = [
       <i class="pi pi-sign-out"></i>
       <span>Cerrar Sesión</span>
     </button>
+
   </nav>
 </template>
 
@@ -114,47 +125,10 @@ const navItems = [
   padding: 1.25rem 1rem;
   background: linear-gradient(180deg, #fff0f5 0%, #fce4ec 100%);
   border-right: 2px solid #f8bbd0;
+  box-sizing: border-box;
 }
 
-.hamburger-btn {
-  display: none;
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  width: 44px;
-  height: 44px;
-  border: none;
-  background: linear-gradient(135deg, #e91e8c, #f06292);
-  color: white;
-  border-radius: 10px;
-  font-size: 1.3rem;
-  cursor: pointer;
-  z-index: 999;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(233, 30, 140, 0.3);
-}
-
-.hamburger-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(233, 30, 140, 0.4);
-}
-
-.hamburger-btn:active {
-  transform: scale(0.95);
-}
-
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 99;
-}
-
-/* Marca */
+/* ── Marca ── */
 .sidebar-brand {
   display: flex;
   align-items: center;
@@ -164,11 +138,17 @@ const navItems = [
   background: white;
   border-radius: 14px;
   box-shadow: 0 2px 12px rgba(233, 30, 140, 0.1);
+  flex-shrink: 0;
 }
 
 .brand-icon {
   font-size: 2rem;
   line-height: 1;
+  flex-shrink: 0;
+}
+
+.brand-text {
+  min-width: 0;
 }
 
 .brand-name {
@@ -176,15 +156,19 @@ const navItems = [
   font-size: 1.05rem;
   color: #c2185b;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .brand-sub {
   font-size: 0.72rem;
   color: #f48fb1;
   font-weight: 500;
+  white-space: nowrap;
 }
 
-/* Menú */
+/* ── Menú ── */
 .menu-label {
   font-size: 0.7rem;
   font-weight: 700;
@@ -218,6 +202,7 @@ const navItems = [
     transform 0.15s,
     color 0.2s;
   text-align: left;
+  min-height: 44px; /* accesibilidad táctil */
 }
 
 .nav-btn i {
@@ -226,6 +211,7 @@ const navItems = [
   text-align: center;
   color: #f48fb1;
   transition: color 0.2s;
+  flex-shrink: 0;
 }
 
 .nav-btn:hover {
@@ -249,13 +235,13 @@ const navItems = [
   color: white;
 }
 
-/* Separador flexible */
+/* ── Separador ── */
 .sidebar-spacer {
   flex: 1;
 }
 
-/* Usuario */
-.user-card {
+/* ── Tarjeta de usuario ── */
+.user-card.interactiva {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -265,6 +251,39 @@ const navItems = [
   margin-bottom: 0.75rem;
   box-shadow: 0 2px 10px rgba(233, 30, 140, 0.08);
   border: 1px solid #fce4ec;
+  flex-shrink: 0;
+  min-width: 0;
+  
+  /* ── Nuevas propiedades de interacción ── */
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+/* Efecto hover sobre la tarjeta */
+.user-card.interactiva:hover {
+  background: #fff5f8;
+  border-color: #f48fb1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.15);
+}
+
+/* Foco de accesibilidad al usar teclado (opcional) */
+.user-card.interactiva:focus-visible {
+  outline: 2px solid #e91e8c;
+  outline-offset: 2px;
+}
+
+/* Estilo para el icono sutil de la flecha */
+.icon-ir {
+  font-size: 0.75rem;
+  color: #f48fb1;
+  transition: transform 0.2s;
+}
+
+.user-card.interactiva:hover .icon-ir {
+  color: #e91e8c;
+  transform: translateX(2px);
 }
 
 .user-avatar {
@@ -279,6 +298,28 @@ const navItems = [
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-inicial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.user-info {
+  min-width: 0;
+  flex: 1;
 }
 
 .user-name {
@@ -298,7 +339,7 @@ const navItems = [
   font-weight: 600;
 }
 
-/* Logout */
+/* ── Logout ── */
 .btn-logout {
   display: flex;
   align-items: center;
@@ -313,10 +354,12 @@ const navItems = [
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
+  min-height: 44px;
   transition:
     background 0.2s,
     transform 0.2s,
     box-shadow 0.2s;
+  flex-shrink: 0;
 }
 
 .btn-logout:hover {
@@ -327,187 +370,15 @@ const navItems = [
   box-shadow: 0 4px 14px rgba(229, 62, 62, 0.3);
 }
 
-/* Tablet: Ajustes menores */
-@media (max-width: 900px) {
-  .sidebar-nav {
-    padding: 1rem 0.8rem;
-  }
-
-  .sidebar-brand {
-    gap: 0.6rem;
-    padding: 0.7rem;
-  }
-
-  .brand-name {
-    font-size: 0.98rem;
-  }
-
-  .brand-sub {
-    font-size: 0.68rem;
-  }
-
-  .nav-btn {
-    padding: 0.7rem 0.85rem;
-    font-size: 0.86rem;
-  }
-
-  .nav-btn i {
-    width: 18px;
-  }
-
-  .user-card {
-    gap: 0.6rem;
-    padding: 0.75rem;
-  }
-
-  .user-name {
-    font-size: 0.82rem;
-  }
-
-  .user-role {
-    font-size: 0.66rem;
-  }
-
-  .btn-logout {
-    padding: 0.65rem;
-    font-size: 0.82rem;
-  }
-}
-
-/* Móvil: Sidebar colapsable */
+/* ── Responsive ── */
 @media (max-width: 768px) {
-  .hamburger-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .sidebar-overlay {
-    display: block;
-  }
-
   .sidebar-nav {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: auto;
-    bottom: 0;
-    width: 280px;
-    max-width: 85vw;
-    height: 100vh;
-    padding: 1rem 0.8rem;
-    z-index: 100;
-    border-right: 2px solid #f8bbd0;
-    border-radius: 0;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-    overflow-y: auto;
-  }
-
-  .sidebar-nav.sidebar-open {
-    transform: translateX(0);
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-  }
-
-  .sidebar-brand {
-    margin-top: 0.5rem;
-    margin-bottom: 1.2rem;
-  }
-
-  .nav-btn span {
-    font-weight: 600;
-  }
-
-  .user-card {
-    margin-bottom: 0.5rem;
-  }
-
-  .btn-logout {
-    margin-top: auto;
-  }
-}
-
-/* Móvil pequeño: Ajustes adicionales */
-@media (max-width: 480px) {
-  .hamburger-btn {
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
-    top: 0.75rem;
-    left: 0.75rem;
-  }
-
-  .sidebar-nav {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .sidebar-brand {
-    gap: 0.6rem;
-    padding: 0.65rem;
-    margin-bottom: 1rem;
-  }
-
-  .brand-icon {
-    font-size: 1.8rem;
-  }
-
-  .brand-name {
-    font-size: 0.95rem;
-  }
-
-  .brand-sub {
-    font-size: 0.65rem;
-  }
-
-  .menu-label {
-    font-size: 0.65rem;
-    margin-left: 0.3rem;
-    margin-bottom: 0.3rem;
-  }
-
-  .nav-menu {
-    gap: 0.2rem;
+    padding: 1.5rem 1rem 1.25rem;
   }
 
   .nav-btn {
-    padding: 0.65rem 0.8rem;
-    font-size: 0.85rem;
-  }
-
-  .nav-btn i {
-    font-size: 0.95rem;
-    width: 18px;
-  }
-
-  .user-card {
-    gap: 0.6rem;
-    padding: 0.7rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .user-avatar {
-    width: 35px;
-    height: 35px;
-    font-size: 0.9rem;
-  }
-
-  .user-name {
-    font-size: 0.78rem;
-  }
-
-  .user-role {
-    font-size: 0.62rem;
-  }
-
-  .btn-logout {
-    padding: 0.6rem;
-    font-size: 0.78rem;
-    gap: 0.4rem;
-  }
-
-  .btn-logout i {
-    font-size: 0.85rem;
+    font-size: 1rem;
+    padding: 0.85rem 1rem;
   }
 }
 </style>

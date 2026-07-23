@@ -1,26 +1,27 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { Teleport } from 'vue'
 import http from '@/plugins/axios'
 import { useRouter, useRoute } from 'vue-router'
 import { usarCarrito } from '@/funciones/UsarCarrito'
-import Dialog from 'primevue/dialog'
-import Button from 'primevue/button'
 import type { Producto } from '@/models/producto'
 
 const router = useRouter()
 const route = useRoute()
 const productos = ref<Producto[]>([])
 const cargando = ref(false)
-const { agregarProducto } = usarCarrito()
-
 const mostrarModalLogin = ref(false)
+const { agregarProducto } = usarCarrito()
 
 function estaLogueado(): boolean {
   return !!localStorage.getItem('token')
 }
 
 const añadirAlCarrito = (producto: Producto) => {
-  if (!estaLogueado()) { mostrarModalLogin.value = true; return }
+  if (!estaLogueado()) {
+    mostrarModalLogin.value = true
+    return
+  }
   agregarProducto(producto, 1)
 }
 
@@ -29,6 +30,7 @@ const irADetalle = (producto: Producto) => {
 }
 
 const irALogin = () => {
+  mostrarModalLogin.value = false
   router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
 }
 
@@ -47,38 +49,33 @@ const cargarProductos = async (terminoBusqueda: string = '') => {
 
 watch(
   () => route.query.q,
-  (newQ) => { cargarProductos((newQ as string) || '') },
+  (newQ) => cargarProductos((newQ as string) || ''),
   { immediate: true },
 )
 </script>
 
 <template>
-  <section class="productos-page">
+  <section class="shop-section">
     <div class="container">
-      <!-- Header -->
-      <div class="page-header">
-        <div>
-          <span class="section-tag">🍰 Catálogo</span>
-          <h2 class="page-titulo">Todos los productos</h2>
+      <h3 class="shop-title">
+        <i class="pi pi-heart-fill"></i> Todos los productos
+      </h3>
+
+      <!-- Skeletons de carga -->
+      <div v-if="cargando" class="productos-grid">
+        <div v-for="n in 6" :key="n" class="skeleton-card">
+          <div class="skel skel-img"></div>
+          <div class="skel skel-line" style="width: 65%"></div>
+          <div class="skel skel-line" style="width: 45%"></div>
+          <div class="skel skel-line" style="width: 30%"></div>
+          <div class="skel skel-btn"></div>
         </div>
-        <p class="page-sub" v-if="!cargando && productos.length > 0">
-          {{ productos.length }} productos disponibles
-        </p>
       </div>
 
-      <!-- Cargando -->
-      <div v-if="cargando" class="estado-mensaje">
-        <div class="spinner">
-          <i class="pi pi-spin pi-spinner"></i>
-        </div>
-        <p>Cargando productos...</p>
-      </div>
-
-      <!-- Vacío -->
-      <div v-else-if="productos.length === 0" class="estado-mensaje">
-        <div class="empty-icon">🍩</div>
+      <!-- Estado vacío -->
+      <div v-else-if="productos.length === 0" class="empty-state">
+        <i class="pi pi-search" style="font-size: 2.5rem; color: #f48fb1"></i>
         <p>No hay productos disponibles.</p>
-        <small>Vuelve pronto, ¡estamos horneando algo delicioso!</small>
       </div>
 
       <!-- Grid de productos -->
@@ -86,27 +83,24 @@ watch(
         <div
           v-for="producto in productos"
           :key="producto.id"
-          class="producto-card"
+          class="product-card"
         >
-          <div class="imagen-wrapper">
+          <div class="img-wrapper">
             <img
               :src="producto.imagenUrl || '/assets/images/default.jpg'"
               :alt="producto.nombre"
             />
             <div class="overlay" @click="irADetalle(producto)">
-              <i class="bi bi-eye-fill"></i>
-              <span>Ver detalle</span>
+              <i class="pi pi-eye"></i>
             </div>
           </div>
 
           <div class="info-box">
-            <h5 class="producto-nombre">{{ producto.nombre }}</h5>
+            <h5>{{ producto.nombre }}</h5>
             <p class="descripcion">{{ producto.descripcion }}</p>
-            <div class="precio-row">
-              <span class="precio">Bs. {{ producto.precio }}</span>
-            </div>
+            <p class="precio">Bs. {{ producto.precio }}</p>
             <button class="btn-carrito" @click="añadirAlCarrito(producto)">
-              🛒 Añadir al carrito
+              <i class="pi pi-shopping-cart"></i> Añadir al carrito
             </button>
           </div>
         </div>
@@ -114,212 +108,264 @@ watch(
     </div>
   </section>
 
-  <!-- Modal login -->
-  <Dialog
-    v-model:visible="mostrarModalLogin"
-    modal
-    header="Inicia sesión para continuar"
-    :style="{ width: '90vw', maxWidth: '400px' }"
-  >
-    <p class="mb-4">Debes iniciar sesión para agregar productos al carrito.</p>
-    <div class="d-flex justify-content-end gap-2">
-      <Button label="Cerrar" class="p-button-text" @click="mostrarModalLogin = false" />
-      <Button label="Ir al login" @click="irALogin" />
-    </div>
-  </Dialog>
+  <!-- Modal login con Teleport (sin PrimeVue Dialog) -->
+  <Teleport to="body">
+    <Transition name="modal-fade">
+      <div v-if="mostrarModalLogin" class="modal-backdrop" @click.self="mostrarModalLogin = false">
+        <div class="modal-box">
+          <div class="modal-icon">
+            <i class="pi pi-lock"></i>
+          </div>
+          <h4 class="modal-title">Inicia sesión para continuar</h4>
+          <p class="modal-text">Debes iniciar sesión para agregar productos al carrito.</p>
+          <div class="modal-actions">
+            <button class="btn-outline" @click="mostrarModalLogin = false">Cerrar</button>
+            <button class="btn-primary" @click="irALogin">Ir al login</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
-.productos-page {
-  background: linear-gradient(180deg, #fff9fb 0%, #fce4ec 100%);
-  padding: 3rem 1rem;
-  min-height: 80vh;
+/* ── Sección principal ── */
+.shop-section {
+  padding: 2.5rem 0;
+  background: #fff0f5;
+  min-height: 100vh;
 }
 
-.page-header {
+.shop-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #880e4f;
+  margin-bottom: 1.75rem;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
 }
-
-.section-tag {
-  display: inline-block;
-  background: #fce4ec;
+.shop-title i {
   color: #e91e8c;
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 0.3rem 1rem;
-  border-radius: 50px;
-  margin-bottom: 0.5rem;
 }
 
-.page-titulo {
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  font-weight: 800;
-  color: #880e4f;
-  margin: 0;
-}
-
-.page-sub {
-  font-size: 0.875rem;
-  color: #f48fb1;
-  font-weight: 600;
-  margin: 0;
-}
-
-/* Estados */
-.estado-mensaje {
-  text-align: center;
-  padding: 4rem 1rem;
-  color: #c2185b;
-}
-
-.spinner {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-  color: #f48fb1;
-}
-
-.empty-icon {
-  font-size: 3.5rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.estado-mensaje p {
-  font-weight: 600;
-  font-size: 1.05rem;
-  margin-bottom: 0.3rem;
-}
-
-.estado-mensaje small {
-  color: #f48fb1;
-  font-size: 0.875rem;
-}
-
-/* Grid */
+/* ── Grid ── */
 .productos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1.5rem;
 }
 
-/* Tarjeta */
-.producto-card {
-  background: white;
+/* ── Tarjeta ── */
+.product-card {
+  background: #fff;
   border-radius: 16px;
+  border: 1px solid #fce4ec;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(233, 30, 140, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
   display: flex;
   flex-direction: column;
-  border: 1px solid #fce4ec;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 28px rgba(233, 30, 140, 0.15);
 }
 
-.producto-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 32px rgba(233, 30, 140, 0.2);
-}
-
-.imagen-wrapper {
+/* Imagen */
+.img-wrapper {
   position: relative;
-  height: 200px;
+  height: 180px;
   overflow: hidden;
+  background: #fce4ec;
 }
-
-.imagen-wrapper img {
+.img-wrapper img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  transition: transform 0.3s ease;
 }
-
-.producto-card:hover .imagen-wrapper img {
-  transform: scale(1.06);
+.product-card:hover .img-wrapper img {
+  transform: scale(1.04);
 }
-
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(194, 24, 91, 0.55);
+  background: rgba(233, 30, 140, 0.35);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  color: white;
-  font-weight: 700;
-  font-size: 0.9rem;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
   cursor: pointer;
 }
-
 .overlay i {
-  font-size: 1.8rem;
+  font-size: 1.75rem;
+  color: white;
 }
-
-.producto-card:hover .overlay {
+.product-card:hover .overlay {
   opacity: 1;
 }
 
+/* Info */
 .info-box {
-  padding: 1.25rem;
-  text-align: center;
-  flex: 1;
+  padding: 1rem 1.1rem 1.25rem;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  gap: 0.3rem;
 }
-
-.producto-nombre {
-  font-weight: 700;
-  color: #880e4f;
+.info-box h5 {
   font-size: 1rem;
-  margin-bottom: 0.4rem;
+  font-weight: 600;
+  color: #5d1049;
+  margin: 0;
 }
-
 .descripcion {
   font-size: 0.85rem;
-  color: #999;
-  flex: 1;
+  color: #9e9e9e;
+  overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin-bottom: 0.75rem;
-  line-height: 1.4;
+  margin: 0;
 }
-
-.precio-row {
-  margin-bottom: 0.85rem;
-}
-
 .precio {
-  font-weight: 800;
-  color: #e91e8c;
   font-size: 1.15rem;
+  font-weight: 700;
+  color: #e91e8c;
+  margin: 0.25rem 0 0;
 }
 
+/* Botón carrito */
 .btn-carrito {
-  width: 100%;
-  background: linear-gradient(135deg, #e91e8c, #f48fb1);
+  margin-top: auto;
+  background: linear-gradient(135deg, #e91e8c, #f06292);
   color: white;
   border: none;
   border-radius: 50px;
-  padding: 0.65rem;
-  font-size: 0.875rem;
-  font-weight: 700;
+  padding: 0.5rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: opacity 0.2s ease;
+}
+.btn-carrito:hover {
+  opacity: 0.88;
 }
 
-.btn-carrito:hover {
-  opacity: 0.9;
-  transform: scale(1.02);
+/* ── Skeletons ── */
+.skeleton-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #fce4ec;
+  overflow: hidden;
+  padding-bottom: 1rem;
+}
+.skel {
+  background: linear-gradient(90deg, #fce4ec 25%, #f8bbd0 50%, #fce4ec 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+.skel-img { height: 180px; }
+.skel-line {
+  height: 12px;
+  border-radius: 6px;
+  margin: 10px 1rem 0;
+}
+.skel-btn {
+  height: 36px;
+  border-radius: 50px;
+  margin: 12px 1rem 0;
+}
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
+/* ── Estado vacío ── */
+.empty-state {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: #bdbdbd;
+}
+.empty-state p {
+  margin-top: 0.75rem;
+  font-size: 1rem;
+}
+
+/* ── Modal ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(136, 14, 79, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-box {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem 2rem 1.75rem;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  border: 1.5px solid #fce4ec;
+}
+.modal-icon {
+  font-size: 2.5rem;
+  color: #e91e8c;
+  margin-bottom: 0.75rem;
+}
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #880e4f;
+  margin: 0 0 0.5rem;
+}
+.modal-text {
+  font-size: 0.9rem;
+  color: #757575;
+  margin: 0 0 1.5rem;
+}
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.btn-outline {
+  background: transparent;
+  border: 1.5px solid #e91e8c;
+  color: #e91e8c;
+  border-radius: 50px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-outline:hover { background: #fce4ec; }
+.btn-primary {
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-primary:hover { opacity: 0.88; }
+
+/* ── Transición del modal ── */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
 }
 </style>

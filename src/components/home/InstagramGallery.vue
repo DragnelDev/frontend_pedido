@@ -19,165 +19,236 @@ const misImagenes = [
 </script>
 
 <template>
-  <section class="instagram-gallery py-5 text-center">
+  <section class="ig-section">
     <div class="container">
-      <div class="section-header mb-4">
-        <span class="section-tag">📸 Redes sociales</span>
-        <h2 class="section-titulo">Síguenos en Instagram</h2>
-        <p class="section-subtitulo">
-          <a href="https://instagram.com/berrysweet" target="_blank" class="ig-handle">
-            @berrysweet
-          </a>
-          — Comparte tus momentos dulces con nosotros
-        </p>
-      </div>
 
-      <!-- Galería placeholder responsiva -->
-      <div class="gallery-grid">
-        <div class="gallery-item" v-for="foto in misImagenes" :key="foto.id">
-          <div class="gallery-image-container">
-            <img :src="foto.url" alt="Galería" class="img-fluid" />
-          </div>
-
-          <a :href="foto.link" target="_blank" class="gallery-hover">
-            <i class="pi pi-instagram"></i>
-            <span>Ver en Instagram</span>
-          </a>
+      <div class="section-header">
+        <div class="header-left">
+          <span class="eyebrow"><span class="eyebrow-dot"></span> Redes sociales</span>
+          <h2 class="section-titulo">Síguenos en Instagram</h2>
+          <p class="section-sub">
+            Comparte tus momentos dulces con nosotros y etiquétanos
+          </p>
         </div>
+        <a
+          href="https://instagram.com/berrysweet"
+          target="_blank"
+          class="handle-pill"
+        >
+          <i class="pi pi-instagram"></i>
+          @berrysweet
+        </a>
       </div>
 
-      <a
-        href="https://instagram.com/berrysweet"
-        target="_blank"
-        class="btn-instagram mt-4 d-inline-block"
-      >
-        <i class="pi pi-instagram me-2"></i>Ver más en Instagram
-      </a>
+      <div class="gallery-grid">
+        <a
+          v-for="foto in misImagenes"
+          :key="foto.id"
+          :href="foto.link"
+          target="_blank"
+          class="gallery-item"
+        >
+          <img :src="foto.url" alt="Berry Sweet en Instagram" class="gallery-img" />
+          <div class="gallery-overlay">
+            <div class="overlay-inner">
+              <i class="pi pi-instagram"></i>
+              <span>Ver en Instagram</span>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <div class="cta-wrap">
+        <a
+          href="https://instagram.com/berrysweet"
+          target="_blank"
+          class="btn-ig"
+        >
+          <i class="pi pi-instagram"></i>
+          Ver más en Instagram
+          <i class="pi pi-arrow-right arrow"></i>
+        </a>
+      </div>
+
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-// Aquí luego agregaremos integración con API de Instagram
+// Aquí luego se puede agregar integración con la API de Instagram
 </script>
 
 <style scoped>
-.instagram-gallery {
-  background: linear-gradient(135deg, #fff0f5 0%, #fce4ec 100%);
+/* ── Base ── */
+.ig-section {
+  padding: 5rem 0 4rem;
+  /* CAMBIADO: Fondo adaptado al degradado lineal */
+  background: linear-gradient(135deg, #fff0f5 0%, #ffe4ef 50%, #ffd6e8 100%);
+}
+.container {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
 }
 
-.section-tag {
-  display: inline-block;
-  background: #f8bbd0;
-  color: #c2185b;
-  font-size: 0.8rem;
+/* ── Header ── */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2.5rem;
+  gap: 1rem;
+}
+.header-left { max-width: 480px; }
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 1.8px;
   text-transform: uppercase;
-  padding: 0.3rem 1rem;
-  border-radius: 50px;
-  margin-bottom: 0.75rem;
+  /* CAMBIADO: Rosa del badge oficial */
+  color: #ff80b0;
+  margin-bottom: 0.5rem;
 }
-
+.eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff80b0;
+  display: inline-block;
+}
 .section-titulo {
-  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
   font-weight: 800;
+  /* CAMBIADO: Título oficial corporativo */
   color: #c2185b;
-  margin-bottom: 0.4rem;
+  letter-spacing: -0.5px;
+  margin: 0 0 0.3rem;
+  line-height: 1.2;
+}
+.section-sub {
+  font-size: 0.9rem;
+  /* CAMBIADO: Color ciruela con opacidad */
+  color: rgba(136, 14, 79, 0.85);
+  margin: 0;
 }
 
-.section-subtitulo {
-  color: #888;
-  font-size: 0.95rem;
-}
-
-.ig-handle {
-  color: #e91e8c;
-  font-weight: 600;
+/* Handle pill */
+.handle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  /* CAMBIADO: Estilos sincronizados */
+  color: #880e4f;
   text-decoration: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 50px;
+  border: 1.5px solid #ffd6e8;
+  background: #fff;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.handle-pill i { font-size: 1rem; }
+.handle-pill:hover {
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  border-color: #e91e8c;
+  color: #fff;
 }
 
-.ig-handle:hover {
-  text-decoration: underline;
-}
-
+/* ── Galería ── */
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-  max-width: 720px;
+  gap: 1rem;
+  max-width: 780px;
   margin: 0 auto;
 }
 
 .gallery-item {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 12px;
+  border-radius: 20px; /* CAMBIADO: Bordes redondeados más suaves */
   overflow: hidden;
-  background: #fce4ec;
-  cursor: pointer;
+  border: 1px solid #ffd6e8;
+  display: block;
+  background: #fff0f5;
 }
 
-.gallery-placeholder {
+.gallery-img {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #f48fb1;
-  font-size: 2rem;
-  background: linear-gradient(135deg, #fce4ec, #f8bbd0);
-  transition: transform 0.3s ease;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
 }
+.gallery-item:hover .gallery-img { transform: scale(1.08); }
 
-.gallery-item:hover .gallery-placeholder {
-  transform: scale(1.05);
-}
-
-.gallery-hover {
+/* Overlay */
+.gallery-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(194, 24, 91, 0.6);
+  /* CAMBIADO: Transparencia ciruela corporativa elegante al hacer hover */
+  background: rgba(136, 14, 79, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 1.8rem;
   opacity: 0;
-  transition: opacity 0.3s ease;
-  border-radius: 12px;
+  transition: opacity 0.25s ease;
+  border-radius: 20px;
 }
-
-.gallery-item:hover .gallery-hover {
-  opacity: 1;
+.gallery-item:hover .gallery-overlay { opacity: 1; }
+.overlay-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
+.overlay-inner i { font-size: 1.6rem; }
 
-.btn-instagram {
+/* ── CTA ── */
+.cta-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+.btn-ig {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  background: linear-gradient(135deg, #e91e8c, #f06292);
-  color: white;
+  gap: 8px;
+  font-size: 0.88rem;
   font-weight: 700;
-  padding: 0.8rem 2rem;
-  border-radius: 50px;
+  /* CAMBIADO: Botón secundario a tono con bordes */
+  color: #880e4f;
   text-decoration: none;
-  font-size: 0.95rem;
-  box-shadow: 0 6px 20px rgba(233, 30, 140, 0.3);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  padding: 0.72rem 1.5rem;
+  border-radius: 50px;
+  border: 1.5px solid #ffd6e8;
+  background: #fff;
+  transition: all 0.2s ease;
 }
-
-.btn-instagram:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 28px rgba(233, 30, 140, 0.45);
-  color: white;
+.btn-ig .pi-instagram { font-size: 1rem; }
+.btn-ig .arrow { font-size: 0.75rem; transition: transform 0.18s; }
+.btn-ig:hover {
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  border-color: #e91e8c;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(233, 30, 140, 0.2);
 }
+.btn-ig:hover .arrow { transform: translateX(3px); }
 
-@media (max-width: 576px) {
-  .gallery-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .section-header { flex-direction: column; align-items: flex-start; }
+  .gallery-grid { grid-template-columns: repeat(2, 1fr); max-width: 100%; }
+  .ig-section { padding: 3.5rem 0 3rem; }
 }
 </style>

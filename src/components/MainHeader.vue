@@ -49,6 +49,9 @@ const verificarSesion = () => {
 const cerrarSesion = () => {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
+  localStorage.removeItem('carrito')
+  const { vaciarCarrito } = usarCarrito()
+  vaciarCarrito()
   usuarioLogueado.value = false
   mostrarMenuUsuario.value = false
   router.push('/')
@@ -96,7 +99,7 @@ onUnmounted(() => {
     <div class="top-bar">
       <div class="container top-bar-inner">
         <span class="top-phone"> <i class="pi pi-phone"></i> (591) 67399831 </span>
-        <div class="brand-tagline">🍓 Endulzando Sucre desde 2024</div>
+        <div class="brand-tagline">🍓 Endulzando Sucre desde 2017</div>
         <div class="social-icons">
           <a href="#" aria-label="Instagram"><i class="pi pi-instagram"></i></a>
           <a href="#" aria-label="Facebook"><i class="pi pi-facebook"></i></a>

@@ -79,6 +79,12 @@ const router = createRouter({
       component: () => import('@/views/LoginView.vue'),
     },
     {
+      path: '/cambiar-contrasena-obligatorio',
+      name: 'cambiar-contrasena-obligatorio',
+      component: () => import('@/views/CambiarClaveView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/mis-pedidos',
       name: 'mis-pedidos',
       component: () => import('@/views/MisPedidosView.vue'),
@@ -89,6 +95,11 @@ const router = createRouter({
       name: 'perfil',
       component: () => import('@/views/PerfilView.vue'),
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/perfil/editar',
+      name: 'editar-perfil',
+      component: () => import('@/views/EditarPerfilView.vue'),
     },
     {
       path: '/register',
@@ -103,8 +114,17 @@ const router = createRouter({
       component: AdminLayout,
       meta: { requiresAuth: true, requiresAdmin: true },
       children: [
-        { path: '', redirect: '/admin/productos' },
-
+        { path: '', redirect: '/admin/reportes' },
+        {
+          path: 'reportes',
+          name: 'admin-reportes',
+          component: () => import('@/views/admin/ReportesAdminView.vue'),
+        },
+        {
+          path: 'registrar-venta',
+          name: 'admin-registrar-venta',
+          component: () => import('@/views/admin/RegistrarAdminView.vue'),
+        },
         {
           path: 'productos',
           name: 'admin-productos',
@@ -124,6 +144,26 @@ const router = createRouter({
           path: 'pagos',
           name: 'admin-pagos',
           component: () => import('@/views/admin/PagosAdminView.vue'),
+        },
+        {
+          path: 'usuarios',
+          name: 'admin-usuarios',
+          component: () => import('@/views/admin/UsuariosAdminView.vue'),
+        },
+        {
+          path: 'empleados',
+          name: 'admin-empleados',
+          component: () => import('@/views/admin/EmpleadosAdminView.vue'),
+        },
+        {
+          path: 'clientes',
+          name: 'admin-clientes',
+          component: () => import('@/views/admin/ClientesAdminView.vue'),
+        },
+        {
+          path: 'perfil-empleado',
+          name: 'admin-perfil-empleado',
+          component: () => import('@/views/admin/PerfilEmpleadoView.vue'),
         },
       ],
     },

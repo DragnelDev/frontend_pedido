@@ -17,7 +17,18 @@ async function onSubmit() {
   cargando.value = true
   error.value = false
   try {
-    await authStore.login(email.value, clave.value)
+    // 1. Llamamos al login del store.
+    // Asegúrate de que tu authStore retorne la data del backend o guarde el estado.
+    const respuesta = await authStore.login(email.value, clave.value)
+
+    // Suponiendo que tu backend retorna { token: '...', debeCambiarClave: true }
+    // y tu authStore te lo devuelve o lo puedes leer directamente de la respuesta:
+    if (respuesta?.debeCambiarClave) {
+      // Redirigir inmediatamente a la nueva vista obligatoria pasando el ID si es necesario
+      // o el store ya tiene guardado el token/usuario en memoria.
+      router.push('/cambiar-contrasena-obligatorio')
+      return // Detenemos la ejecución para que no vaya al admin/inicio
+    }
 
     const token = localStorage.getItem('token')
 
@@ -32,7 +43,7 @@ async function onSubmit() {
         router.push('/')
       }
     }
-  } catch {
+  } catch (err) {
     error.value = true
   } finally {
     cargando.value = false
