@@ -12,36 +12,63 @@ const error = ref(false)
 const cargando = ref(false)
 const mostrarClave = ref(false)
 
+// Procesa la redirección/token obtenido tras la autenticación exitosa
+function procesarNavegacionSegunRol(token: string) {
+  const decoded = parseJwt(token)
+  const userRole = decoded?.rol || decoded?.role || decoded?.tipo
+
+  if (userRole === 'EMPLEADO') {
+    const returnUrl = route.query.returnUrl as string
+    router.push(returnUrl || '/admin')
+  } else {
+    router.push('/')
+  }
+}
+
 async function onSubmit() {
   const authStore = useAuthStore()
   cargando.value = true
   error.value = false
   try {
-    // 1. Llamamos al login del store.
-    // Asegúrate de que tu authStore retorne la data del backend o guarde el estado.
     const respuesta = await authStore.login(email.value, clave.value)
 
-    // Suponiendo que tu backend retorna { token: '...', debeCambiarClave: true }
-    // y tu authStore te lo devuelve o lo puedes leer directamente de la respuesta:
     if (respuesta?.debeCambiarClave) {
-      // Redirigir inmediatamente a la nueva vista obligatoria pasando el ID si es necesario
-      // o el store ya tiene guardado el token/usuario en memoria.
       router.push('/cambiar-contrasena-obligatorio')
-      return // Detenemos la ejecución para que no vaya al admin/inicio
+      return
     }
 
     const token = localStorage.getItem('token')
-
     if (token) {
-      const decoded = parseJwt(token)
-      const userRole = decoded?.rol || decoded?.role || decoded?.tipo
+      procesarNavegacionSegunRol(token)
+    }
+  } catch (err) {
+    error.value = true
+  } finally {
+    cargando.value = false
+  }
+}
 
-      if (userRole === 'EMPLEADO') {
-        const returnUrl = route.query.returnUrl as string
-        router.push(returnUrl || '/admin')
-      } else {
-        router.push('/')
-      }
+// ── FUNCIÓN PARA LOGIN CON GOOGLE ──
+async function loginConGoogle() {
+  cargando.value = true
+  error.value = false
+  try {
+    const authStore = useAuthStore()
+    
+    // OPCIÓN A: Redirección directa al endpoint de Google/OAuth en tu backend NestJS
+    // window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`
+
+    // OPCIÓN B: Llamada a un método en tu authStore si usas la SDK de Google (@vueuse/integrations, vue3-google-login, etc.)
+    const respuesta = await authStore.loginWithGoogle()
+
+    if (respuesta?.debeCambiarClave) {
+      router.push('/cambiar-contrasena-obligatorio')
+      return
+    }
+
+    const token = localStorage.getItem('token')
+    if (token) {
+      procesarNavegacionSegunRol(token)
     }
   } catch (err) {
     error.value = true
@@ -69,6 +96,7 @@ async function onSubmit() {
 
       <h2 class="login-titulo">Iniciar Sesión</h2>
 
+      <!-- Formulario tradicional -->
       <form @submit.prevent="onSubmit" class="login-form" novalidate>
         <!-- Email -->
         <div class="field-group">
@@ -114,20 +142,55 @@ async function onSubmit() {
         <!-- Error -->
         <div v-if="error" class="error-msg">
           <i class="pi pi-exclamation-triangle"></i>
-          Usuario y/o contraseña incorrectos
+          Ocurrió un error al iniciar sesión
         </div>
 
-        <!-- Submit -->
+        <!-- Submit Tradicional -->
         <button type="submit" class="btn-submit" :disabled="cargando">
           <span v-if="cargando" class="loading-dots">
             <span></span><span></span><span></span>
           </span>
           <span v-else>🍰 Ingresar</span>
         </button>
-      <button type="button" class="btn-submit" @click="$router.push('/')">
-          Volver a Inicio
-      </button>
       </form>
+
+      <!-- SEPARADOR CON LÍNEA -->
+      <div class="divider">
+        <span>o continúa con</span>
+      </div>
+
+      <!-- BOTÓN DE GOOGLE -->
+      <button 
+        type="button" 
+        class="btn-google" 
+        @click="loginConGoogle" 
+        :disabled="cargando"
+      >
+        <svg class="google-icon" viewBox="0 0 24 24">
+          <path
+            fill="#4285F4"
+            d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+          />
+          <path
+            fill="#34A853"
+            d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.13C3.26 21.3 7.31 24 12 24z"
+          />
+          <path
+            fill="#FBBC05"
+            d="M5.28 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.63H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.37l3.99-3.13z"
+          />
+          <path
+            fill="#EA4335"
+            d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.63l3.99 3.13c.95-2.85 3.6-4.96 6.72-4.96z"
+          />
+        </svg>
+        Continuar con Google
+      </button>
+
+      <!-- BOTÓN VOLVER -->
+      <button type="button" class="btn-secondary" @click="$router.push('/')">
+        Volver al Inicio
+      </button>
 
       <!-- Registro -->
       <p class="login-footer">
@@ -161,39 +224,14 @@ async function onSubmit() {
   animation: float 6s ease-in-out infinite;
 }
 
-.deco-1 {
-  top: 5%;
-  left: 5%;
-  animation-delay: 0s;
-  font-size: 5rem;
-}
-.deco-2 {
-  top: 10%;
-  right: 8%;
-  animation-delay: 1.5s;
-  font-size: 3.5rem;
-}
-.deco-3 {
-  bottom: 12%;
-  left: 10%;
-  animation-delay: 3s;
-  font-size: 4rem;
-}
-.deco-4 {
-  bottom: 8%;
-  right: 5%;
-  animation-delay: 0.8s;
-  font-size: 3rem;
-}
+.deco-1 { top: 5%; left: 5%; animation-delay: 0s; font-size: 5rem; }
+.deco-2 { top: 10%; right: 8%; animation-delay: 1.5s; font-size: 3.5rem; }
+.deco-3 { bottom: 12%; left: 10%; animation-delay: 3s; font-size: 4rem; }
+.deco-4 { bottom: 8%; right: 5%; animation-delay: 0.8s; font-size: 3rem; }
 
 @keyframes float {
-  0%,
-  100% {
-    transform: translateY(0) rotate(-5deg);
-  }
-  50% {
-    transform: translateY(-18px) rotate(5deg);
-  }
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-18px) rotate(5deg); }
 }
 
 /* ── CARD ── */
@@ -211,16 +249,8 @@ async function onSubmit() {
 }
 
 /* ── MARCA ── */
-.login-brand {
-  text-align: center;
-  margin-bottom: 1.5rem;
-}
-
-.brand-icon {
-  font-size: 3rem;
-  margin-bottom: 0.4rem;
-}
-
+.login-brand { text-align: center; margin-bottom: 1.5rem; }
+.brand-icon { font-size: 3rem; margin-bottom: 0.4rem; }
 .brand-name {
   font-size: 1.7rem;
   font-weight: 800;
@@ -228,12 +258,7 @@ async function onSubmit() {
   margin: 0 0 0.2rem;
   letter-spacing: -0.5px;
 }
-
-.brand-sub {
-  font-size: 0.8rem;
-  color: #bbb;
-  margin: 0;
-}
+.brand-sub { font-size: 0.8rem; color: #bbb; margin: 0; }
 
 /* ── TÍTULO ── */
 .login-titulo {
@@ -288,9 +313,7 @@ async function onSubmit() {
   color: #333;
   outline: none;
   background: #fff9fb;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .field-input:focus {
@@ -299,9 +322,7 @@ async function onSubmit() {
   background: white;
 }
 
-.field-input::placeholder {
-  color: #ccc;
-}
+.field-input::placeholder { color: #ccc; }
 
 .toggle-pass {
   position: absolute;
@@ -315,9 +336,7 @@ async function onSubmit() {
   transition: color 0.2s;
 }
 
-.toggle-pass:hover {
-  color: #e91e8c;
-}
+.toggle-pass:hover { color: #e91e8c; }
 
 /* ── ERROR ── */
 .error-msg {
@@ -333,7 +352,7 @@ async function onSubmit() {
   font-weight: 500;
 }
 
-/* ── BOTÓN ── */
+/* ── BOTÓN SUBMIT ── */
 .btn-submit {
   width: 100%;
   background: linear-gradient(135deg, #e91e8c, #f06292);
@@ -346,9 +365,7 @@ async function onSubmit() {
   cursor: pointer;
   margin-top: 0.5rem;
   box-shadow: 0 6px 20px rgba(233, 30, 140, 0.35);
-  transition:
-    opacity 0.2s,
-    transform 0.2s;
+  transition: opacity 0.2s, transform 0.2s;
 }
 
 .btn-submit:hover:not(:disabled) {
@@ -357,9 +374,78 @@ async function onSubmit() {
   box-shadow: 0 10px 28px rgba(233, 30, 140, 0.45);
 }
 
-.btn-submit:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+.btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+
+/* ── SEPARADOR ── */
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.25rem 0;
+  color: #aaa;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #f8bbd0;
+}
+
+.divider span {
+  padding: 0 0.75rem;
+}
+
+/* ── BOTÓN GOOGLE ── */
+.btn-google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: #ffffff;
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.8rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.btn-google:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── BOTÓN SECUNDARIO (VOLVER) ── */
+.btn-secondary {
+  width: 100%;
+  background: transparent;
+  color: #880e4f;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.65rem;
+  border: 1px dashed #f48fb1;
+  border-radius: 50px;
+  cursor: pointer;
+  margin-top: 0.75rem;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: #fce4ec;
 }
 
 /* Animación de carga */
@@ -378,24 +464,12 @@ async function onSubmit() {
   animation: dot-bounce 1.2s infinite;
 }
 
-.loading-dots span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.loading-dots span:nth-child(3) {
-  animation-delay: 0.4s;
-}
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes dot-bounce {
-  0%,
-  80%,
-  100% {
-    transform: scale(0.7);
-    opacity: 0.5;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
 }
 
 /* ── FOOTER ── */
@@ -413,9 +487,7 @@ async function onSubmit() {
   margin-left: 0.25rem;
 }
 
-.link-register:hover {
-  text-decoration: underline;
-}
+.link-register:hover { text-decoration: underline; }
 
 /* ── RESPONSIVE ── */
 @media (max-width: 480px) {
@@ -423,9 +495,6 @@ async function onSubmit() {
     padding: 2rem 1.5rem;
     border-radius: 20px;
   }
-
-  .deco {
-    font-size: 2.5rem;
-  }
+  .deco { font-size: 2.5rem; }
 }
 </style>

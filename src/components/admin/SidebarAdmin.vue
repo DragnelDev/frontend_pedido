@@ -1,66 +1,146 @@
 <script setup lang="ts">
-import { useRouter, useRoute } from 'vue-router'
-import { ref, onMounted } from 'vue'
-import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
-import { icon } from 'leaflet';
+import { useRouter, useRoute } from "vue-router";
+import { ref, onMounted } from "vue";
+import { getTokenFromLocalStorage, parseJwt } from "@/helpers";
 
-const emit = defineEmits<{ (e: 'close'): void }>()
+const emit = defineEmits<{ (e: "close"): void }>();
 
-const router = useRouter()
-const route = useRoute()
-const nombreUsuario = ref('')
-const rolUsuario = ref('')
-const imagenUsuario = ref('')
+const router = useRouter();
+const route = useRoute();
+const nombreUsuario = ref("");
+const rolUsuario = ref("");
+const imagenUsuario = ref("");
 
-function isActive(path: string) {
-  return route.path.startsWith(path)
+// Estado para controlar qué menús desplegables están abiertos
+const menuAbierto = ref<string | null>("Contabilidad");
+
+function toggleSubmenu(label: string) {
+  menuAbierto.value = menuAbierto.value === label ? null : label;
+}
+
+function isActive(path?: string) {
+  if (!path) return false;
+  return route.path.startsWith(path);
 }
 
 onMounted(() => {
-  const token = getTokenFromLocalStorage()
+  const token = getTokenFromLocalStorage();
   if (token) {
-    const decoded = parseJwt(token)
-    const nombre = decoded?.nombre || ''
-    const apellidos = decoded?.apellidos || ''
-    const nombreCompleto = `${nombre} ${apellidos}`.trim()
-    nombreUsuario.value = nombreCompleto || decoded?.email?.split('@')[0] || 'Usuario'
-    rolUsuario.value = decoded?.rol || 'EMPLEADO'
-    imagenUsuario.value = decoded?.imagenUrl || ''
+    const decoded = parseJwt(token);
+    const nombre = decoded?.nombre || "";
+    const apellidos = decoded?.apellidos || "";
+    const nombreCompleto = `${nombre} ${apellidos}`.trim();
+    nombreUsuario.value =
+      nombreCompleto || decoded?.email?.split("@")[0] || "Usuario";
+    rolUsuario.value = decoded?.rol || "EMPLEADO";
+    imagenUsuario.value = decoded?.imagenUrl || "";
   }
-})
+});
 
 function cerrarSesion() {
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
-  router.push('/login')
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  router.push("/login");
 }
 
-function navigate(path: string) {
-  router.push(path)
-  emit('close') // Cierra el sidebar en móvil al navegar
+function navigate(path?: string) {
+  if (!path) return;
+  router.push(path);
+  emit("close");
 }
 
 function irAlPerfil() {
-  router.push('/admin/perfil-empleado')
-  emit('close') // Cierra el menú lateral si está en un dispositivo móvil
+  router.push("/admin/perfil-empleado");
+  emit("close");
 }
 
 const navItems = [
-  { label: 'Reportes', icon: 'pi pi-chart-bar', path: '/admin/reportes' },
-  { label: 'Registar Ventas', icon: 'pi pi-plus', path: '/admin/registrar-venta' },
-  { label: 'Productos', icon: 'pi pi-box', path: '/admin/productos' },
-  { label: 'Categorías', icon: 'pi pi-tags', path: '/admin/categorias' },
-  { label: 'Pedidos', icon: 'pi pi-shopping-cart', path: '/admin/pedidos' },
-  { label: 'Pagos', icon: 'pi pi-credit-card', path: '/admin/pagos' },
-  { label: 'Empleados', icon: 'pi pi-users', path: '/admin/empleados' },
-  { label: 'Clientes', icon: 'pi pi-user', path: '/admin/clientes' },
-  { label: 'usuarios', icon: 'pi pi-user-edit', path: '/admin/usuarios' },
-]
+  {
+    title: "OPERACIONES",
+    items: [
+      {
+        label: "Registrar Ventas",
+        icon: "pi pi-plus-circle",
+        path: "/admin/registrar-venta",
+      },
+      {
+        label: "Pedidos En Línea",
+        icon: "pi pi-shopping-cart",
+        path: "/admin/pedidos",
+      },
+      { label: "Pagos", icon: "pi pi-credit-card", path: "/admin/pagos" },
+    ],
+  },
+  {
+    title: "CATÁLOGO E INVENTARIO",
+    items: [
+      { label: "Productos", icon: "pi pi-box", path: "/admin/productos" },
+      { label: "Categorías", icon: "pi pi-tags", path: "/admin/categorias" },
+      {
+        label: "Insumos / Recetas",
+        icon: "pi pi-list-check",
+        path: "/admin/insumos",
+      },
+      {
+        label: "Cocina / Producción",
+        icon: "pi pi-spinner-check",
+        path: "/admin/cocina",
+      },
+    ],
+  },
+  {
+    title: "CONTABILIDAD Y CAJA",
+    items: [
+      {
+        label: "Contabilidad",
+        icon: "pi pi-calculator",
+        items: [
+          {
+            label: "Cierre de Caja",
+            icon: "pi pi-money-bill",
+            path: "/admin/contabilidad/caja",
+          },
+          {
+            label: "Gastos y Egresos",
+            icon: "pi pi-minus-circle",
+            path: "/admin/contabilidad/gastos",
+          },
+          {
+            label: "Libro de Ventas",
+            icon: "pi pi-file-excel",
+            path: "/admin/contabilidad/libro-ventas",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: "SISTEMA Y ACCESOS",
+    items: [
+      {
+        label: "Clientes (Portal)",
+        icon: "pi pi-users",
+        path: "/admin/clientes",
+      },
+      {
+        label: "Usuarios / Roles",
+        icon: "pi pi-user-edit",
+        path: "/admin/usuarios",
+      },
+      { label: "Empleados", icon: "pi pi-id-card", path: "/admin/empleados" },
+      { label: "Reportes", icon: "pi pi-chart-bar", path: "/admin/reportes" },
+      {
+        label: "Configuración",
+        icon: "pi pi-cog",
+        path: "/admin/configuracion",
+      },
+    ],
+  },
+];
 </script>
 
 <template>
   <nav class="sidebar-nav">
-
     <!-- Marca -->
     <div class="sidebar-brand">
       <div class="brand-icon">🍓</div>
@@ -73,33 +153,74 @@ const navItems = [
     <!-- Menú de navegación -->
     <div class="nav-menu">
       <p class="menu-label">Gestión</p>
-      <button
-        v-for="item in navItems"
-        :key="item.path"
-        class="nav-btn"
-        :class="{ activo: isActive(item.path) }"
-        @click="navigate(item.path)"
-      >
-        <i :class="item.icon"></i>
-        <span>{{ item.label }}</span>
-      </button>
+
+      <template v-for="item in navItems" :key="item.label">
+        <!-- Opción CON Submenú (Contabilidad) -->
+        <div v-if="item.items" class="submenu-container">
+          <button
+            class="nav-btn btn-desplegable"
+            @click="toggleSubmenu(item.label)"
+          >
+            <div class="btn-left">
+              <i :class="item.icon"></i>
+              <span>{{ item.label }}</span>
+            </div>
+            <i
+              class="pi pi-chevron-down arrow-icon"
+              :class="{ rotate: menuAbierto === item.label }"
+            ></i>
+          </button>
+
+          <!-- Hijos/Submenú -->
+          <div v-show="menuAbierto === item.label" class="submenu-list">
+            <button
+              v-for="subItem in item.items"
+              :key="subItem.path"
+              class="nav-btn sub-btn"
+              :class="{ activo: isActive(subItem.path) }"
+              @click="navigate(subItem.path)"
+            >
+              <i :class="subItem.icon"></i>
+              <span>{{ subItem.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Opción Normal / Sin Submenú -->
+        <button
+          v-else
+          class="nav-btn"
+          :class="{ activo: isActive(item.path) }"
+          @click="navigate(item.path)"
+        >
+          <i :class="item.icon"></i>
+          <span>{{ item.label }}</span>
+        </button>
+      </template>
     </div>
 
     <!-- Separador flexible -->
     <div class="sidebar-spacer"></div>
 
     <!-- Tarjeta de usuario -->
-    <div 
-      class="user-card interactiva" 
-      @click="irAlPerfil" 
-      role="button" 
+    <div
+      class="user-card interactiva"
+      @click="irAlPerfil"
+      role="button"
       tabindex="0"
       title="Ver mi perfil"
       @keydown.enter="irAlPerfil"
     >
       <div class="user-avatar">
-        <img v-if="imagenUsuario" :src="imagenUsuario" :alt="nombreUsuario" class="avatar-img" />
-        <span v-else class="avatar-inicial">{{ nombreUsuario.charAt(0).toUpperCase() }}</span>
+        <img
+          v-if="imagenUsuario"
+          :src="imagenUsuario"
+          :alt="nombreUsuario"
+          class="avatar-img"
+        />
+        <span v-else class="avatar-inicial">{{
+          nombreUsuario.charAt(0).toUpperCase()
+        }}</span>
       </div>
       <div class="user-info">
         <div class="user-name">{{ nombreUsuario }}</div>
@@ -113,7 +234,6 @@ const navItems = [
       <i class="pi pi-sign-out"></i>
       <span>Cerrar Sesión</span>
     </button>
-
   </nav>
 </template>
 
@@ -126,6 +246,7 @@ const navItems = [
   background: linear-gradient(180deg, #fff0f5 0%, #fce4ec 100%);
   border-right: 2px solid #f8bbd0;
   box-sizing: border-box;
+  overflow-y: auto;
 }
 
 /* ── Marca ── */
@@ -202,7 +323,7 @@ const navItems = [
     transform 0.15s,
     color 0.2s;
   text-align: left;
-  min-height: 44px; /* accesibilidad táctil */
+  min-height: 44px;
 }
 
 .nav-btn i {
@@ -235,9 +356,45 @@ const navItems = [
   color: white;
 }
 
+/* ── Estilos Submenú ── */
+.btn-desplegable {
+  justify-content: space-between;
+}
+
+.btn-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.arrow-icon {
+  font-size: 0.75rem !important;
+  transition: transform 0.3s ease !important;
+}
+
+.arrow-icon.rotate {
+  transform: rotate(180deg);
+}
+
+.submenu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding-left: 0.8rem;
+  margin-top: 0.2rem;
+  margin-bottom: 0.4rem;
+}
+
+.sub-btn {
+  font-size: 0.85rem;
+  padding: 0.6rem 0.8rem;
+  min-height: 38px;
+}
+
 /* ── Separador ── */
 .sidebar-spacer {
   flex: 1;
+  min-height: 1.5rem;
 }
 
 /* ── Tarjeta de usuario ── */
@@ -253,14 +410,10 @@ const navItems = [
   border: 1px solid #fce4ec;
   flex-shrink: 0;
   min-width: 0;
-  
-  /* ── Nuevas propiedades de interacción ── */
   cursor: pointer;
   transition: all 0.25s ease;
-  position: relative;
 }
 
-/* Efecto hover sobre la tarjeta */
 .user-card.interactiva:hover {
   background: #fff5f8;
   border-color: #f48fb1;
@@ -268,13 +421,6 @@ const navItems = [
   box-shadow: 0 4px 14px rgba(233, 30, 140, 0.15);
 }
 
-/* Foco de accesibilidad al usar teclado (opcional) */
-.user-card.interactiva:focus-visible {
-  outline: 2px solid #e91e8c;
-  outline-offset: 2px;
-}
-
-/* Estilo para el icono sutil de la flecha */
 .icon-ir {
   font-size: 0.75rem;
   color: #f48fb1;
@@ -368,17 +514,5 @@ const navItems = [
   border-color: #e53e3e;
   transform: translateY(-2px);
   box-shadow: 0 4px 14px rgba(229, 62, 62, 0.3);
-}
-
-/* ── Responsive ── */
-@media (max-width: 768px) {
-  .sidebar-nav {
-    padding: 1.5rem 1rem 1.25rem;
-  }
-
-  .nav-btn {
-    font-size: 1rem;
-    padding: 0.85rem 1rem;
-  }
 }
 </style>
