@@ -93,10 +93,18 @@ defineExpose({ obtenerLista })
               </td>
               <td>
                 <div class="acciones">
-                  <button class="btn-accion editar" @click="emitirEdicion(categoria)" title="Editar">
+                  <button
+                    class="btn-accion editar"
+                    @click="emitirEdicion(categoria)"
+                    title="Editar"
+                  >
                     <i class="pi pi-pencil"></i>
                   </button>
-                  <button class="btn-accion eliminar" @click="mostrarEliminarConfirm(categoria)" title="Eliminar">
+                  <button
+                    class="btn-accion eliminar"
+                    @click="mostrarEliminarConfirm(categoria)"
+                    title="Eliminar"
+                  >
                     <i class="pi pi-trash"></i>
                   </button>
                 </div>
@@ -114,17 +122,29 @@ defineExpose({ obtenerLista })
 
       <!-- Paginación -->
       <div v-if="totalPaginas > 1" class="paginacion">
-        <button class="btn-pag" :disabled="paginaActual === 1" @click="cambiarPagina(paginaActual - 1)">
+        <button
+          class="btn-pag"
+          :disabled="paginaActual === 1"
+          @click="cambiarPagina(paginaActual - 1)"
+        >
           <i class="pi pi-chevron-left"></i>
         </button>
         <div class="paginas">
           <button
-            v-for="p in totalPaginas" :key="p"
-            class="btn-num" :class="{ activo: p === paginaActual }"
+            v-for="p in totalPaginas"
+            :key="p"
+            class="btn-num"
+            :class="{ activo: p === paginaActual }"
             @click="cambiarPagina(p)"
-          >{{ p }}</button>
+          >
+            {{ p }}
+          </button>
         </div>
-        <button class="btn-pag" :disabled="paginaActual === totalPaginas" @click="cambiarPagina(paginaActual + 1)">
+        <button
+          class="btn-pag"
+          :disabled="paginaActual === totalPaginas"
+          @click="cambiarPagina(paginaActual + 1)"
+        >
           <i class="pi pi-chevron-right"></i>
         </button>
       </div>
@@ -141,8 +161,8 @@ defineExpose({ obtenerLista })
         <div class="confirm-icon">⚠️</div>
         <p>
           ¿Estás seguro de que deseas eliminar la categoría
-          <strong>{{ categoriaDelete?.nombre }}</strong>?
-          Esta acción no se puede deshacer.
+          <strong>{{ categoriaDelete?.nombre }}</strong
+          >? Esta acción no se puede deshacer.
         </p>
       </div>
       <template #footer>
@@ -196,7 +216,9 @@ defineExpose({ obtenerLista })
   outline: none;
   background: white;
   color: #333;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .search-input:focus {
@@ -304,7 +326,9 @@ defineExpose({ obtenerLista })
   align-items: center;
   justify-content: center;
   font-size: 0.875rem;
-  transition: background 0.2s, transform 0.15s;
+  transition:
+    background 0.2s,
+    transform 0.15s;
 }
 
 .btn-accion:hover {
@@ -450,7 +474,9 @@ defineExpose({ obtenerLista })
   font-size: 0.875rem;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 
 .btn-eliminar:hover {

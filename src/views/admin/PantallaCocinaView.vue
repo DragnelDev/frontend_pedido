@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref } from 'vue'
 
 const pedidosCocina = ref([
   {
-    id: "PED-104",
-    cliente: "Ana Martínez",
-    horaEntrega: "15:30",
-    detalles: "Torta de Frutilla 1kg",
+    id: 'PED-104',
+    cliente: 'Ana Martínez',
+    horaEntrega: '15:30',
+    detalles: 'Torta de Frutilla 1kg',
     notaCliente: 'Escribir con crema: "¡Feliz Cumpleaños Mamá!"',
-    estado: "PENDIENTE",
+    estado: 'PENDIENTE',
   },
   {
-    id: "PED-105",
-    cliente: "Roberto Gómez",
-    horaEntrega: "16:00",
-    detalles: "12 Cupcakes de Chocolate",
-    notaCliente: "Sin Chispas de chocolate",
-    estado: "EN_PREPARACION",
+    id: 'PED-105',
+    cliente: 'Roberto Gómez',
+    horaEntrega: '16:00',
+    detalles: '12 Cupcakes de Chocolate',
+    notaCliente: 'Sin Chispas de chocolate',
+    estado: 'EN_PREPARACION',
   },
-]);
+])
 
 function cambiarEstado(pedido: any, nuevoEstado: string) {
-  pedido.estado = nuevoEstado;
+  pedido.estado = nuevoEstado
 }
 </script>
 
@@ -65,9 +65,7 @@ function cambiarEstado(pedido: any, nuevoEstado: string) {
           >
             ✓ Marcar como Listo
           </button>
-          <span v-if="p.estado === 'LISTO'" class="badge-listo"
-            >✨ Listo para Entrega</span
-          >
+          <span v-if="p.estado === 'LISTO'" class="badge-listo">✨ Listo para Entrega</span>
         </div>
       </div>
     </div>

@@ -10,8 +10,8 @@ import { computed, ref, watch } from 'vue'
 const ENDPOINT = 'productos'
 
 const props = defineProps({
-  mostrar:     Boolean,
-  producto:    { type: Object as () => Producto, default: () => ({}) as Producto },
+  mostrar: Boolean,
+  producto: { type: Object as () => Producto, default: () => ({}) as Producto },
   modoEdicion: Boolean,
 })
 
@@ -20,17 +20,24 @@ const emit = defineEmits(['guardar', 'close'])
 // ─────────────────────────────────────────────────────────────────────────────
 // Estado
 // ─────────────────────────────────────────────────────────────────────────────
-const categorias      = ref<Categoria[]>([])
-const guardando       = ref(false)
-const subiendoImagen  = ref(false)
-const idCategoria     = ref<number>(0)
-const errores         = ref<Record<string, string>>({})
-const dragOver        = ref(false)
+const categorias = ref<Categoria[]>([])
+const guardando = ref(false)
+const subiendoImagen = ref(false)
+const idCategoria = ref<number>(0)
+const errores = ref<Record<string, string>>({})
+const dragOver = ref(false)
 
 const producto = ref<Producto>({
-  id: 0, idCategoria: 0, nombre: '', descripcion: '',
-  precio: 0, stock: 0, porciones: 0, tiempoPreparacion: 0,
-  imagenUrl: '', categoria: { id: 0 } as Categoria,
+  id: 0,
+  idCategoria: 0,
+  nombre: '',
+  descripcion: '',
+  precio: 0,
+  stock: 0,
+  porciones: 0,
+  tiempoPreparacion: 0,
+  imagenUrl: '',
+  categoria: { id: 0 } as Categoria,
 } as Producto)
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -46,21 +53,28 @@ watch(
     if (props.producto?.id) {
       producto.value = {
         ...props.producto,
-        precio:           Number(props.producto.precio)           || 0,
-        stock:            Number(props.producto.stock)            || 0,
-        porciones:        Number(props.producto.porciones)        || 0,
+        precio: Number(props.producto.precio) || 0,
+        stock: Number(props.producto.stock) || 0,
+        porciones: Number(props.producto.porciones) || 0,
         tiempoPreparacion: Number(props.producto.tiempoPreparacion) || 0,
       }
       idCategoria.value = props.producto.idCategoria ?? props.producto.categoria?.id ?? 0
     } else {
       producto.value = {
-        id: 0, idCategoria: 0, nombre: '', descripcion: '',
-        precio: 0, stock: 0, porciones: 0, tiempoPreparacion: 0,
-        imagenUrl: '', categoria: { id: 0 } as Categoria,
+        id: 0,
+        idCategoria: 0,
+        nombre: '',
+        descripcion: '',
+        precio: 0,
+        stock: 0,
+        porciones: 0,
+        tiempoPreparacion: 0,
+        imagenUrl: '',
+        categoria: { id: 0 } as Categoria,
       } as Producto
       idCategoria.value = 0
     }
-  }
+  },
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -91,7 +105,12 @@ async function subirArchivo(file: File) {
     const { data } = await http.post('/uploads', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    const url = data?.url || data?.imagenUrl || data?.fileUrl || data?.path || (typeof data === 'string' ? data : null)
+    const url =
+      data?.url ||
+      data?.imagenUrl ||
+      data?.fileUrl ||
+      data?.path ||
+      (typeof data === 'string' ? data : null)
     if (url) producto.value.imagenUrl = url
     else alert('El backend no devolvió una URL de imagen.')
   } catch (err: any) {
@@ -121,10 +140,10 @@ function quitarImagen() {
 // ─────────────────────────────────────────────────────────────────────────────
 function validar(): boolean {
   errores.value = {}
-  if (!producto.value.nombre?.trim())    errores.value.nombre      = 'El nombre es requerido'
-  if (!idCategoria.value)               errores.value.idCategoria  = 'Selecciona una categoría'
-  if ((producto.value.precio ?? 0) <= 0) errores.value.precio      = 'El precio debe ser mayor a 0'
-  if ((producto.value.stock  ?? 0) < 0)  errores.value.stock       = 'El stock no puede ser negativo'
+  if (!producto.value.nombre?.trim()) errores.value.nombre = 'El nombre es requerido'
+  if (!idCategoria.value) errores.value.idCategoria = 'Selecciona una categoría'
+  if ((producto.value.precio ?? 0) <= 0) errores.value.precio = 'El precio debe ser mayor a 0'
+  if ((producto.value.stock ?? 0) < 0) errores.value.stock = 'El stock no puede ser negativo'
   return Object.keys(errores.value).length === 0
 }
 
@@ -133,17 +152,17 @@ async function handleSave() {
   guardando.value = true
   try {
     const body = {
-      idCategoria:       idCategoria.value,
-      nombre:            producto.value.nombre,
-      descripcion:       producto.value.descripcion,
-      precio:            Number(producto.value.precio)           || 0,
-      stock:             Number(producto.value.stock)            || 0,
-      porciones:         Number(producto.value.porciones)        || 0,
+      idCategoria: idCategoria.value,
+      nombre: producto.value.nombre,
+      descripcion: producto.value.descripcion,
+      precio: Number(producto.value.precio) || 0,
+      stock: Number(producto.value.stock) || 0,
+      porciones: Number(producto.value.porciones) || 0,
       tiempoPreparacion: Number(producto.value.tiempoPreparacion) || 0,
-      imagenUrl:         producto.value.imagenUrl,
+      imagenUrl: producto.value.imagenUrl,
     }
     if (props.modoEdicion) await http.patch(`${ENDPOINT}/${producto.value.id}`, body)
-    else                   await http.post(ENDPOINT, body)
+    else await http.post(ENDPOINT, body)
     emit('guardar')
     emit('close')
   } catch (e: any) {
@@ -154,7 +173,7 @@ async function handleSave() {
 }
 
 const categoriaNombre = computed(
-  () => categorias.value.find(c => c.id === idCategoria.value)?.nombre || ''
+  () => categorias.value.find((c) => c.id === idCategoria.value)?.nombre || '',
 )
 </script>
 
@@ -163,7 +182,6 @@ const categoriaNombre = computed(
     <Transition name="modal-fade">
       <div v-if="mostrar" class="modal-overlay" @click.self="emit('close')">
         <div class="modal-panel">
-
           <!-- ── Header ──────────────────────────────────────────────────── -->
           <div class="modal-header">
             <div class="modal-header-info">
@@ -175,7 +193,9 @@ const categoriaNombre = computed(
                   {{ modoEdicion ? 'Editar producto' : 'Nuevo producto' }}
                 </h3>
                 <p class="modal-sub">
-                  {{ modoEdicion ? `Modificando #${producto.id}` : 'Completa los datos del producto' }}
+                  {{
+                    modoEdicion ? `Modificando #${producto.id}` : 'Completa los datos del producto'
+                  }}
                 </p>
               </div>
             </div>
@@ -186,7 +206,6 @@ const categoriaNombre = computed(
 
           <!-- ── Body ────────────────────────────────────────────────────── -->
           <div class="modal-body">
-
             <!-- Categoría -->
             <div class="field" :class="{ 'field-has-error': errores.idCategoria }">
               <label class="field-label">Categoría <span class="req">*</span></label>
@@ -207,9 +226,7 @@ const categoriaNombre = computed(
 
             <!-- Nombre -->
             <div class="field" :class="{ 'field-has-error': errores.nombre }">
-              <label class="field-label" for="p-nombre">
-                Nombre <span class="req">*</span>
-              </label>
+              <label class="field-label" for="p-nombre"> Nombre <span class="req">*</span> </label>
               <div class="input-wrap">
                 <i class="pi pi-shopping-bag input-icon"></i>
                 <input
@@ -254,7 +271,9 @@ const categoriaNombre = computed(
                   <input
                     id="p-precio"
                     v-model.number="producto.precio"
-                    type="number" min="0" step="0.5"
+                    type="number"
+                    min="0"
+                    step="0.5"
                     class="field-input has-prefix"
                     placeholder="0.00"
                   />
@@ -264,15 +283,14 @@ const categoriaNombre = computed(
                 </span>
               </div>
               <div class="field" :class="{ 'field-has-error': errores.stock }">
-                <label class="field-label" for="p-stock">
-                  Stock <span class="req">*</span>
-                </label>
+                <label class="field-label" for="p-stock"> Stock <span class="req">*</span> </label>
                 <div class="input-wrap">
                   <i class="pi pi-box input-icon"></i>
                   <input
                     id="p-stock"
                     v-model.number="producto.stock"
-                    type="number" min="0"
+                    type="number"
+                    min="0"
                     class="field-input has-icon"
                     placeholder="0"
                   />
@@ -292,7 +310,8 @@ const categoriaNombre = computed(
                   <input
                     id="p-porciones"
                     v-model.number="producto.porciones"
-                    type="number" min="0"
+                    type="number"
+                    min="0"
                     class="field-input has-icon"
                     placeholder="0"
                   />
@@ -305,7 +324,8 @@ const categoriaNombre = computed(
                   <input
                     id="p-tiempo"
                     v-model.number="producto.tiempoPreparacion"
-                    type="number" min="0"
+                    type="number"
+                    min="0"
                     class="field-input has-icon"
                     placeholder="0"
                   />
@@ -369,7 +389,6 @@ const categoriaNombre = computed(
                 />
               </div>
             </div>
-
           </div>
 
           <!-- ── Footer ──────────────────────────────────────────────────── -->
@@ -377,16 +396,11 @@ const categoriaNombre = computed(
             <button class="btn-cancelar" @click="emit('close')" :disabled="guardando">
               Cancelar
             </button>
-            <button
-              class="btn-guardar"
-              @click="handleSave"
-              :disabled="guardando || subiendoImagen"
-            >
+            <button class="btn-guardar" @click="handleSave" :disabled="guardando || subiendoImagen">
               <i :class="guardando ? 'pi pi-spin pi-spinner' : 'pi pi-save'"></i>
-              {{ guardando ? 'Guardando...' : (modoEdicion ? 'Actualizar' : 'Crear producto') }}
+              {{ guardando ? 'Guardando...' : modoEdicion ? 'Actualizar' : 'Crear producto' }}
             </button>
           </div>
-
         </div>
       </div>
     </Transition>
@@ -431,35 +445,56 @@ const categoriaNombre = computed(
   flex-shrink: 0;
 }
 
-.modal-header-info { display: flex; align-items: center; gap: 0.9rem; }
+.modal-header-info {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
 
 .modal-icon {
-  width: 44px; height: 44px;
+  width: 44px;
+  height: 44px;
   border-radius: 14px;
   background: linear-gradient(135deg, #e91e8c, #f06292);
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.3rem;
   box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
   flex-shrink: 0;
 }
 
-.modal-titulo { font-size: 1rem; font-weight: 800; color: #880e4f; margin: 0 0 0.1rem; }
-.modal-sub    { font-size: 0.72rem; color: #bbb; margin: 0; }
+.modal-titulo {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.1rem;
+}
+.modal-sub {
+  font-size: 0.72rem;
+  color: #bbb;
+  margin: 0;
+}
 
 .btn-close {
-  width: 34px; height: 34px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: none;
   background: #fce4ec;
   color: #c2185b;
   font-size: 0.85rem;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.2s;
   flex-shrink: 0;
 }
 
-.btn-close:hover { background: #f8bbd0; }
+.btn-close:hover {
+  background: #f8bbd0;
+}
 
 /* ── Body ───────────────────────────────────────────────────────────────────── */
 .modal-body {
@@ -474,9 +509,17 @@ const categoriaNombre = computed(
 }
 
 /* ── Campos ─────────────────────────────────────────────────────────────────── */
-.field { display: flex; flex-direction: column; gap: 0.35rem; }
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
 
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
 
 .field-label {
   font-size: 0.78rem;
@@ -485,7 +528,9 @@ const categoriaNombre = computed(
   letter-spacing: 0.2px;
 }
 
-.req { color: #e91e8c; }
+.req {
+  color: #e91e8c;
+}
 
 /* Select nativo estilizado */
 .select-wrap {
@@ -523,7 +568,9 @@ const categoriaNombre = computed(
   -webkit-appearance: none;
   appearance: none;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .field-select:focus {
@@ -533,7 +580,9 @@ const categoriaNombre = computed(
 }
 
 /* Input con icono */
-.input-wrap { position: relative; }
+.input-wrap {
+  position: relative;
+}
 
 .input-icon {
   position: absolute;
@@ -565,13 +614,19 @@ const categoriaNombre = computed(
   color: #333;
   outline: none;
   background: #fff9fb;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   box-sizing: border-box;
   font-family: inherit;
 }
 
-.field-input.has-icon   { padding-left: 2.35rem; }
-.field-input.has-prefix { padding-left: 2.5rem; }
+.field-input.has-icon {
+  padding-left: 2.35rem;
+}
+.field-input.has-prefix {
+  padding-left: 2.5rem;
+}
 
 .field-input:focus {
   border-color: #e91e8c;
@@ -588,7 +643,9 @@ const categoriaNombre = computed(
   color: #333;
   outline: none;
   background: #fff9fb;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   font-family: inherit;
   resize: vertical;
   min-height: 80px;
@@ -603,7 +660,9 @@ const categoriaNombre = computed(
 
 .field-has-error .field-input,
 .field-has-error .field-select,
-.field-has-error .field-textarea { border-color: #ef5350; }
+.field-has-error .field-textarea {
+  border-color: #ef5350;
+}
 
 .field-footer {
   display: flex;
@@ -612,8 +671,15 @@ const categoriaNombre = computed(
   min-height: 16px;
 }
 
-.char-count { font-size: 0.72rem; color: #ccc; }
-.char-count.right { text-align: right; font-size: 0.72rem; color: #ccc; }
+.char-count {
+  font-size: 0.72rem;
+  color: #ccc;
+}
+.char-count.right {
+  text-align: right;
+  font-size: 0.72rem;
+  color: #ccc;
+}
 
 .error-msg {
   display: flex;
@@ -657,18 +723,34 @@ const categoriaNombre = computed(
 }
 
 .upload-icon-wrap {
-  width: 52px; height: 52px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: #fce4ec;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.4rem;
   color: #e91e8c;
   margin-bottom: 0.25rem;
 }
 
-.upload-titulo { font-weight: 700; color: #880e4f; font-size: 0.9rem; margin: 0; }
-.upload-sub    { font-size: 0.75rem; color: #ccc; margin: 0; }
-.upload-hint   { font-size: 0.7rem; color: #ccc; margin: 0; }
+.upload-titulo {
+  font-weight: 700;
+  color: #880e4f;
+  font-size: 0.9rem;
+  margin: 0;
+}
+.upload-sub {
+  font-size: 0.75rem;
+  color: #ccc;
+  margin: 0;
+}
+.upload-hint {
+  font-size: 0.7rem;
+  color: #ccc;
+  margin: 0;
+}
 
 .btn-upload {
   display: inline-flex;
@@ -686,8 +768,13 @@ const categoriaNombre = computed(
   transition: opacity 0.2s;
 }
 
-.btn-upload:hover:not(.disabled) { opacity: 0.9; }
-.btn-upload.disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-upload:hover:not(.disabled) {
+  opacity: 0.9;
+}
+.btn-upload.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* Preview con imagen */
 .img-preview {
@@ -714,7 +801,9 @@ const categoriaNombre = computed(
   transition: opacity 0.2s;
 }
 
-.img-preview:hover .img-overlay-actions { opacity: 1; }
+.img-preview:hover .img-overlay-actions {
+  opacity: 1;
+}
 
 .btn-cambiar-img,
 .btn-quitar-img {
@@ -741,8 +830,12 @@ const categoriaNombre = computed(
   border: 1.5px solid rgba(255, 255, 255, 0.5);
 }
 
-.btn-cambiar-img:hover { background: #fce4ec; }
-.btn-quitar-img:hover  { background: rgba(255, 255, 255, 0.35); }
+.btn-cambiar-img:hover {
+  background: #fce4ec;
+}
+.btn-quitar-img:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
 
 /* Input oculto */
 .file-input-hidden {
@@ -779,8 +872,13 @@ const categoriaNombre = computed(
   transition: background 0.2s;
 }
 
-.btn-cancelar:hover:not(:disabled) { background: #f5f5f5; }
-.btn-cancelar:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-cancelar:hover:not(:disabled) {
+  background: #f5f5f5;
+}
+.btn-cancelar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btn-guardar {
   display: inline-flex;
@@ -795,27 +893,49 @@ const categoriaNombre = computed(
   font-size: 0.875rem;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 
-.btn-guardar:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-.btn-guardar:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn-guardar:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.btn-guardar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
 
 /* ── Transición ─────────────────────────────────────────────────────────────── */
 .modal-fade-enter-active,
-.modal-fade-leave-active { transition: opacity 0.22s ease; }
+.modal-fade-leave-active {
+  transition: opacity 0.22s ease;
+}
 
 .modal-fade-enter-active .modal-panel,
-.modal-fade-leave-active .modal-panel { transition: transform 0.22s ease, opacity 0.22s ease; }
+.modal-fade-leave-active .modal-panel {
+  transition:
+    transform 0.22s ease,
+    opacity 0.22s ease;
+}
 
 .modal-fade-enter-from,
-.modal-fade-leave-to { opacity: 0; }
+.modal-fade-leave-to {
+  opacity: 0;
+}
 
 .modal-fade-enter-from .modal-panel,
-.modal-fade-leave-to .modal-panel { transform: translateY(16px); opacity: 0; }
+.modal-fade-leave-to .modal-panel {
+  transform: translateY(16px);
+  opacity: 0;
+}
 
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .field-row { grid-template-columns: 1fr; }
+  .field-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

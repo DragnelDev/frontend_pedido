@@ -1,115 +1,113 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
-import { useRouter } from "vue-router";
-import http from "@/plugins/axios";
-import { getTokenFromLocalStorage, parseJwt } from "@/helpers";
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import http from '@/plugins/axios'
+import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
 
-const router = useRouter();
+const router = useRouter()
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Estado
 // ─────────────────────────────────────────────────────────────────────────────
-const cargando = ref(true);
-const error = ref<string | null>(null);
-const tabActiva = ref<"contacto" | "direcciones" | "favoritos">("contacto");
+const cargando = ref(true)
+const error = ref<string | null>(null)
+const tabActiva = ref<'contacto' | 'direcciones' | 'favoritos'>('contacto')
 
 const usuario = ref({
   id: 0,
-  imagenUrl: "",
-  email: "",
-  rol: "",
+  imagenUrl: '',
+  email: '',
+  rol: '',
   activo: true,
   cliente: {
     id: 0,
-    nombre: "",
-    apellidoPaterno: "",
-    apellidoMaterno: "",
-    celular: "",
-    email: "",
-    direccion: "",
+    nombre: '',
+    apellidoPaterno: '',
+    apellidoMaterno: '',
+    celular: '',
+    email: '',
+    direccion: '',
   },
   empleado: null as any,
-});
+})
 
 // Mock de Direcciones Guardadas (puedes conectarlo a tu API luego)
 const direcciones = ref([
   {
     id: 1,
-    etiqueta: "Casa",
-    direccion: "Av. Arce, Edificio Los Pinos, La Paz",
+    etiqueta: 'Casa',
+    direccion: 'Av. Arce, Edificio Los Pinos, La Paz',
     principal: true,
   },
   {
     id: 2,
-    etiqueta: "Oficina",
-    direccion: "Calle Calvo #120, Sucre",
+    etiqueta: 'Oficina',
+    direccion: 'Calle Calvo #120, Sucre',
     principal: false,
   },
-]);
+])
 
 // Mock de Favoritos (puedes conectarlo a tu API luego)
 const favoritos = ref([
   {
     id: 101,
-    nombre: "Torta Tres Leches con Frutilla",
+    nombre: 'Torta Tres Leches con Frutilla',
     precio: 120,
-    imagen: "/images/torta-frutilla.jpg",
+    imagen: '/images/torta-frutilla.jpg',
   },
   {
     id: 102,
-    nombre: "Cupcakes de Chocolate x6",
+    nombre: 'Cupcakes de Chocolate x6',
     precio: 45,
-    imagen: "/images/cupcakes.jpg",
+    imagen: '/images/cupcakes.jpg',
   },
-]);
+])
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Montaje
 // ─────────────────────────────────────────────────────────────────────────────
 onMounted(async () => {
-  const token = getTokenFromLocalStorage();
-  const payload = token ? parseJwt(token) : null;
+  const token = getTokenFromLocalStorage()
+  const payload = token ? parseJwt(token) : null
 
   if (!token || !payload?.sub) {
-    router.replace("/login");
-    return;
+    router.replace('/login')
+    return
   }
 
   try {
-    const { data } = await http.get(`/usuarios/${payload.sub}`);
-    usuario.value = data;
+    const { data } = await http.get(`/usuarios/${payload.sub}`)
+    usuario.value = data
   } catch (e: any) {
-    error.value = e?.response?.data?.message || "No se pudo cargar el perfil";
+    error.value = e?.response?.data?.message || 'No se pudo cargar el perfil'
   } finally {
-    cargando.value = false;
+    cargando.value = false
   }
-});
+})
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 const nombreCompleto = computed(() => {
-  const c = usuario.value.cliente;
-  if (!c?.nombre) return "—";
-  return [c.nombre, c.apellidoPaterno, c.apellidoMaterno]
-    .filter(Boolean)
-    .join(" ");
-});
+  const c = usuario.value.cliente
+  if (!c?.nombre) return '—'
+  return [c.nombre, c.apellidoPaterno, c.apellidoMaterno].filter(Boolean).join(' ')
+})
 
 const inicial = computed(() => {
-  const nombre = usuario.value.cliente?.nombre || usuario.value.email || "?";
-  return nombre.charAt(0).toUpperCase();
-});
+  const nombre = usuario.value.cliente?.nombre || usuario.value.email || '?'
+  return nombre.charAt(0).toUpperCase()
+})
 
 const irAEditar = () => {
-  router.push("/perfil/editar");
-};
+  router.push('/perfil/editar')
+}
 
 const cerrarSesion = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  router.push("/login");
-};
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  router.push('/login')
+}
 </script>
 
 <template>
@@ -140,18 +138,10 @@ const cerrarSesion = () => {
           <!-- Hero / Encabezado del Perfil -->
           <div class="profile-hero">
             <div class="hero-actions-top">
-              <button
-                class="btn-icon-top"
-                @click="irAEditar"
-                title="Editar Perfil"
-              >
+              <button class="btn-icon-top" @click="irAEditar" title="Editar Perfil">
                 <i class="pi pi-pencil"></i>
               </button>
-              <button
-                class="btn-icon-top logout"
-                @click="cerrarSesion"
-                title="Cerrar Sesión"
-              >
+              <button class="btn-icon-top logout" @click="cerrarSesion" title="Cerrar Sesión">
                 <i class="pi pi-sign-out"></i>
               </button>
             </div>
@@ -168,23 +158,14 @@ const cerrarSesion = () => {
 
             <div class="profile-hero-info">
               <h3 class="hero-nombre">{{ nombreCompleto }}</h3>
-              <span class="hero-email">{{ usuario.email || "—" }}</span>
+              <span class="hero-email">{{ usuario.email || '—' }}</span>
               <div class="hero-badges">
                 <span class="rol-badge">
-                  {{ usuario.rol === "CLIENTE" ? "👤 Cliente" : usuario.rol }}
+                  {{ usuario.rol === 'CLIENTE' ? '👤 Cliente' : usuario.rol }}
                 </span>
-                <span
-                  class="activo-badge"
-                  :class="usuario.activo ? 'activo' : 'inactivo'"
-                >
-                  <i
-                    :class="
-                      usuario.activo
-                        ? 'pi pi-check-circle'
-                        : 'pi pi-times-circle'
-                    "
-                  ></i>
-                  {{ usuario.activo ? "Cuenta activa" : "Inactiva" }}
+                <span class="activo-badge" :class="usuario.activo ? 'activo' : 'inactivo'">
+                  <i :class="usuario.activo ? 'pi pi-check-circle' : 'pi pi-times-circle'"></i>
+                  {{ usuario.activo ? 'Cuenta activa' : 'Inactiva' }}
                 </span>
               </div>
             </div>
@@ -192,10 +173,7 @@ const cerrarSesion = () => {
 
           <!-- Pestañas (Tabs) de Selección -->
           <div class="tabs-bar">
-            <button
-              :class="{ activo: tabActiva === 'contacto' }"
-              @click="tabActiva = 'contacto'"
-            >
+            <button :class="{ activo: tabActiva === 'contacto' }" @click="tabActiva = 'contacto'">
               <i class="pi pi-id-card"></i> Datos
             </button>
             <button
@@ -204,10 +182,7 @@ const cerrarSesion = () => {
             >
               <i class="pi pi-map-marker"></i> Direcciones
             </button>
-            <button
-              :class="{ activo: tabActiva === 'favoritos' }"
-              @click="tabActiva = 'favoritos'"
-            >
+            <button :class="{ activo: tabActiva === 'favoritos' }" @click="tabActiva = 'favoritos'">
               <i class="pi pi-heart"></i> Favoritos
             </button>
           </div>
@@ -216,10 +191,7 @@ const cerrarSesion = () => {
           <div v-if="tabActiva === 'contacto'" class="tab-content">
             <div class="info-grid">
               <div class="info-item">
-                <div
-                  class="info-icon-wrap"
-                  style="background: #fce4ec; color: #e91e8c"
-                >
+                <div class="info-icon-wrap" style="background: #fce4ec; color: #e91e8c">
                   <i class="pi pi-user"></i>
                 </div>
                 <div>
@@ -229,44 +201,35 @@ const cerrarSesion = () => {
               </div>
 
               <div class="info-item">
-                <div
-                  class="info-icon-wrap"
-                  style="background: #e8eaf6; color: #3949ab"
-                >
+                <div class="info-icon-wrap" style="background: #e8eaf6; color: #3949ab">
                   <i class="pi pi-envelope"></i>
                 </div>
                 <div>
                   <p class="info-label">Correo electrónico</p>
-                  <p class="info-valor">{{ usuario.email || "—" }}</p>
+                  <p class="info-valor">{{ usuario.email || '—' }}</p>
                 </div>
               </div>
 
               <div class="info-item">
-                <div
-                  class="info-icon-wrap"
-                  style="background: #e8f5e9; color: #2e7d32"
-                >
+                <div class="info-icon-wrap" style="background: #e8f5e9; color: #2e7d32">
                   <i class="pi pi-phone"></i>
                 </div>
                 <div>
                   <p class="info-label">Celular</p>
                   <p class="info-valor">
-                    {{ usuario.cliente?.celular || "No registrado" }}
+                    {{ usuario.cliente?.celular || 'No registrado' }}
                   </p>
                 </div>
               </div>
 
               <div class="info-item">
-                <div
-                  class="info-icon-wrap"
-                  style="background: #fff3e0; color: #e65100"
-                >
+                <div class="info-icon-wrap" style="background: #fff3e0; color: #e65100">
                   <i class="pi pi-map-marker"></i>
                 </div>
                 <div>
                   <p class="info-label">Dirección Principal</p>
                   <p class="info-valor">
-                    {{ usuario.cliente?.direccion || "No registrada" }}
+                    {{ usuario.cliente?.direccion || 'No registrada' }}
                   </p>
                 </div>
               </div>
@@ -277,9 +240,7 @@ const cerrarSesion = () => {
           <div v-if="tabActiva === 'direcciones'" class="tab-content">
             <div class="tab-header-action">
               <span>Direcciones para entregas</span>
-              <button class="btn-sm-primary">
-                <i class="pi pi-plus"></i> Nueva
-              </button>
+              <button class="btn-sm-primary"><i class="pi pi-plus"></i> Nueva</button>
             </div>
 
             <div class="list-cards">
@@ -290,9 +251,7 @@ const cerrarSesion = () => {
                 <div class="card-item-info">
                   <strong
                     >{{ dir.etiqueta }}
-                    <span v-if="dir.principal" class="badge-tag"
-                      >Principal</span
-                    ></strong
+                    <span v-if="dir.principal" class="badge-tag">Principal</span></strong
                   >
                   <p>{{ dir.direccion }}</p>
                 </div>

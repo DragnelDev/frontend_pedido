@@ -40,27 +40,30 @@ type Pedido = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Estado
 // ─────────────────────────────────────────────────────────────────────────────
-const router   = useRouter()
-const pedidos  = ref<Pedido[]>([])
+const router = useRouter()
+const pedidos = ref<Pedido[]>([])
 const cargando = ref(true)
-const error    = ref<string | null>(null)
-const abierto  = ref<number | null>(null)
+const error = ref<string | null>(null)
+const abierto = ref<number | null>(null)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Montaje
 // ─────────────────────────────────────────────────────────────────────────────
 onMounted(async () => {
   const token = getTokenFromLocalStorage()
-  if (!token) { router.replace('/login'); return }
+  if (!token) {
+    router.replace('/login')
+    return
+  }
   await cargarPedidos()
 })
 
 async function cargarPedidos() {
   cargando.value = true
-  error.value    = null
+  error.value = null
   try {
     const { data } = await http.get<Pedido[]>('/pedidos/mios')
-    pedidos.value  = data
+    pedidos.value = data
   } catch (e: any) {
     error.value = e?.response?.data?.message || 'No se pudieron cargar los pedidos'
   } finally {
@@ -70,20 +73,23 @@ async function cargarPedidos() {
 
 // Carga lazy del detalle al expandir
 async function toggleDetalle(id: number) {
-  if (abierto.value === id) { abierto.value = null; return }
+  if (abierto.value === id) {
+    abierto.value = null
+    return
+  }
   abierto.value = id
 
-  const pedido = pedidos.value.find(p => p.id === id)
+  const pedido = pedidos.value.find((p) => p.id === id)
   if (!pedido || pedido.detallePedido !== undefined) return
 
   pedido._cargandoDetalle = true
   try {
     const { data } = await http.get(`/pedidos/${id}`)
-    pedido.detallePedido  = (data.detallePedido || data.pedidosProductos || [])
-    pedido.pagos          = data.pagos || []
+    pedido.detallePedido = data.detallePedido || data.pedidosProductos || []
+    pedido.pagos = data.pagos || []
     pedido.direccionEnvio = data.direccionEnvio || data.direccion_envio
-    pedido.referencia     = data.referencia
-    pedido.fechaEntrega   = data.fechaEntrega || data.fecha_entrega
+    pedido.referencia = data.referencia
+    pedido.fechaEntrega = data.fechaEntrega || data.fecha_entrega
   } catch {
     pedido.detallePedido = []
     pedido.pagos = []
@@ -99,7 +105,12 @@ function fmtFecha(iso?: string): string {
   if (!iso) return '—'
   const d = new Date(iso)
   if (isNaN(+d)) return '—'
-  return d.toLocaleDateString('es-BO', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+  return d.toLocaleDateString('es-BO', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
 function fmtBs(n?: number): string {
@@ -107,9 +118,9 @@ function fmtBs(n?: number): string {
 }
 
 const ESTADO_CFG: Record<string, { label: string; bg: string; color: string; icon: string }> = {
-  pendiente: { label: 'Pendiente',  bg: '#fff3e0', color: '#e65100', icon: 'pi-clock'        },
-  entregado: { label: 'Entregado',  bg: '#e8f5e9', color: '#2e7d32', icon: 'pi-check-circle' },
-  cancelado: { label: 'Cancelado',  bg: '#fce4ec', color: '#c62828', icon: 'pi-times-circle' },
+  pendiente: { label: 'Pendiente', bg: '#fff3e0', color: '#e65100', icon: 'pi-clock' },
+  entregado: { label: 'Entregado', bg: '#e8f5e9', color: '#2e7d32', icon: 'pi-check-circle' },
+  cancelado: { label: 'Cancelado', bg: '#fce4ec', color: '#c62828', icon: 'pi-times-circle' },
 }
 
 function estadoCfg(estado: string) {
@@ -117,10 +128,10 @@ function estadoCfg(estado: string) {
 }
 
 const TIPO_ENVIO_LABEL: Record<string, string> = {
-  domicilio:     '🚚 Domicilio',
-  delivery:      '🚚 Delivery',
-  express:       '⚡ Express',
-  local:         '🏪 Retiro local',
+  domicilio: '🚚 Domicilio',
+  delivery: '🚚 Delivery',
+  express: '⚡ Express',
+  local: '🏪 Retiro local',
   retiro_tienda: '🏪 Retiro tienda',
 }
 </script>
@@ -128,7 +139,6 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
 <template>
   <section class="pedidos-page">
     <div class="pedidos-container">
-
       <!-- ── Header ──────────────────────────────────────────────────────── -->
       <div class="page-header">
         <span class="section-tag">Mi historial</span>
@@ -156,9 +166,7 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
         <div class="vacio-icon">📦</div>
         <h4>Aún no tienes pedidos</h4>
         <p>Cuando realices una compra, aparecerá aquí con todos los detalles.</p>
-        <RouterLink to="/productos" class="btn-explorar">
-          🍰 Explorar productos
-        </RouterLink>
+        <RouterLink to="/productos" class="btn-explorar"> 🍰 Explorar productos </RouterLink>
       </div>
 
       <!-- ── Lista de pedidos ────────────────────────────────────────────── -->
@@ -171,7 +179,6 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
         >
           <!-- Cabecera del pedido -->
           <div class="pedido-header" @click="toggleDetalle(p.id)">
-
             <div class="pedido-header-left">
               <!-- Número -->
               <span class="pedido-num">#{{ String(p.id).padStart(5, '0') }}</span>
@@ -197,7 +204,9 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
               </div>
               <div class="pedido-meta-item">
                 <span class="meta-label">Envío</span>
-                <span class="meta-valor">{{ TIPO_ENVIO_LABEL[p.tipoEnvio] || p.tipoEnvio || '—' }}</span>
+                <span class="meta-valor">{{
+                  TIPO_ENVIO_LABEL[p.tipoEnvio] || p.tipoEnvio || '—'
+                }}</span>
               </div>
             </div>
 
@@ -212,7 +221,6 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
           <!-- Detalle expandible -->
           <Transition name="slide-down">
             <div v-if="abierto === p.id" class="pedido-detalle">
-
               <!-- Cargando detalle -->
               <div v-if="p._cargandoDetalle" class="detalle-loading">
                 <div class="mini-spinner"></div>
@@ -220,7 +228,6 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
               </div>
 
               <div v-else class="detalle-grid">
-
                 <!-- Productos -->
                 <div class="detalle-box">
                   <h5 class="box-titulo"><i class="pi pi-box"></i> Productos</h5>
@@ -247,7 +254,9 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
                         <p class="prod-nombre">{{ item.producto?.nombre || '—' }}</p>
                         <p class="prod-precio-unit">Bs. {{ fmtBs(item.precioUnitario) }} c/u</p>
                       </div>
-                      <span class="prod-subtotal">Bs. {{ fmtBs(item.cantidad * item.precioUnitario) }}</span>
+                      <span class="prod-subtotal"
+                        >Bs. {{ fmtBs(item.cantidad * item.precioUnitario) }}</span
+                      >
                     </div>
                   </div>
 
@@ -260,7 +269,6 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
 
                 <!-- Info de entrega + pago -->
                 <div class="detalle-right">
-
                   <!-- Entrega -->
                   <div class="detalle-box">
                     <h5 class="box-titulo"><i class="pi pi-truck"></i> Entrega</h5>
@@ -298,10 +306,9 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
                       </div>
                       <div class="info-fila">
                         <span>Estado</span>
-                        <span
-                          class="pago-estado"
-                          :class="pg.estado"
-                        >{{ pg.estado.replace('_',' ') }}</span>
+                        <span class="pago-estado" :class="pg.estado">{{
+                          pg.estado.replace('_', ' ')
+                        }}</span>
                       </div>
                       <div v-if="pg.comprobante" class="info-fila">
                         <span>Comprobante</span>
@@ -311,14 +318,12 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
                       </div>
                     </div>
                   </div>
-
                 </div>
               </div>
             </div>
           </Transition>
         </div>
       </div>
-
     </div>
   </section>
 </template>
@@ -331,10 +336,15 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   min-height: 80vh;
 }
 
-.pedidos-container { max-width: 860px; margin: 0 auto; }
+.pedidos-container {
+  max-width: 860px;
+  margin: 0 auto;
+}
 
 /* ── Header ─────────────────────────────────────────────────────────────────── */
-.page-header { margin-bottom: 1.75rem; }
+.page-header {
+  margin-bottom: 1.75rem;
+}
 
 .section-tag {
   display: inline-block;
@@ -349,8 +359,17 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   margin-bottom: 0.5rem;
 }
 
-.page-titulo { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 800; color: #880e4f; margin: 0 0 0.25rem; }
-.page-sub    { font-size: 0.875rem; color: #f48fb1; margin: 0; }
+.page-titulo {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.25rem;
+}
+.page-sub {
+  font-size: 0.875rem;
+  color: #f48fb1;
+  margin: 0;
+}
 
 /* ── Error ──────────────────────────────────────────────────────────────────── */
 .error-banner {
@@ -382,7 +401,9 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   transition: background 0.2s;
 }
 
-.btn-reintentar:hover { background: #ffcdd2; }
+.btn-reintentar:hover {
+  background: #ffcdd2;
+}
 
 /* ── Loading ────────────────────────────────────────────────────────────────── */
 .loading-wrap {
@@ -397,14 +418,19 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
 }
 
 .loading-spinner {
-  width: 44px; height: 44px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 3px solid #fce4ec;
   border-top-color: #e91e8c;
   animation: spin 0.75s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ── Vacío ──────────────────────────────────────────────────────────────────── */
 .vacio-card {
@@ -416,9 +442,22 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   box-shadow: 0 4px 20px rgba(233, 30, 140, 0.08);
 }
 
-.vacio-icon { font-size: 4rem; opacity: 0.3; margin-bottom: 1rem; display: block; }
-.vacio-card h4 { font-weight: 800; color: #880e4f; margin-bottom: 0.4rem; }
-.vacio-card p  { color: #aaa; margin-bottom: 1.5rem; font-size: 0.875rem; }
+.vacio-icon {
+  font-size: 4rem;
+  opacity: 0.3;
+  margin-bottom: 1rem;
+  display: block;
+}
+.vacio-card h4 {
+  font-weight: 800;
+  color: #880e4f;
+  margin-bottom: 0.4rem;
+}
+.vacio-card p {
+  color: #aaa;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
 
 .btn-explorar {
   display: inline-block;
@@ -429,13 +468,23 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   border-radius: 50px;
   text-decoration: none;
   box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 
-.btn-explorar:hover { opacity: 0.9; transform: translateY(-2px); color: white; }
+.btn-explorar:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  color: white;
+}
 
 /* ── Lista de pedidos ───────────────────────────────────────────────────────── */
-.pedidos-lista { display: flex; flex-direction: column; gap: 1rem; }
+.pedidos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 
 /* ── Pedido card ────────────────────────────────────────────────────────────── */
 .pedido-card {
@@ -444,7 +493,9 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   border: 1.5px solid #fce4ec;
   box-shadow: 0 3px 14px rgba(233, 30, 140, 0.07);
   overflow: hidden;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s;
 }
 
 .pedido-card.abierto {
@@ -463,7 +514,9 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   flex-wrap: wrap;
 }
 
-.pedido-header:hover { background: #fff9fb; }
+.pedido-header:hover {
+  background: #fff9fb;
+}
 
 .pedido-header-left {
   display: flex;
@@ -498,9 +551,23 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   flex-wrap: wrap;
 }
 
-.pedido-meta-item { display: flex; flex-direction: column; gap: 0.05rem; }
-.meta-label { font-size: 0.65rem; color: #bbb; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
-.meta-valor { font-size: 0.8rem; font-weight: 600; color: #555; }
+.pedido-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+.meta-label {
+  font-size: 0.65rem;
+  color: #bbb;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.meta-valor {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+}
 
 .metodo-tag {
   display: inline-block;
@@ -529,19 +596,24 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
 }
 
 .btn-toggle {
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 1.5px solid #fce4ec;
   background: #fce4ec;
   color: #c2185b;
   font-size: 0.8rem;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.2s;
   flex-shrink: 0;
 }
 
-.btn-toggle:hover { background: #f8bbd0; }
+.btn-toggle:hover {
+  background: #f8bbd0;
+}
 
 /* ── Detalle ────────────────────────────────────────────────────────────────── */
 .pedido-detalle {
@@ -560,7 +632,8 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
 }
 
 .mini-spinner {
-  width: 18px; height: 18px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   border: 2px solid #fce4ec;
   border-top-color: #e91e8c;
@@ -601,10 +674,21 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   border-bottom: 1.5px solid #fce4ec;
 }
 
-.box-vacio { font-size: 0.8rem; color: #ccc; font-style: italic; text-align: center; padding: 0.5rem; }
+.box-vacio {
+  font-size: 0.8rem;
+  color: #ccc;
+  font-style: italic;
+  text-align: center;
+  padding: 0.5rem;
+}
 
 /* Productos en detalle */
-.productos-lista { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
+.productos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
 
 .prod-item {
   display: flex;
@@ -616,36 +700,69 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   border: 1px solid #fce4ec;
 }
 
-.prod-img-wrap { position: relative; flex-shrink: 0; }
+.prod-img-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
 
 .prod-img,
 .prod-img-placeholder {
-  width: 44px; height: 44px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   object-fit: cover;
   border: 1px solid #fce4ec;
-  display: flex; align-items: center; justify-content: center;
-  background: #fce4ec; color: #f48fb1; font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fce4ec;
+  color: #f48fb1;
+  font-size: 0.9rem;
 }
 
 .prod-qty {
   position: absolute;
-  top: -5px; right: -5px;
-  width: 18px; height: 18px;
+  top: -5px;
+  right: -5px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: linear-gradient(135deg, #e91e8c, #f06292);
   color: white;
   font-size: 0.58rem;
   font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1.5px solid white;
 }
 
-.prod-info { flex: 1; min-width: 0; }
-.prod-nombre     { font-weight: 700; color: #880e4f; font-size: 0.78rem; margin: 0 0 0.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.prod-precio-unit { font-size: 0.68rem; color: #bbb; margin: 0; }
+.prod-info {
+  flex: 1;
+  min-width: 0;
+}
+.prod-nombre {
+  font-weight: 700;
+  color: #880e4f;
+  font-size: 0.78rem;
+  margin: 0 0 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prod-precio-unit {
+  font-size: 0.68rem;
+  color: #bbb;
+  margin: 0;
+}
 
-.prod-subtotal { font-weight: 800; color: #e91e8c; font-size: 0.8rem; white-space: nowrap; flex-shrink: 0; }
+.prod-subtotal {
+  font-weight: 800;
+  color: #e91e8c;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 .prod-total-row {
   display: flex;
@@ -657,10 +774,17 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   padding-top: 0.6rem;
 }
 
-.total-monto { color: #e91e8c; font-weight: 800; }
+.total-monto {
+  color: #e91e8c;
+  font-weight: 800;
+}
 
 /* Info lista (entrega / pago) */
-.info-lista { display: flex; flex-direction: column; gap: 0.5rem; }
+.info-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
 
 .info-fila {
   display: flex;
@@ -672,11 +796,26 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   gap: 0.5rem;
 }
 
-.info-fila:last-child { border-bottom: none; padding-bottom: 0; }
-.info-fila > span:first-child { color: #bbb; font-weight: 500; flex-shrink: 0; }
-.info-fila > span:last-child  { color: #444; font-weight: 600; text-align: right; }
+.info-fila:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.info-fila > span:first-child {
+  color: #bbb;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.info-fila > span:last-child {
+  color: #444;
+  font-weight: 600;
+  text-align: right;
+}
 
-.info-dir { text-align: right; word-break: break-word; max-width: 160px; }
+.info-dir {
+  text-align: right;
+  word-break: break-word;
+  max-width: 160px;
+}
 
 .pago-estado {
   display: inline-block;
@@ -687,10 +826,22 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   text-transform: capitalize;
 }
 
-.pago-estado.pendiente   { background: #fff3e0; color: #e65100; }
-.pago-estado.en_revision { background: #e3f2fd; color: #1565c0; }
-.pago-estado.aprobado    { background: #e8f5e9; color: #2e7d32; }
-.pago-estado.rechazado   { background: #fce4ec; color: #c62828; }
+.pago-estado.pendiente {
+  background: #fff3e0;
+  color: #e65100;
+}
+.pago-estado.en_revision {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+.pago-estado.aprobado {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.pago-estado.rechazado {
+  background: #fce4ec;
+  color: #c62828;
+}
 
 .link-comprobante {
   display: inline-flex;
@@ -703,22 +854,42 @@ const TIPO_ENVIO_LABEL: Record<string, string> = {
   transition: opacity 0.2s;
 }
 
-.link-comprobante:hover { opacity: 0.75; }
+.link-comprobante:hover {
+  opacity: 0.75;
+}
 
 /* ── Transición slide ───────────────────────────────────────────────────────── */
-.slide-down-enter-active { animation: slideIn 0.25s ease; }
-.slide-down-leave-active { animation: slideIn 0.2s ease reverse; }
+.slide-down-enter-active {
+  animation: slideIn 0.25s ease;
+}
+.slide-down-leave-active {
+  animation: slideIn 0.2s ease reverse;
+}
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .detalle-grid   { grid-template-columns: 1fr; }
-  .pedido-header  { gap: 0.75rem; }
-  .pedido-header-center { gap: 0.75rem; }
-  .pedido-total   { font-size: 0.9rem; }
+  .detalle-grid {
+    grid-template-columns: 1fr;
+  }
+  .pedido-header {
+    gap: 0.75rem;
+  }
+  .pedido-header-center {
+    gap: 0.75rem;
+  }
+  .pedido-total {
+    font-size: 0.9rem;
+  }
 }
 </style>

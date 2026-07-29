@@ -8,12 +8,12 @@ import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
 const router = useRouter()
 
 const subiendoImagen = ref(false)
-const dragOver       = ref(false)
+const dragOver = ref(false)
 
-const cargando     = ref(true)
-const guardando    = ref(false)
-const modoEdicion  = ref(false)
-const error        = ref<string | null>(null)
+const cargando = ref(true)
+const guardando = ref(false)
+const modoEdicion = ref(false)
+const error = ref<string | null>(null)
 const mensajeExito = ref<string | null>(null)
 
 const usuario = ref({
@@ -22,7 +22,7 @@ const usuario = ref({
   idCliente: null as number | null,
   email: '',
   rol: '',
-  imagenUrl: ''
+  imagenUrl: '',
 })
 
 const empleado = ref({
@@ -38,7 +38,7 @@ const empleado = ref({
   fechaIngreso: '',
   cargo: '',
   salario: '',
-  activo: true
+  activo: true,
 })
 
 const formulario = ref({
@@ -47,11 +47,11 @@ const formulario = ref({
   apellidoMaterno: '',
   celular: '',
   direccion: '',
-  imagenUrl: ''
+  imagenUrl: '',
 })
 
 onMounted(async () => {
-  const token   = getTokenFromLocalStorage()
+  const token = getTokenFromLocalStorage()
   const payload = token ? parseJwt(token) : null
 
   if (!token || !payload?.sub || payload?.rol !== 'EMPLEADO') {
@@ -65,11 +65,11 @@ onMounted(async () => {
 
     if (data.empleado) {
       empleado.value = data.empleado
-      formulario.value.nombre          = data.empleado.nombre || ''
+      formulario.value.nombre = data.empleado.nombre || ''
       formulario.value.apellidoPaterno = data.empleado.apellidoPaterno || ''
       formulario.value.apellidoMaterno = data.empleado.apellidoMaterno || ''
-      formulario.value.celular         = data.empleado.celular || ''
-      formulario.value.direccion       = data.empleado.direccion || ''
+      formulario.value.celular = data.empleado.celular || ''
+      formulario.value.direccion = data.empleado.direccion || ''
     }
     formulario.value.imagenUrl = data.imagenUrl || ''
   } catch (e: any) {
@@ -82,7 +82,8 @@ onMounted(async () => {
 const nombreCompleto = computed(() => {
   if (!empleado.value.nombre) return '—'
   return [empleado.value.nombre, empleado.value.apellidoPaterno, empleado.value.apellidoMaterno]
-    .filter(Boolean).join(' ')
+    .filter(Boolean)
+    .join(' ')
 })
 
 const inicial = computed(() => {
@@ -96,25 +97,31 @@ const formatearMoneda = (valor: string) => {
 
 const formatearFecha = (fechaStr: string) => {
   if (!fechaStr) return '—'
-  return new Date(fechaStr).toLocaleDateString('es-BO', { year: 'numeric', month: 'long', day: 'numeric' })
+  return new Date(fechaStr).toLocaleDateString('es-BO', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
 }
 
-const activarEdicion = () => { modoEdicion.value = true }
+const activarEdicion = () => {
+  modoEdicion.value = true
+}
 
 const cancelarEdicion = () => {
   modoEdicion.value = false
   error.value = null
-  formulario.value.nombre          = empleado.value.nombre
+  formulario.value.nombre = empleado.value.nombre
   formulario.value.apellidoPaterno = empleado.value.apellidoPaterno
   formulario.value.apellidoMaterno = empleado.value.apellidoMaterno
-  formulario.value.celular         = empleado.value.celular
-  formulario.value.direccion       = empleado.value.direccion
-  formulario.value.imagenUrl       = usuario.value.imagenUrl
+  formulario.value.celular = empleado.value.celular
+  formulario.value.direccion = empleado.value.direccion
+  formulario.value.imagenUrl = usuario.value.imagenUrl
 }
 
 const guardarCambios = async () => {
-  guardando.value    = true
-  error.value        = null
+  guardando.value = true
+  error.value = null
   mensajeExito.value = null
 
   try {
@@ -122,24 +129,26 @@ const guardarCambios = async () => {
       imagenUrl: formulario.value.imagenUrl,
       empleado: {
         ...empleado.value,
-        nombre:          formulario.value.nombre,
+        nombre: formulario.value.nombre,
         apellidoPaterno: formulario.value.apellidoPaterno,
         apellidoMaterno: formulario.value.apellidoMaterno,
-        celular:         formulario.value.celular,
-        direccion:       formulario.value.direccion
-      }
+        celular: formulario.value.celular,
+        direccion: formulario.value.direccion,
+      },
     })
 
-    empleado.value.nombre          = formulario.value.nombre
+    empleado.value.nombre = formulario.value.nombre
     empleado.value.apellidoPaterno = formulario.value.apellidoPaterno
     empleado.value.apellidoMaterno = formulario.value.apellidoMaterno
-    empleado.value.celular         = formulario.value.celular
-    empleado.value.direccion       = formulario.value.direccion
-    usuario.value.imagenUrl        = formulario.value.imagenUrl
+    empleado.value.celular = formulario.value.celular
+    empleado.value.direccion = formulario.value.direccion
+    usuario.value.imagenUrl = formulario.value.imagenUrl
 
     mensajeExito.value = '¡Perfil actualizado correctamente!'
-    modoEdicion.value  = false
-    setTimeout(() => { mensajeExito.value = null }, 3000)
+    modoEdicion.value = false
+    setTimeout(() => {
+      mensajeExito.value = null
+    }, 3000)
   } catch (e: any) {
     error.value = e?.response?.data?.message || 'Error al guardar las modificaciones'
   } finally {
@@ -168,11 +177,13 @@ const subirImagen = async (file: File) => {
   formData.append('file', file)
   try {
     const { data } = await http.post('/uploads', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data' },
     })
     formulario.value.imagenUrl = data.url
     mensajeExito.value = '¡Imagen subida con éxito!'
-    setTimeout(() => { mensajeExito.value = null }, 2000)
+    setTimeout(() => {
+      mensajeExito.value = null
+    }, 2000)
   } catch (e: any) {
     error.value = e?.response?.data?.message || 'No se pudo subir la imagen'
   } finally {
@@ -183,7 +194,6 @@ const subirImagen = async (file: File) => {
 
 <template>
   <div class="perfil-page">
-
     <!-- Estado de carga -->
     <div v-if="cargando" class="loading-wrap">
       <div class="loading-spinner"></div>
@@ -191,7 +201,6 @@ const subirImagen = async (file: File) => {
     </div>
 
     <section v-else class="dashboard-container">
-
       <!-- ── Header ── -->
       <div class="dashboard-header">
         <div>
@@ -219,10 +228,8 @@ const subirImagen = async (file: File) => {
 
       <!-- ── Grid principal ── -->
       <div class="dashboard-grid">
-
         <!-- Columna izquierda -->
         <div class="col-left">
-
           <!-- Card hero / avatar -->
           <div class="card hero-card">
             <div class="avatar-wrap">
@@ -265,23 +272,22 @@ const subirImagen = async (file: File) => {
               <span class="info-val">{{ usuario.email }}</span>
             </div>
           </div>
-
         </div>
 
         <!-- Columna derecha -->
         <div class="col-right">
           <div class="card form-card">
-
             <div class="sec-head">
               <span class="sec-num"><i class="pi pi-id-card"></i></span>
               <span class="sec-title">
-                {{ modoEdicion ? 'Modificar información personal' : 'Información personal y contacto' }}
+                {{
+                  modoEdicion ? 'Modificar información personal' : 'Información personal y contacto'
+                }}
               </span>
             </div>
 
             <!-- ── Formulario de edición ── -->
             <form v-if="modoEdicion" @submit.prevent="guardarCambios" class="form-body">
-
               <!-- Foto de perfil -->
               <div class="fg">
                 <label>Foto de perfil</label>
@@ -297,7 +303,7 @@ const subirImagen = async (file: File) => {
                     ref="fileInput"
                     type="file"
                     accept="image/*"
-                    style="display:none"
+                    style="display: none"
                     @change="alSeleccionarImagen"
                   />
 
@@ -307,7 +313,11 @@ const subirImagen = async (file: File) => {
                   </div>
 
                   <template v-else-if="formulario.imagenUrl">
-                    <img :src="formulario.imagenUrl" alt="Previsualización" class="upload-preview" />
+                    <img
+                      :src="formulario.imagenUrl"
+                      alt="Previsualización"
+                      class="upload-preview"
+                    />
                     <div class="upload-overlay">
                       <i class="pi pi-camera"></i>
                       <span>Cambiar foto</span>
@@ -356,13 +366,22 @@ const subirImagen = async (file: File) => {
                 <label>Dirección domiciliaria</label>
                 <div class="input-wrap">
                   <i class="pi pi-map-marker"></i>
-                  <input v-model="formulario.direccion" type="text" placeholder="Calle, número, barrio..." />
+                  <input
+                    v-model="formulario.direccion"
+                    type="text"
+                    placeholder="Calle, número, barrio..."
+                  />
                 </div>
               </div>
 
               <!-- Acciones -->
               <div class="form-actions">
-                <button type="button" class="btn-cancel" :disabled="guardando" @click="cancelarEdicion">
+                <button
+                  type="button"
+                  class="btn-cancel"
+                  :disabled="guardando"
+                  @click="cancelarEdicion"
+                >
                   Cancelar
                 </button>
                 <button type="submit" class="btn-save" :disabled="guardando">
@@ -403,7 +422,6 @@ const subirImagen = async (file: File) => {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -414,19 +432,19 @@ const subirImagen = async (file: File) => {
 <style scoped>
 /* ── Variables Berry Sweet ── */
 :root {
-  --bs-rosa-fuerte:  #D83B7E;
-  --bs-rosa-claro:   #FFE3EE;
-  --bs-guinda:       #4A0E2E;
-  --bs-guinda-suave: #7A2B50;
-  --bs-rosa-borde:   #F2C4D8;
-  --bs-rosa-bg:      #FFF5F9;
+  --bs-rosa-fuerte: #d83b7e;
+  --bs-rosa-claro: #ffe3ee;
+  --bs-guinda: #4a0e2e;
+  --bs-guinda-suave: #7a2b50;
+  --bs-rosa-borde: #f2c4d8;
+  --bs-rosa-bg: #fff5f9;
 }
 
 /* ── Base ── */
 .perfil-page {
   min-height: 90vh;
   padding: 2.5rem 2rem 4rem;
-  background: #FFE3EE;
+  background: #ffe3ee;
   display: flex;
   justify-content: center;
   font-family: 'Segoe UI', 'Nunito', Arial, sans-serif;
@@ -449,7 +467,7 @@ const subirImagen = async (file: File) => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #D83B7E;
+  background: #d83b7e;
   color: #fff;
   font-size: 0.72rem;
   font-weight: 700;
@@ -458,20 +476,20 @@ const subirImagen = async (file: File) => {
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 0.55rem;
-  box-shadow: 0 2px 8px rgba(216, 59, 126, 0.30);
+  box-shadow: 0 2px 8px rgba(216, 59, 126, 0.3);
 }
 
 .page-titulo {
   font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 800;
-  color: #4A0E2E;
+  color: #4a0e2e;
   letter-spacing: -0.5px;
   margin: 0 0 0.2rem;
 }
 
 .page-sub {
   font-size: 0.85rem;
-  color: #9E5070;
+  color: #9e5070;
   margin: 0;
 }
 
@@ -480,20 +498,24 @@ const subirImagen = async (file: File) => {
   align-items: center;
   gap: 7px;
   background: #fff;
-  border: 2px solid #D83B7E;
-  color: #D83B7E;
+  border: 2px solid #d83b7e;
+  color: #d83b7e;
   padding: 0.65rem 1.35rem;
   border-radius: 50px;
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.18s, color 0.18s, transform 0.18s, box-shadow 0.18s;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    transform 0.18s,
+    box-shadow 0.18s;
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(216, 59, 126, 0.15);
 }
 
 .btn-editar-top:hover {
-  background: #D83B7E;
+  background: #d83b7e;
   color: #fff;
   transform: translateY(-2px);
   box-shadow: 0 4px 14px rgba(216, 59, 126, 0.35);
@@ -541,7 +563,7 @@ const subirImagen = async (file: File) => {
 .card {
   background: #ffffff;
   border-radius: 24px;
-  border: 1.5px solid #F2C4D8;
+  border: 1.5px solid #f2c4d8;
   padding: 1.75rem;
   box-shadow: 0 4px 20px rgba(216, 59, 126, 0.07);
 }
@@ -564,21 +586,23 @@ const subirImagen = async (file: File) => {
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #fff;
-  box-shadow: 0 0 0 3px #D83B7E;
+  box-shadow: 0 0 0 3px #d83b7e;
 }
 
 .avatar-fallback {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: linear-gradient(135deg, #D83B7E, #f07ca8);
+  background: linear-gradient(135deg, #d83b7e, #f07ca8);
   color: #fff;
   font-size: 2.1rem;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 0 3px #FFE3EE, 0 0 0 5px #D83B7E;
+  box-shadow:
+    0 0 0 3px #ffe3ee,
+    0 0 0 5px #d83b7e;
 }
 
 .status-dot {
@@ -600,7 +624,7 @@ const subirImagen = async (file: File) => {
 .emp-nombre {
   font-size: 1.1rem;
   font-weight: 800;
-  color: #4A0E2E;
+  color: #4a0e2e;
   margin: 0 0 5px;
   letter-spacing: -0.3px;
 }
@@ -608,7 +632,7 @@ const subirImagen = async (file: File) => {
 .emp-cargo {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #D83B7E;
+  color: #d83b7e;
   text-transform: uppercase;
   letter-spacing: 1px;
   margin: 0 0 4px;
@@ -616,13 +640,13 @@ const subirImagen = async (file: File) => {
 
 .emp-ci {
   font-size: 0.8rem;
-  color: #B07090;
+  color: #b07090;
   margin: 0;
 }
 
 .card-divider {
   height: 1.5px;
-  background: linear-gradient(90deg, transparent, #F2C4D8, transparent);
+  background: linear-gradient(90deg, transparent, #f2c4d8, transparent);
   margin: 1.25rem 0;
 }
 
@@ -641,7 +665,7 @@ const subirImagen = async (file: File) => {
 .stat-label {
   font-size: 0.67rem;
   font-weight: 700;
-  color: #B07090;
+  color: #b07090;
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
@@ -649,7 +673,7 @@ const subirImagen = async (file: File) => {
 .stat-val {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #4A0E2E;
+  color: #4a0e2e;
 }
 
 .stat-val.green {
@@ -666,7 +690,7 @@ const subirImagen = async (file: File) => {
 .info-label {
   font-size: 0.7rem;
   font-weight: 700;
-  color: #B07090;
+  color: #b07090;
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
@@ -674,7 +698,7 @@ const subirImagen = async (file: File) => {
 .info-val {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #4A0E2E;
+  color: #4a0e2e;
 }
 
 /* ── Sec heads ── */
@@ -689,13 +713,13 @@ const subirImagen = async (file: File) => {
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  background: #FFE3EE;
+  background: #ffe3ee;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.8rem;
-  color: #D83B7E;
-  border: 1px solid #F2C4D8;
+  color: #d83b7e;
+  border: 1px solid #f2c4d8;
 }
 
 .sec-title {
@@ -703,7 +727,7 @@ const subirImagen = async (file: File) => {
   font-weight: 800;
   letter-spacing: 1.3px;
   text-transform: uppercase;
-  color: #D83B7E;
+  color: #d83b7e;
 }
 
 /* ── Vista solo lectura ── */
@@ -717,8 +741,8 @@ const subirImagen = async (file: File) => {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  background: #FFF5F9;
-  border: 1.5px solid #F2C4D8;
+  background: #fff5f9;
+  border: 1.5px solid #f2c4d8;
   border-radius: 16px;
   padding: 1rem;
   transition: box-shadow 0.18s;
@@ -740,16 +764,28 @@ const subirImagen = async (file: File) => {
 }
 
 /* Iconos alineados con la paleta Berry Sweet */
-.icon-blue   { background: #FFE3EE; color: #D83B7E; }
-.icon-pink   { background: #F9D0E4; color: #b02060; }
-.icon-orange { background: #FFF0E0; color: #D97706; }
-.icon-purple { background: #F0E8FF; color: #7C3AED; }
+.icon-blue {
+  background: #ffe3ee;
+  color: #d83b7e;
+}
+.icon-pink {
+  background: #f9d0e4;
+  color: #b02060;
+}
+.icon-orange {
+  background: #fff0e0;
+  color: #d97706;
+}
+.icon-purple {
+  background: #f0e8ff;
+  color: #7c3aed;
+}
 
 .dato-label {
   display: block;
   font-size: 0.67rem;
   font-weight: 700;
-  color: #B07090;
+  color: #b07090;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   margin-bottom: 4px;
@@ -759,7 +795,7 @@ const subirImagen = async (file: File) => {
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #4A0E2E;
+  color: #4a0e2e;
 }
 
 /* ── Formulario ── */
@@ -784,7 +820,7 @@ const subirImagen = async (file: File) => {
 .fg label {
   font-size: 0.73rem;
   font-weight: 700;
-  color: #7A2B50;
+  color: #7a2b50;
   letter-spacing: 0.3px;
 }
 
@@ -794,12 +830,15 @@ const subirImagen = async (file: File) => {
   width: 100%;
   padding: 0.7rem 1rem;
   font-size: 0.875rem;
-  background: #FFF5F9;
-  border: 1.5px solid #F2C4D8;
+  background: #fff5f9;
+  border: 1.5px solid #f2c4d8;
   border-radius: 12px;
-  color: #4A0E2E;
+  color: #4a0e2e;
   outline: none;
-  transition: border 0.18s, background 0.18s, box-shadow 0.18s;
+  transition:
+    border 0.18s,
+    background 0.18s,
+    box-shadow 0.18s;
   box-sizing: border-box;
   -webkit-appearance: none;
   font-family: inherit;
@@ -807,22 +846,22 @@ const subirImagen = async (file: File) => {
 
 .fg input::placeholder,
 .input-wrap input::placeholder {
-  color: #C090A8;
+  color: #c090a8;
 }
 
 .fg input:focus,
 .input-wrap input:focus {
-  border-color: #D83B7E;
+  border-color: #d83b7e;
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(216, 59, 126, 0.13);
 }
 
 .fg input:disabled,
 .input-wrap input:disabled {
-  background: #FFF0F5;
-  color: #C090A8;
+  background: #fff0f5;
+  color: #c090a8;
   cursor: not-allowed;
-  border-color: #F5D8E6;
+  border-color: #f5d8e6;
 }
 
 .input-wrap {
@@ -834,7 +873,7 @@ const subirImagen = async (file: File) => {
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #D83B7E;
+  color: #d83b7e;
   font-size: 0.875rem;
   pointer-events: none;
 }
@@ -845,10 +884,10 @@ const subirImagen = async (file: File) => {
 
 /* ── Upload zone ── */
 .upload-zone {
-  border: 2px dashed #F2C4D8;
+  border: 2px dashed #f2c4d8;
   border-radius: 16px;
   padding: 1.35rem;
-  background: #FFF5F9;
+  background: #fff5f9;
   cursor: pointer;
   text-align: center;
   display: flex;
@@ -857,19 +896,22 @@ const subirImagen = async (file: File) => {
   justify-content: center;
   gap: 8px;
   min-height: 148px;
-  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    box-shadow 0.2s;
   position: relative;
   overflow: hidden;
 }
 
 .upload-zone:hover {
-  border-color: #D83B7E;
-  background: #FFE3EE;
+  border-color: #d83b7e;
+  background: #ffe3ee;
   box-shadow: 0 4px 16px rgba(216, 59, 126, 0.12);
 }
 
 .upload-zone.drag-over {
-  border-color: #4A0E2E;
+  border-color: #4a0e2e;
   background: #ffd6e8;
   box-shadow: 0 4px 20px rgba(216, 59, 126, 0.2);
 }
@@ -878,25 +920,25 @@ const subirImagen = async (file: File) => {
   width: 44px;
   height: 44px;
   border-radius: 13px;
-  background: #FFE3EE;
+  background: #ffe3ee;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
-  color: #D83B7E;
-  border: 1.5px solid #F2C4D8;
+  color: #d83b7e;
+  border: 1.5px solid #f2c4d8;
 }
 
 .upload-title {
   font-size: 0.84rem;
   font-weight: 700;
-  color: #4A0E2E;
+  color: #4a0e2e;
   margin: 0;
 }
 
 .upload-sub {
   font-size: 0.72rem;
-  color: #B07090;
+  color: #b07090;
 }
 
 .upload-preview {
@@ -905,13 +947,13 @@ const subirImagen = async (file: File) => {
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #fff;
-  box-shadow: 0 0 0 3px #D83B7E;
+  box-shadow: 0 0 0 3px #d83b7e;
 }
 
 .upload-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(74, 14, 46, 0.50);
+  background: rgba(74, 14, 46, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -934,7 +976,7 @@ const subirImagen = async (file: File) => {
   flex-direction: column;
   align-items: center;
   gap: 9px;
-  color: #D83B7E;
+  color: #d83b7e;
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -956,18 +998,20 @@ const subirImagen = async (file: File) => {
   border-radius: 50px;
   font-size: 0.85rem;
   font-weight: 600;
-  border: 1.5px solid #E8C0D0;
+  border: 1.5px solid #e8c0d0;
   background: transparent;
-  color: #7A2B50;
+  color: #7a2b50;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
   font-family: inherit;
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background: #FFE3EE;
-  border-color: #D83B7E;
-  color: #D83B7E;
+  background: #ffe3ee;
+  border-color: #d83b7e;
+  color: #d83b7e;
 }
 
 .btn-save {
@@ -979,10 +1023,13 @@ const subirImagen = async (file: File) => {
   font-size: 0.85rem;
   font-weight: 700;
   border: none;
-  background: #D83B7E;
+  background: #d83b7e;
   color: #fff;
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s,
+    box-shadow 0.2s;
   font-family: inherit;
   box-shadow: 0 3px 12px rgba(216, 59, 126, 0.35);
 }
@@ -990,7 +1037,7 @@ const subirImagen = async (file: File) => {
 .btn-save:hover:not(:disabled) {
   opacity: 0.9;
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(216, 59, 126, 0.40);
+  box-shadow: 0 6px 18px rgba(216, 59, 126, 0.4);
 }
 
 .btn-cancel:disabled,
@@ -1008,7 +1055,7 @@ const subirImagen = async (file: File) => {
   justify-content: center;
   gap: 1rem;
   min-height: 50vh;
-  color: #D83B7E;
+  color: #d83b7e;
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -1017,27 +1064,45 @@ const subirImagen = async (file: File) => {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: 3px solid #FFE3EE;
-  border-top-color: #D83B7E;
+  border: 3px solid #ffe3ee;
+  border-top-color: #d83b7e;
   animation: spin 0.75s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
-  .dashboard-grid  { grid-template-columns: 1fr; }
-  .datos-grid      { grid-template-columns: 1fr; }
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .datos-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 480px) {
-  .perfil-page     { padding: 1.5rem 1rem 3rem; }
-  .g2              { grid-template-columns: 1fr; }
-  .form-actions    { flex-direction: column-reverse; }
+  .perfil-page {
+    padding: 1.5rem 1rem 3rem;
+  }
+  .g2 {
+    grid-template-columns: 1fr;
+  }
+  .form-actions {
+    flex-direction: column-reverse;
+  }
   .btn-cancel,
-  .btn-save        { width: 100%; justify-content: center; }
-  .dashboard-header { flex-direction: column; gap: 1rem; }
+  .btn-save {
+    width: 100%;
+    justify-content: center;
+  }
+  .dashboard-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
 }
 </style>

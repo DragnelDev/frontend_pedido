@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { configuracionService } from '@/servicios/configuracionService'
 
 // ── ESTADOS DE LA EMPRESA ──
 const empresa = ref({
   nombre: 'Berry Sweet',
-  nit: '1029384029',
-  direccion: 'Calle Junín #456, Sucre, Bolivia',
-  telefonoWhatsapp: '71234567',
-  emailContacto: 'contacto@berrysweet.com',
-  logoUrl: '' // URL o base64
+  nit: '',
+  direccion: '',
+  telefonoWhatsapp: '',
+  emailContacto: '',
+  logoUrl: '',
 })
 
 const logoPreview = ref<string | null>(null)
@@ -16,30 +17,56 @@ const logoPreview = ref<string | null>(null)
 // ── ESTADOS DE MÉTODOS DE PAGO ──
 const metodosPago = ref({
   qr: {
-    activo: true,
-    banco: 'Banco Nacional de Bolivia (BNB)',
-    titular: 'Berry Sweet S.R.L.',
-    imagenQrUrl: ''
+    activo: false,
+    banco: '',
+    titular: '',
+    imagenQrUrl: '',
   },
   transferencia: {
-    activo: true,
-    banco: 'Banco Mercantil Santa Cruz',
-    tipoCuenta: 'Cuenta Corriente',
-    numeroCuenta: '4010-987654-01',
-    titular: 'Berry Sweet S.R.L.',
-    ciNit: '1029384029'
+    activo: false,
+    banco: '',
+    tipoCuenta: '',
+    numeroCuenta: '',
+    titular: '',
+    ciNit: '',
   },
   efectivo: {
     activo: true,
-    descripcion: 'Pago contra entrega o en sucursal'
-  }
+    descripcion: 'Pago contra entrega o en sucursal',
+  },
 })
 
 const qrPreview = ref<string | null>(null)
+const cargando = ref(true)
 const guardando = ref(false)
 const exitoMensaje = ref(false)
+const error = ref<string | null>(null)
+
+onMounted(async () => {
+  try {
+    const config = await configuracionService.obtener()
+    empresa.value = {
+      nombre: config.nombre || 'Berry Sweet',
+      nit: config.nit || '',
+      direccion: config.direccion || '',
+      telefonoWhatsapp: config.telefonoWhatsapp || '',
+      emailContacto: config.emailContacto || '',
+      logoUrl: config.logoUrl || '',
+    }
+    metodosPago.value = config.metodosPago
+    logoPreview.value = config.logoUrl || null
+    qrPreview.value = config.metodosPago?.qr?.imagenQrUrl || null
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || 'No se pudo cargar la configuración'
+  } finally {
+    cargando.value = false
+  }
+})
 
 // ── MANEJO DE IMÁGENES ──
+// Nota: por ahora se usa una URL local de vista previa. La subida real del
+// archivo al backend se conecta con el módulo de /uploads cuando se defina
+// el flujo definitivo de imágenes de configuración.
 function handleLogoUpload(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (file) {
@@ -58,20 +85,20 @@ function handleQrUpload(event: Event) {
 async function guardarConfiguracion() {
   guardando.value = true
   exitoMensaje.value = false
+  error.value = null
 
   try {
-    // Aquí realizarías la petición HTTP (Axios / Fetch) a tu backend
-    // const payload = { ...empresa.value, metodosPago: metodosPago.value }
-    // await api.post('/configuracion', payload)
-
-    await new Promise((resolve) => setTimeout(resolve, 1000)) // Simulación
+    await configuracionService.actualizar({
+      ...empresa.value,
+      metodosPago: metodosPago.value,
+    })
     exitoMensaje.value = true
 
     setTimeout(() => {
       exitoMensaje.value = false
     }, 4000)
-  } catch (err) {
-    console.error('Error al guardar configuración', err)
+  } catch (err: any) {
+    error.value = err?.response?.data?.message || 'Error al guardar la configuración'
   } finally {
     guardando.value = false
   }
@@ -89,11 +116,17 @@ async function guardarConfiguracion() {
           <p>Gestiona la información del negocio y los métodos de pago para los clientes</p>
         </div>
       </div>
-      <button class="btn-primary" @click="guardarConfiguracion" :disabled="guardando">
+      <button class="btn-primary" @click="guardarConfiguracion" :disabled="guardando || cargando">
         <i v-if="!guardando" class="pi pi-save"></i>
         <span v-else class="loading-spinner"></span>
         {{ guardando ? 'Guardando...' : 'Guardar Cambios' }}
       </button>
+    </div>
+
+    <!-- Alerta de Error -->
+    <div v-if="error" class="alert-error">
+      <i class="pi pi-exclamation-circle"></i>
+      {{ error }}
     </div>
 
     <!-- Alerta de Éxito -->
@@ -104,7 +137,9 @@ async function guardarConfiguracion() {
       </div>
     </transition>
 
-    <div class="grid-layout">
+    <p v-if="cargando" class="empty-text">Cargando configuración...</p>
+
+    <div v-else class="grid-layout">
       <!-- SECCIÓN 1: DATOS DE LA EMPRESA -->
       <div class="card">
         <div class="card-header">
@@ -152,7 +187,12 @@ async function guardarConfiguracion() {
               <label for="direccion">Dirección Física (Sucre, Bolivia)</label>
               <div class="input-wrap">
                 <i class="pi pi-map-marker input-icon"></i>
-                <input id="direccion" v-model="empresa.direccion" type="text" class="field-input icon-padding" />
+                <input
+                  id="direccion"
+                  v-model="empresa.direccion"
+                  type="text"
+                  class="field-input icon-padding"
+                />
               </div>
             </div>
 
@@ -160,7 +200,12 @@ async function guardarConfiguracion() {
               <label for="whatsapp">Teléfono de WhatsApp (Pedidos)</label>
               <div class="input-wrap">
                 <i class="pi pi-whatsapp input-icon"></i>
-                <input id="whatsapp" v-model="empresa.telefonoWhatsapp" type="text" class="field-input icon-padding" />
+                <input
+                  id="whatsapp"
+                  v-model="empresa.telefonoWhatsapp"
+                  type="text"
+                  class="field-input icon-padding"
+                />
               </div>
             </div>
 
@@ -168,7 +213,12 @@ async function guardarConfiguracion() {
               <label for="email">Correo Electrónico de Contacto</label>
               <div class="input-wrap">
                 <i class="pi pi-envelope input-icon"></i>
-                <input id="email" v-model="empresa.emailContacto" type="email" class="field-input icon-padding" />
+                <input
+                  id="email"
+                  v-model="empresa.emailContacto"
+                  type="email"
+                  class="field-input icon-padding"
+                />
               </div>
             </div>
           </div>
@@ -209,7 +259,13 @@ async function guardarConfiguracion() {
                   <label for="qr-input" class="btn-upload btn-sm">
                     <i class="pi pi-upload"></i> Cargar Imagen del QR
                   </label>
-                  <input id="qr-input" type="file" accept="image/*" @change="handleQrUpload" hidden />
+                  <input
+                    id="qr-input"
+                    type="file"
+                    accept="image/*"
+                    @change="handleQrUpload"
+                    hidden
+                  />
 
                   <div class="field-group margin-top">
                     <label>Banco u Entidad</label>
@@ -246,15 +302,27 @@ async function guardarConfiguracion() {
               </div>
               <div class="field-group">
                 <label>Tipo de Cuenta</label>
-                <input v-model="metodosPago.transferencia.tipoCuenta" type="text" class="field-input" />
+                <input
+                  v-model="metodosPago.transferencia.tipoCuenta"
+                  type="text"
+                  class="field-input"
+                />
               </div>
               <div class="field-group">
                 <label>Nº de Cuenta</label>
-                <input v-model="metodosPago.transferencia.numeroCuenta" type="text" class="field-input" />
+                <input
+                  v-model="metodosPago.transferencia.numeroCuenta"
+                  type="text"
+                  class="field-input"
+                />
               </div>
               <div class="field-group">
                 <label>Titular de la Cuenta</label>
-                <input v-model="metodosPago.transferencia.titular" type="text" class="field-input" />
+                <input
+                  v-model="metodosPago.transferencia.titular"
+                  type="text"
+                  class="field-input"
+                />
               </div>
             </div>
           </div>
@@ -274,7 +342,6 @@ async function guardarConfiguracion() {
               </label>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -617,21 +684,24 @@ async function guardarConfiguracion() {
 .slider {
   position: absolute;
   cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-color: #ccc;
-  transition: .3s;
+  transition: 0.3s;
   border-radius: 24px;
 }
 
 .slider:before {
   position: absolute;
-  content: "";
+  content: '';
   height: 18px;
   width: 18px;
   left: 3px;
   bottom: 3px;
   background-color: white;
-  transition: .3s;
+  transition: 0.3s;
   border-radius: 50%;
 }
 
@@ -658,10 +728,33 @@ input:checked + .slider:before {
   font-size: 0.9rem;
 }
 
-.fade-enter-active, .fade-leave-active {
+.alert-error {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+  padding: 0.8rem 1.2rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.empty-text {
+  color: #999;
+  font-size: 0.9rem;
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.fade-enter-active,
+.fade-leave-active {
   transition: opacity 0.3s ease;
 }
-.fade-enter-from, .fade-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 
@@ -677,8 +770,12 @@ input:checked + .slider:before {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── RESPONSIVE ── */

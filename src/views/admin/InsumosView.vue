@@ -1,40 +1,38 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed } from 'vue'
 
 const insumos = ref([
   {
     id: 1,
-    nombre: "Harina de Trigo",
-    categoria: "Secos",
+    nombre: 'Harina de Trigo',
+    categoria: 'Secos',
     stock: 12.5,
-    unidad: "kg",
+    unidad: 'kg',
     stockMinimo: 10,
   },
   {
     id: 2,
-    nombre: "Frutillas Frescas",
-    categoria: "Frutas",
+    nombre: 'Frutillas Frescas',
+    categoria: 'Frutas',
     stock: 3.0,
-    unidad: "kg",
+    unidad: 'kg',
     stockMinimo: 5,
   },
   {
     id: 3,
-    nombre: "Cajas para Tortas 25cm",
-    categoria: "Empaques",
+    nombre: 'Cajas para Tortas 25cm',
+    categoria: 'Empaques',
     stock: 45,
-    unidad: "uds",
+    unidad: 'uds',
     stockMinimo: 20,
   },
-]);
+])
 
-const buscar = ref("");
+const buscar = ref('')
 
 const insumosFiltrados = computed(() => {
-  return insumos.value.filter((i) =>
-    i.nombre.toLowerCase().includes(buscar.value.toLowerCase()),
-  );
-});
+  return insumos.value.filter((i) => i.nombre.toLowerCase().includes(buscar.value.toLowerCase()))
+})
 </script>
 
 <template>
@@ -44,18 +42,12 @@ const insumosFiltrados = computed(() => {
         <h2>Control de Insumos y Materia Prima</h2>
         <p>Gestión de inventario para la preparación de pasteles y empaques</p>
       </div>
-      <button class="btn-primary">
-        <i class="pi pi-plus"></i> Nuevo Insumo
-      </button>
+      <button class="btn-primary"><i class="pi pi-plus"></i> Nuevo Insumo</button>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <input
-          v-model="buscar"
-          placeholder="Buscar insumo..."
-          class="field-input-sm"
-        />
+        <input v-model="buscar" placeholder="Buscar insumo..." class="field-input-sm" />
       </div>
 
       <div class="table-responsive">
@@ -82,14 +74,8 @@ const insumosFiltrados = computed(() => {
               </td>
               <td>{{ item.stockMinimo }} {{ item.unidad }}</td>
               <td>
-                <span
-                  :class="
-                    item.stock <= item.stockMinimo ? 'status-low' : 'status-ok'
-                  "
-                >
-                  {{
-                    item.stock <= item.stockMinimo ? "⚠️ Reponer" : "✓ Normal"
-                  }}
+                <span :class="item.stock <= item.stockMinimo ? 'status-low' : 'status-ok'">
+                  {{ item.stock <= item.stockMinimo ? '⚠️ Reponer' : '✓ Normal' }}
                 </span>
               </td>
             </tr>

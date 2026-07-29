@@ -21,20 +21,13 @@ const misImagenes = [
 <template>
   <section class="ig-section">
     <div class="container">
-
       <div class="section-header">
         <div class="header-left">
           <span class="eyebrow"><span class="eyebrow-dot"></span> Redes sociales</span>
           <h2 class="section-titulo">Síguenos en Instagram</h2>
-          <p class="section-sub">
-            Comparte tus momentos dulces con nosotros y etiquétanos
-          </p>
+          <p class="section-sub">Comparte tus momentos dulces con nosotros y etiquétanos</p>
         </div>
-        <a
-          href="https://instagram.com/berrysweet"
-          target="_blank"
-          class="handle-pill"
-        >
+        <a href="https://instagram.com/berrysweet" target="_blank" class="handle-pill">
           <i class="pi pi-instagram"></i>
           @berrysweet
         </a>
@@ -59,17 +52,12 @@ const misImagenes = [
       </div>
 
       <div class="cta-wrap">
-        <a
-          href="https://instagram.com/berrysweet"
-          target="_blank"
-          class="btn-ig"
-        >
+        <a href="https://instagram.com/berrysweet" target="_blank" class="btn-ig">
           <i class="pi pi-instagram"></i>
           Ver más en Instagram
           <i class="pi pi-arrow-right arrow"></i>
         </a>
       </div>
-
     </div>
   </section>
 </template>
@@ -99,7 +87,9 @@ const misImagenes = [
   margin-bottom: 2.5rem;
   gap: 1rem;
 }
-.header-left { max-width: 480px; }
+.header-left {
+  max-width: 480px;
+}
 .eyebrow {
   display: inline-flex;
   align-items: center;
@@ -153,7 +143,9 @@ const misImagenes = [
   transition: all 0.2s ease;
   white-space: nowrap;
 }
-.handle-pill i { font-size: 1rem; }
+.handle-pill i {
+  font-size: 1rem;
+}
 .handle-pill:hover {
   background: linear-gradient(135deg, #e91e8c, #f06292);
   border-color: #e91e8c;
@@ -186,7 +178,9 @@ const misImagenes = [
   display: block;
   transition: transform 0.4s ease;
 }
-.gallery-item:hover .gallery-img { transform: scale(1.08); }
+.gallery-item:hover .gallery-img {
+  transform: scale(1.08);
+}
 
 /* Overlay */
 .gallery-overlay {
@@ -201,7 +195,9 @@ const misImagenes = [
   transition: opacity 0.25s ease;
   border-radius: 20px;
 }
-.gallery-item:hover .gallery-overlay { opacity: 1; }
+.gallery-item:hover .gallery-overlay {
+  opacity: 1;
+}
 .overlay-inner {
   display: flex;
   flex-direction: column;
@@ -211,7 +207,9 @@ const misImagenes = [
   font-size: 0.82rem;
   font-weight: 700;
 }
-.overlay-inner i { font-size: 1.6rem; }
+.overlay-inner i {
+  font-size: 1.6rem;
+}
 
 /* ── CTA ── */
 .cta-wrap {
@@ -234,8 +232,13 @@ const misImagenes = [
   background: #fff;
   transition: all 0.2s ease;
 }
-.btn-ig .pi-instagram { font-size: 1rem; }
-.btn-ig .arrow { font-size: 0.75rem; transition: transform 0.18s; }
+.btn-ig .pi-instagram {
+  font-size: 1rem;
+}
+.btn-ig .arrow {
+  font-size: 0.75rem;
+  transition: transform 0.18s;
+}
 .btn-ig:hover {
   background: linear-gradient(135deg, #e91e8c, #f06292);
   border-color: #e91e8c;
@@ -243,12 +246,22 @@ const misImagenes = [
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(233, 30, 140, 0.2);
 }
-.btn-ig:hover .arrow { transform: translateX(3px); }
+.btn-ig:hover .arrow {
+  transform: translateX(3px);
+}
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
-  .section-header { flex-direction: column; align-items: flex-start; }
-  .gallery-grid { grid-template-columns: repeat(2, 1fr); max-width: 100%; }
-  .ig-section { padding: 3.5rem 0 3rem; }
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 100%;
+  }
+  .ig-section {
+    padding: 3.5rem 0 3rem;
+  }
 }
 </style>

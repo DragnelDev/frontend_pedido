@@ -50,16 +50,13 @@ onMounted(async () => {
 <template>
   <section class="destacados-section">
     <div class="container">
-
       <div class="section-header">
         <div>
           <span class="eyebrow"><span class="eyebrow-dot"></span> Lo más pedido</span>
           <h2 class="section-titulo">Productos destacados</h2>
           <p class="section-sub">Los favoritos de nuestros clientes, listos para ti</p>
         </div>
-        <a class="ver-todos" href="/productos">
-          Ver todos <i class="pi pi-arrow-right"></i>
-        </a>
+        <a class="ver-todos" href="/productos"> Ver todos <i class="pi pi-arrow-right"></i> </a>
       </div>
 
       <div v-if="cargando" class="estado-wrap">
@@ -68,16 +65,12 @@ onMounted(async () => {
       </div>
 
       <div v-else-if="productos.length === 0" class="estado-wrap">
-        <i class="pi pi-inbox" style="font-size:2rem; color:#ffd6e8"></i>
+        <i class="pi pi-inbox" style="font-size: 2rem; color: #ffd6e8"></i>
         <p>No hay productos disponibles por ahora</p>
       </div>
 
       <div v-else class="productos-grid">
-        <div
-          v-for="p in productos"
-          :key="p.id"
-          class="producto-card"
-        >
+        <div v-for="p in productos" :key="p.id" class="producto-card">
           <div class="img-wrap">
             <img
               :src="p.imagenUrl || '/assets/images/default.jpg'"
@@ -101,7 +94,6 @@ onMounted(async () => {
           </div>
         </div>
       </div>
-
     </div>
   </section>
 
@@ -197,17 +189,25 @@ onMounted(async () => {
   /* CAMBIADO: Borde adaptado sutilmente */
   border: 1.5px solid #ffd6e8;
   background: #fff;
-  transition: background 0.18s, border-color 0.18s, color 0.18s;
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    color 0.18s;
   flex-shrink: 0;
 }
-.ver-todos i { font-size: 0.75rem; transition: transform 0.18s; }
+.ver-todos i {
+  font-size: 0.75rem;
+  transition: transform 0.18s;
+}
 /* CAMBIADO: Hover del botón con el degradado insignia */
 .ver-todos:hover {
   background: linear-gradient(135deg, #e91e8c, #f06292);
   border-color: #e91e8c;
   color: #fff;
 }
-.ver-todos:hover i { transform: translateX(3px); }
+.ver-todos:hover i {
+  transform: translateX(3px);
+}
 
 /* ── Estados ── */
 .estado-wrap {
@@ -229,7 +229,11 @@ onMounted(async () => {
   border-top-color: #e91e8c;
   animation: spin 0.75s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ── Grid ── */
 .productos-grid {
@@ -247,7 +251,10 @@ onMounted(async () => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
 }
 .producto-card:hover {
   transform: translateY(-6px);
@@ -270,7 +277,9 @@ onMounted(async () => {
   display: block;
   transition: transform 0.4s ease;
 }
-.producto-card:hover .producto-img { transform: scale(1.07); }
+.producto-card:hover .producto-img {
+  transform: scale(1.07);
+}
 .img-gradient {
   position: absolute;
   inset: 0;
@@ -348,11 +357,18 @@ onMounted(async () => {
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(233, 30, 140, 0.2);
-  transition: transform 0.18s, box-shadow 0.18s;
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s;
   white-space: nowrap;
 }
-.btn-carrito i { font-size: 0.85rem; }
-.btn-carrito:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(233, 30, 140, 0.35); }
+.btn-carrito i {
+  font-size: 0.85rem;
+}
+.btn-carrito:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(233, 30, 140, 0.35);
+}
 
 /* ── Modal ── */
 .modal-body {
@@ -405,7 +421,9 @@ onMounted(async () => {
   cursor: pointer;
   transition: background 0.15s;
 }
-.btn-modal-cancel:hover { background: #fff0f5; }
+.btn-modal-cancel:hover {
+  background: #fff0f5;
+}
 .btn-modal-ok {
   padding: 0.62rem 1.4rem;
   border-radius: 50px;
@@ -417,13 +435,23 @@ onMounted(async () => {
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(233, 30, 140, 0.2);
-  transition: transform 0.18s, box-shadow 0.18s;
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s;
 }
-.btn-modal-ok:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(233, 30, 140, 0.35); }
+.btn-modal-ok:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(233, 30, 140, 0.35);
+}
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
-  .section-header { flex-direction: column; align-items: flex-start; }
-  .destacados-section { padding: 3.5rem 0 3rem; }
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .destacados-section {
+    padding: 3.5rem 0 3rem;
+  }
 }
 </style>

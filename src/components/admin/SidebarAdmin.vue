@@ -1,142 +1,135 @@
 <script setup lang="ts">
-import { useRouter, useRoute } from "vue-router";
-import { ref, onMounted } from "vue";
-import { getTokenFromLocalStorage, parseJwt } from "@/helpers";
+import { useRouter, useRoute } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
 
-const emit = defineEmits<{ (e: "close"): void }>();
+const emit = defineEmits<{ (e: 'close'): void }>()
 
-const router = useRouter();
-const route = useRoute();
-const nombreUsuario = ref("");
-const rolUsuario = ref("");
-const imagenUsuario = ref("");
+const router = useRouter()
+const route = useRoute()
+const nombreUsuario = ref('')
+const rolUsuario = ref('')
+const imagenUsuario = ref('')
 
 // Estado para controlar qué menús desplegables están abiertos
-const menuAbierto = ref<string | null>("Contabilidad");
+/*const menuAbierto = ref<string | null>('Contabilidad')
 
 function toggleSubmenu(label: string) {
-  menuAbierto.value = menuAbierto.value === label ? null : label;
-}
+  menuAbierto.value = menuAbierto.value === label ? null : label
+}*/
 
 function isActive(path?: string) {
-  if (!path) return false;
-  return route.path.startsWith(path);
+  if (!path) return false
+  return route.path.startsWith(path)
 }
 
 onMounted(() => {
-  const token = getTokenFromLocalStorage();
+  const token = getTokenFromLocalStorage()
   if (token) {
-    const decoded = parseJwt(token);
-    const nombre = decoded?.nombre || "";
-    const apellidos = decoded?.apellidos || "";
-    const nombreCompleto = `${nombre} ${apellidos}`.trim();
-    nombreUsuario.value =
-      nombreCompleto || decoded?.email?.split("@")[0] || "Usuario";
-    rolUsuario.value = decoded?.rol || "EMPLEADO";
-    imagenUsuario.value = decoded?.imagenUrl || "";
+    const decoded = parseJwt(token)
+    const nombre = decoded?.nombre || ''
+    const apellidos = decoded?.apellidos || ''
+    const nombreCompleto = `${nombre} ${apellidos}`.trim()
+    nombreUsuario.value = nombreCompleto || decoded?.email?.split('@')[0] || 'Usuario'
+    rolUsuario.value = decoded?.rol || 'EMPLEADO'
+    imagenUsuario.value = decoded?.imagenUrl || ''
   }
-});
+})
 
 function cerrarSesion() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  router.push("/login");
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  router.push('/login')
 }
 
 function navigate(path?: string) {
-  if (!path) return;
-  router.push(path);
-  emit("close");
+  if (!path) return
+  router.push(path)
+  emit('close')
 }
 
 function irAlPerfil() {
-  router.push("/admin/perfil-empleado");
-  emit("close");
+  router.push('/admin/perfil-empleado')
+  emit('close')
 }
 
 const navItems = [
   {
-    title: "OPERACIONES",
+    title: 'OPERACIONES',
     items: [
       {
-        label: "Registrar Ventas",
-        icon: "pi pi-plus-circle",
-        path: "/admin/registrar-venta",
+        label: 'Registrar Ventas',
+        icon: 'pi pi-plus-circle',
+        path: '/admin/registrar-venta',
       },
       {
-        label: "Pedidos En Línea",
-        icon: "pi pi-shopping-cart",
-        path: "/admin/pedidos",
+        label: 'Pedidos En Línea',
+        icon: 'pi pi-shopping-cart',
+        path: '/admin/pedidos',
       },
-      { label: "Pagos", icon: "pi pi-credit-card", path: "/admin/pagos" },
+      { label: 'Pagos', icon: 'pi pi-credit-card', path: '/admin/pagos' },
     ],
   },
   {
-    title: "CATÁLOGO E INVENTARIO",
+    title: 'CATÁLOGO E INVENTARIO',
     items: [
-      { label: "Productos", icon: "pi pi-box", path: "/admin/productos" },
-      { label: "Categorías", icon: "pi pi-tags", path: "/admin/categorias" },
+      { label: 'Productos', icon: 'pi pi-box', path: '/admin/productos' },
+      { label: 'Categorías', icon: 'pi pi-tags', path: '/admin/categorias' },
       {
-        label: "Insumos / Recetas",
-        icon: "pi pi-list-check",
-        path: "/admin/insumos",
+        label: 'Insumos / Recetas',
+        icon: 'pi pi-list-check',
+        path: '/admin/insumos',
       },
       {
-        label: "Cocina / Producción",
-        icon: "pi pi-spinner-check",
-        path: "/admin/cocina",
-      },
-    ],
-  },
-  {
-    title: "CONTABILIDAD Y CAJA",
-    items: [
-      {
-        label: "Contabilidad",
-        icon: "pi pi-calculator",
-        items: [
-          {
-            label: "Cierre de Caja",
-            icon: "pi pi-money-bill",
-            path: "/admin/contabilidad/caja",
-          },
-          {
-            label: "Gastos y Egresos",
-            icon: "pi pi-minus-circle",
-            path: "/admin/contabilidad/gastos",
-          },
-          {
-            label: "Libro de Ventas",
-            icon: "pi pi-file-excel",
-            path: "/admin/contabilidad/libro-ventas",
-          },
-        ],
+        label: 'Cocina / Producción',
+        icon: 'pi pi-shop',
+        path: '/admin/cocina',
       },
     ],
   },
   {
-    title: "SISTEMA Y ACCESOS",
+    title: 'CONTABILIDAD Y CAJA',
     items: [
       {
-        label: "Clientes (Portal)",
-        icon: "pi pi-users",
-        path: "/admin/clientes",
+        label: 'Cierre de Caja',
+        icon: 'pi pi-money-bill',
+        path: '/admin/contabilidad/caja',
       },
       {
-        label: "Usuarios / Roles",
-        icon: "pi pi-user-edit",
-        path: "/admin/usuarios",
+        label: 'Gastos y Egresos',
+        icon: 'pi pi-minus-circle',
+        path: '/admin/contabilidad/gastos',
       },
-      { label: "Empleados", icon: "pi pi-id-card", path: "/admin/empleados" },
-      { label: "Reportes", icon: "pi pi-chart-bar", path: "/admin/reportes" },
       {
-        label: "Configuración",
-        icon: "pi pi-cog",
-        path: "/admin/configuracion",
+        label: 'Libro de Ventas',
+        icon: 'pi pi-file-excel',
+        path: '/admin/contabilidad/libro-ventas',
       },
     ],
   },
-];
+  {
+    title: 'SISTEMA Y ACCESOS',
+    items: [
+      {
+        label: 'Clientes (Portal)',
+        icon: 'pi pi-users',
+        path: '/admin/clientes',
+      },
+      {
+        label: 'Usuarios / Roles',
+        icon: 'pi pi-user-edit',
+        path: '/admin/usuarios',
+      },
+      { label: 'Empleados', icon: 'pi pi-id-card', path: '/admin/empleados' },
+      { label: 'Reportes', icon: 'pi pi-chart-bar', path: '/admin/reportes' },
+      {
+        label: 'Configuración',
+        icon: 'pi pi-cog',
+        path: '/admin/configuracion',
+      },
+    ],
+  },
+]
 </script>
 
 <template>
@@ -152,43 +145,11 @@ const navItems = [
 
     <!-- Menú de navegación -->
     <div class="nav-menu">
-      <p class="menu-label">Gestión</p>
-
-      <template v-for="item in navItems" :key="item.label">
-        <!-- Opción CON Submenú (Contabilidad) -->
-        <div v-if="item.items" class="submenu-container">
-          <button
-            class="nav-btn btn-desplegable"
-            @click="toggleSubmenu(item.label)"
-          >
-            <div class="btn-left">
-              <i :class="item.icon"></i>
-              <span>{{ item.label }}</span>
-            </div>
-            <i
-              class="pi pi-chevron-down arrow-icon"
-              :class="{ rotate: menuAbierto === item.label }"
-            ></i>
-          </button>
-
-          <!-- Hijos/Submenú -->
-          <div v-show="menuAbierto === item.label" class="submenu-list">
-            <button
-              v-for="subItem in item.items"
-              :key="subItem.path"
-              class="nav-btn sub-btn"
-              :class="{ activo: isActive(subItem.path) }"
-              @click="navigate(subItem.path)"
-            >
-              <i :class="subItem.icon"></i>
-              <span>{{ subItem.label }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Opción Normal / Sin Submenú -->
+      <template v-for="section in navItems" :key="section.title">
+        <p class="menu-label">{{ section.title }}</p>
         <button
-          v-else
+          v-for="item in section.items"
+          :key="item.path"
           class="nav-btn"
           :class="{ activo: isActive(item.path) }"
           @click="navigate(item.path)"
@@ -212,15 +173,8 @@ const navItems = [
       @keydown.enter="irAlPerfil"
     >
       <div class="user-avatar">
-        <img
-          v-if="imagenUsuario"
-          :src="imagenUsuario"
-          :alt="nombreUsuario"
-          class="avatar-img"
-        />
-        <span v-else class="avatar-inicial">{{
-          nombreUsuario.charAt(0).toUpperCase()
-        }}</span>
+        <img v-if="imagenUsuario" :src="imagenUsuario" :alt="nombreUsuario" class="avatar-img" />
+        <span v-else class="avatar-inicial">{{ nombreUsuario.charAt(0).toUpperCase() }}</span>
       </div>
       <div class="user-info">
         <div class="user-name">{{ nombreUsuario }}</div>
@@ -303,6 +257,10 @@ const navItems = [
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+.title {
+  color: #880e4f;
 }
 
 .nav-btn {

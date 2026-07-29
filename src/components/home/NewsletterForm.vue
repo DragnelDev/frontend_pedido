@@ -2,17 +2,16 @@
   <section class="newsletter-section">
     <div class="container">
       <div class="newsletter-card">
-
         <div class="deco deco-1" aria-hidden="true">🍓</div>
         <div class="deco deco-2" aria-hidden="true">🎂</div>
 
         <div class="newsletter-inner">
-
           <div class="nl-left">
             <span class="eyebrow"><span class="eyebrow-dot"></span> Ofertas exclusivas</span>
             <h2 class="nl-titulo">Dulces noticias directo a tu correo</h2>
             <p class="nl-sub">
-              Descuentos especiales, nuevos productos y tips de pastelería. Sin spam, solo lo que vale.
+              Descuentos especiales, nuevos productos y tips de pastelería. Sin spam, solo lo que
+              vale.
             </p>
             <div class="trust-row">
               <span class="trust-item"><i class="pi pi-lock"></i> Sin spam</span>
@@ -35,12 +34,8 @@
               </div>
               <button class="nl-btn" @click="suscribirse" :disabled="cargando || suscrito">
                 <i v-if="cargando" class="pi pi-spin pi-spinner"></i>
-                <template v-else-if="suscrito">
-                  <i class="pi pi-check"></i> ¡Suscrito!
-                </template>
-                <template v-else>
-                  Suscribirme <i class="pi pi-arrow-right"></i>
-                </template>
+                <template v-else-if="suscrito"> <i class="pi pi-check"></i> ¡Suscrito! </template>
+                <template v-else> Suscribirme <i class="pi pi-arrow-right"></i> </template>
               </button>
             </div>
 
@@ -51,7 +46,6 @@
               <i class="pi pi-lock"></i> Tus datos están seguros. Cancela cuando quieras.
             </p>
           </div>
-
         </div>
       </div>
     </div>
@@ -61,18 +55,18 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const email    = ref('')
+const email = ref('')
 const cargando = ref(false)
-const mensaje  = ref('')
+const mensaje = ref('')
 const suscrito = ref(false)
 
 const suscribirse = async () => {
   if (!email.value) return
   cargando.value = true
   await new Promise((resolve) => setTimeout(resolve, 1000))
-  mensaje.value  = '¡Gracias! Te has suscrito correctamente.'
+  mensaje.value = '¡Gracias! Te has suscrito correctamente.'
   suscrito.value = true
-  email.value    = ''
+  email.value = ''
   cargando.value = false
 }
 </script>
@@ -111,8 +105,15 @@ const suscribirse = async () => {
   line-height: 1;
   user-select: none;
 }
-.deco-1 { top: -20px; right: 3rem; }
-.deco-2 { bottom: -20px; left: 2rem; font-size: 5rem; }
+.deco-1 {
+  top: -20px;
+  right: 3rem;
+}
+.deco-2 {
+  bottom: -20px;
+  left: 2rem;
+  font-size: 5rem;
+}
 
 /* ── Inner layout ── */
 .newsletter-inner {
@@ -177,7 +178,9 @@ const suscribirse = async () => {
   padding: 4px 10px;
   border-radius: 50px;
 }
-.trust-item i { font-size: 0.7rem; }
+.trust-item i {
+  font-size: 0.7rem;
+}
 
 /* ── Formulario derecha ── */
 .form-wrap {
@@ -222,7 +225,9 @@ const suscribirse = async () => {
   cursor: not-allowed;
 }
 /* CAMBIADO: Color de placeholder adaptado */
-.nl-input::placeholder { color: rgba(136, 14, 79, 0.4); }
+.nl-input::placeholder {
+  color: rgba(136, 14, 79, 0.4);
+}
 
 .nl-btn {
   display: inline-flex;
@@ -240,13 +245,29 @@ const suscribirse = async () => {
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s;
   letter-spacing: 0.2px;
 }
-.nl-btn i { font-size: 0.85rem; transition: transform 0.18s; }
-.nl-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2); }
-.nl-btn:hover:not(:disabled) .pi-arrow-right { transform: translateX(3px); }
-.nl-btn:disabled { opacity: 0.85; cursor: not-allowed; background: #fff; color: #e91e8c; }
+.nl-btn i {
+  font-size: 0.85rem;
+  transition: transform 0.18s;
+}
+.nl-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+.nl-btn:hover:not(:disabled) .pi-arrow-right {
+  transform: translateX(3px);
+}
+.nl-btn:disabled {
+  opacity: 0.85;
+  cursor: not-allowed;
+  background: #fff;
+  color: #e91e8c;
+}
 
 /* Nota / mensaje */
 .nl-nota {
@@ -257,7 +278,9 @@ const suscribirse = async () => {
   color: rgba(255, 255, 255, 0.7);
   margin: 4px 0 0 8px;
 }
-.nl-nota i { font-size: 0.72rem; }
+.nl-nota i {
+  font-size: 0.72rem;
+}
 .nl-mensaje {
   display: flex;
   align-items: center;
@@ -271,7 +294,9 @@ const suscribirse = async () => {
   padding: 0.65rem 1.2rem;
   margin: 4px 0 0;
 }
-.nl-mensaje i { font-size: 0.9rem; }
+.nl-mensaje i {
+  font-size: 0.9rem;
+}
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
@@ -279,12 +304,22 @@ const suscribirse = async () => {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
-  .newsletter-card { padding: 2.5rem 1.75rem; }
-  .deco-2 { display: none; }
+  .newsletter-card {
+    padding: 2.5rem 1.75rem;
+  }
+  .deco-2 {
+    display: none;
+  }
 }
 @media (max-width: 480px) {
-  .newsletter-section { padding: 3.5rem 0 3rem; }
-  .newsletter-card { padding: 2rem 1.25rem; }
-  .trust-row { gap: 6px; }
+  .newsletter-section {
+    padding: 3.5rem 0 3rem;
+  }
+  .newsletter-card {
+    padding: 2rem 1.25rem;
+  }
+  .trust-row {
+    gap: 6px;
+  }
 }
 </style>

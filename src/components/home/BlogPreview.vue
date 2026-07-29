@@ -1,7 +1,6 @@
 <template>
   <section class="features-section">
     <div class="container">
-
       <!-- Header -->
       <div class="section-header">
         <span class="eyebrow"><span class="eyebrow-dot"></span> Así de fácil</span>
@@ -11,7 +10,6 @@
 
       <!-- Grid -->
       <div class="features-grid">
-
         <div class="feature-card">
           <div class="icon-wrap">
             <i class="pi pi-truck"></i>
@@ -25,7 +23,9 @@
             <i class="pi pi-shield"></i>
           </div>
           <h3 class="feature-title">Compra segura</h3>
-          <p class="feature-text">Resguardamos tu información y te brindamos seguimiento a tu pedido</p>
+          <p class="feature-text">
+            Resguardamos tu información y te brindamos seguimiento a tu pedido
+          </p>
         </div>
 
         <div class="feature-card">
@@ -35,7 +35,6 @@
           <h3 class="feature-title">Atención al cliente</h3>
           <p class="feature-text">¡Contáctanos ante cualquier duda! Nos encantaría ayudarte</p>
         </div>
-
       </div>
     </div>
   </section>
@@ -112,7 +111,10 @@
   border-radius: 24px; /* CAMBIADO: Esquinas consistentes con el catálogo */
   padding: 2.25rem 1.75rem;
   text-align: center;
-  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
 }
 .feature-card:hover {
   transform: translateY(-6px);
@@ -168,10 +170,17 @@
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .features-grid { grid-template-columns: 1fr; gap: 1rem; }
-  .features-section { padding: 3.5rem 0 3rem; }
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .features-section {
+    padding: 3.5rem 0 3rem;
+  }
 }
 @media (min-width: 480px) and (max-width: 768px) {
-  .features-grid { grid-template-columns: 1fr 1fr; }
+  .features-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 </style>

@@ -9,8 +9,8 @@ import { ref, watch } from 'vue'
 const ENDPOINT = 'categorias'
 
 const props = defineProps({
-  mostrar:     Boolean,
-  categoria:   { type: Object as () => Categoria, default: () => ({}) as Categoria },
+  mostrar: Boolean,
+  categoria: { type: Object as () => Categoria, default: () => ({}) as Categoria },
   modoEdicion: Boolean,
 })
 
@@ -19,11 +19,11 @@ const emit = defineEmits(['guardar', 'close'])
 // ─────────────────────────────────────────────────────────────────────────────
 // Estado
 // ─────────────────────────────────────────────────────────────────────────────
-const categoria     = ref<Categoria>({ id: 0, nombre: '', descripcion: '', imagenUrl: '' } as Categoria)
-const guardando     = ref(false)
+const categoria = ref<Categoria>({ id: 0, nombre: '', descripcion: '', imagenUrl: '' } as Categoria)
+const guardando = ref(false)
 const subiendoImagen = ref(false)
-const errorNombre   = ref('')
-const dragOver      = ref(false)
+const errorNombre = ref('')
+const dragOver = ref(false)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Watchers
@@ -35,8 +35,8 @@ watch(
     errorNombre.value = ''
     categoria.value = props.categoria?.id
       ? { ...props.categoria }
-      : { id: 0, nombre: '', descripcion: '', imagenUrl: '' } as Categoria
-  }
+      : ({ id: 0, nombre: '', descripcion: '', imagenUrl: '' } as Categoria)
+  },
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -92,12 +92,12 @@ async function handleSave() {
   guardando.value = true
   try {
     const body = {
-      nombre:      categoria.value.nombre.trim(),
+      nombre: categoria.value.nombre.trim(),
       descripcion: categoria.value.descripcion || '',
-      imagenUrl:   categoria.value.imagenUrl   || '',
+      imagenUrl: categoria.value.imagenUrl || '',
     }
     if (props.modoEdicion) await http.patch(`${ENDPOINT}/${categoria.value.id}`, body)
-    else                   await http.post(ENDPOINT, body)
+    else await http.post(ENDPOINT, body)
 
     emit('guardar')
     emit('close')
@@ -114,7 +114,6 @@ async function handleSave() {
     <Transition name="modal-fade">
       <div v-if="mostrar" class="modal-overlay" @click.self="emit('close')">
         <div class="modal-panel">
-
           <!-- ── Header ──────────────────────────────────────────────────── -->
           <div class="modal-header">
             <div class="modal-header-info">
@@ -126,9 +125,11 @@ async function handleSave() {
                   {{ modoEdicion ? 'Editar categoría' : 'Nueva categoría' }}
                 </h3>
                 <p class="modal-sub">
-                  {{ modoEdicion
-                    ? `Modificando: ${categoria.nombre || '—'}`
-                    : 'Completa los datos de la categoría' }}
+                  {{
+                    modoEdicion
+                      ? `Modificando: ${categoria.nombre || '—'}`
+                      : 'Completa los datos de la categoría'
+                  }}
                 </p>
               </div>
             </div>
@@ -139,7 +140,6 @@ async function handleSave() {
 
           <!-- ── Body ────────────────────────────────────────────────────── -->
           <div class="modal-body">
-
             <!-- Nombre -->
             <div class="field" :class="{ 'field-has-error': errorNombre }">
               <label class="field-label" for="cat-nombre">
@@ -235,7 +235,6 @@ async function handleSave() {
                 />
               </div>
             </div>
-
           </div>
 
           <!-- ── Footer ──────────────────────────────────────────────────── -->
@@ -250,10 +249,9 @@ async function handleSave() {
               :disabled="guardando || subiendoImagen"
             >
               <i :class="guardando ? 'pi pi-spin pi-spinner' : 'pi pi-save'"></i>
-              {{ guardando ? 'Guardando...' : (modoEdicion ? 'Actualizar' : 'Crear categoría') }}
+              {{ guardando ? 'Guardando...' : modoEdicion ? 'Actualizar' : 'Crear categoría' }}
             </button>
           </div>
-
         </div>
       </div>
     </Transition>
@@ -298,35 +296,56 @@ async function handleSave() {
   flex-shrink: 0;
 }
 
-.modal-header-info { display: flex; align-items: center; gap: 0.9rem; }
+.modal-header-info {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
 
 .modal-icon {
-  width: 44px; height: 44px;
+  width: 44px;
+  height: 44px;
   border-radius: 14px;
   background: linear-gradient(135deg, #e91e8c, #f06292);
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.3rem;
   box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
   flex-shrink: 0;
 }
 
-.modal-titulo { font-size: 1rem; font-weight: 800; color: #880e4f; margin: 0 0 0.1rem; }
-.modal-sub    { font-size: 0.72rem; color: #bbb; margin: 0; }
+.modal-titulo {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.1rem;
+}
+.modal-sub {
+  font-size: 0.72rem;
+  color: #bbb;
+  margin: 0;
+}
 
 .btn-close {
-  width: 34px; height: 34px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: none;
   background: #fce4ec;
   color: #c2185b;
   font-size: 0.85rem;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.2s;
   flex-shrink: 0;
 }
 
-.btn-close:hover { background: #f8bbd0; }
+.btn-close:hover {
+  background: #f8bbd0;
+}
 
 /* ── Body ───────────────────────────────────────────────────────────────────── */
 .modal-body {
@@ -341,7 +360,11 @@ async function handleSave() {
 }
 
 /* ── Campos ─────────────────────────────────────────────────────────────────── */
-.field { display: flex; flex-direction: column; gap: 0.35rem; }
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
 
 .field-label {
   font-size: 0.78rem;
@@ -350,9 +373,13 @@ async function handleSave() {
   letter-spacing: 0.2px;
 }
 
-.req { color: #e91e8c; }
+.req {
+  color: #e91e8c;
+}
 
-.input-wrap { position: relative; }
+.input-wrap {
+  position: relative;
+}
 
 .input-icon {
   position: absolute;
@@ -373,12 +400,16 @@ async function handleSave() {
   color: #333;
   outline: none;
   background: #fff9fb;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   box-sizing: border-box;
   font-family: inherit;
 }
 
-.field-input.has-icon { padding-left: 2.35rem; }
+.field-input.has-icon {
+  padding-left: 2.35rem;
+}
 
 .field-input:focus {
   border-color: #e91e8c;
@@ -395,7 +426,9 @@ async function handleSave() {
   color: #333;
   outline: none;
   background: #fff9fb;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   font-family: inherit;
   resize: vertical;
   min-height: 80px;
@@ -408,7 +441,9 @@ async function handleSave() {
   background: white;
 }
 
-.field-has-error .field-input { border-color: #ef5350; }
+.field-has-error .field-input {
+  border-color: #ef5350;
+}
 
 .field-footer {
   display: flex;
@@ -417,8 +452,15 @@ async function handleSave() {
   min-height: 16px;
 }
 
-.char-count       { font-size: 0.72rem; color: #ccc; }
-.char-count.right { text-align: right; font-size: 0.72rem; color: #ccc; }
+.char-count {
+  font-size: 0.72rem;
+  color: #ccc;
+}
+.char-count.right {
+  text-align: right;
+  font-size: 0.72rem;
+  color: #ccc;
+}
 
 .error-msg {
   display: flex;
@@ -462,18 +504,34 @@ async function handleSave() {
 }
 
 .upload-icon-wrap {
-  width: 56px; height: 56px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: #fce4ec;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.5rem;
   color: #e91e8c;
   margin-bottom: 0.35rem;
 }
 
-.upload-titulo { font-weight: 700; color: #880e4f; font-size: 0.9rem; margin: 0; }
-.upload-sub    { font-size: 0.75rem; color: #ccc; margin: 0; }
-.upload-hint   { font-size: 0.7rem; color: #ccc; margin-top: 0.15rem; }
+.upload-titulo {
+  font-weight: 700;
+  color: #880e4f;
+  font-size: 0.9rem;
+  margin: 0;
+}
+.upload-sub {
+  font-size: 0.75rem;
+  color: #ccc;
+  margin: 0;
+}
+.upload-hint {
+  font-size: 0.7rem;
+  color: #ccc;
+  margin-top: 0.15rem;
+}
 
 .btn-upload {
   display: inline-flex;
@@ -491,11 +549,19 @@ async function handleSave() {
   transition: opacity 0.2s;
 }
 
-.btn-upload:hover:not(.disabled) { opacity: 0.9; }
-.btn-upload.disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-upload:hover:not(.disabled) {
+  opacity: 0.9;
+}
+.btn-upload.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* Preview */
-.img-preview { position: relative; display: block; }
+.img-preview {
+  position: relative;
+  display: block;
+}
 
 .img-preview img {
   width: 100%;
@@ -516,7 +582,9 @@ async function handleSave() {
   transition: opacity 0.2s;
 }
 
-.img-preview:hover .img-overlay-actions { opacity: 1; }
+.img-preview:hover .img-overlay-actions {
+  opacity: 1;
+}
 
 .btn-cambiar-img,
 .btn-quitar-img {
@@ -543,8 +611,12 @@ async function handleSave() {
   border: 1.5px solid rgba(255, 255, 255, 0.5);
 }
 
-.btn-cambiar-img:hover { background: #fce4ec; }
-.btn-quitar-img:hover  { background: rgba(255, 255, 255, 0.3); }
+.btn-cambiar-img:hover {
+  background: #fce4ec;
+}
+.btn-quitar-img:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
 
 .file-input-hidden {
   position: absolute;
@@ -578,8 +650,13 @@ async function handleSave() {
   transition: background 0.2s;
 }
 
-.btn-cancelar:hover:not(:disabled) { background: #f5f5f5; }
-.btn-cancelar:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-cancelar:hover:not(:disabled) {
+  background: #f5f5f5;
+}
+.btn-cancelar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btn-guardar {
   display: inline-flex;
@@ -594,22 +671,42 @@ async function handleSave() {
   font-size: 0.875rem;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 
-.btn-guardar:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-.btn-guardar:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn-guardar:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.btn-guardar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
 
 /* ── Transición ─────────────────────────────────────────────────────────────── */
 .modal-fade-enter-active,
-.modal-fade-leave-active { transition: opacity 0.22s ease; }
+.modal-fade-leave-active {
+  transition: opacity 0.22s ease;
+}
 
 .modal-fade-enter-active .modal-panel,
-.modal-fade-leave-active .modal-panel { transition: transform 0.22s ease, opacity 0.22s ease; }
+.modal-fade-leave-active .modal-panel {
+  transition:
+    transform 0.22s ease,
+    opacity 0.22s ease;
+}
 
 .modal-fade-enter-from,
-.modal-fade-leave-to { opacity: 0; }
+.modal-fade-leave-to {
+  opacity: 0;
+}
 
 .modal-fade-enter-from .modal-panel,
-.modal-fade-leave-to .modal-panel { transform: translateY(14px); opacity: 0; }
+.modal-fade-leave-to .modal-panel {
+  transform: translateY(14px);
+  opacity: 0;
+}
 </style>

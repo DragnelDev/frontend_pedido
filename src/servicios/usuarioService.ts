@@ -27,4 +27,17 @@ export const usuariosService = {
     const { data } = await http.delete(`${ENDPOINT}/${id}`)
     return data
   },
+
+  // Perfil del usuario autenticado (basado en el token JWT, no en un id
+  // manual). Usar estos métodos en vez de obtener/actualizar por :id
+  // cuando se trata del propio usuario logueado.
+  async miPerfil() {
+    const { data } = await http.get(`${ENDPOINT}/perfil`)
+    return data
+  },
+
+  async actualizarMiPerfil(cambios: any) {
+    const { data } = await http.patch(`${ENDPOINT}/perfil`, cambios)
+    return data
+  },
 }

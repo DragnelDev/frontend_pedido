@@ -7,30 +7,30 @@ import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
 
 const router = useRouter()
 
-const cargando      = ref(true)
-const guardando     = ref(false)
-const subiendoImg   = ref(false)
-const dragOver      = ref(false)
-const error         = ref<string | null>(null)
-const exito         = ref<string | null>(null)
+const cargando = ref(true)
+const guardando = ref(false)
+const subiendoImg = ref(false)
+const dragOver = ref(false)
+const error = ref<string | null>(null)
+const exito = ref<string | null>(null)
 
-const emailUsuario  = ref('')
-const idUsuario     = ref<number | null>(null)
-const idCliente     = ref<number | null>(null)
+const emailUsuario = ref('')
+const idUsuario = ref<number | null>(null)
+const idCliente = ref<number | null>(null)
 
-const fileInput     = ref<HTMLInputElement | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
 
 const form = ref({
-  nombre:          '',
+  nombre: '',
   apellidoPaterno: '',
   apellidoMaterno: '',
-  celular:         '',
-  direccion:       '',
-  imagenUrl:       '',
+  celular: '',
+  direccion: '',
+  imagenUrl: '',
 })
 
-const nombreCompleto = computed(() =>
-  [form.value.nombre, form.value.apellidoPaterno].filter(Boolean).join(' ') || 'Tu nombre'
+const nombreCompleto = computed(
+  () => [form.value.nombre, form.value.apellidoPaterno].filter(Boolean).join(' ') || 'Tu nombre',
 )
 
 const inicial = computed(() => {
@@ -39,8 +39,12 @@ const inicial = computed(() => {
 })
 
 const AVATAR_COLORS = [
-  ['#fce4ec','#e91e8c'], ['#e8eaf6','#3949ab'], ['#e8f5e9','#2e7d32'],
-  ['#fff3e0','#e65100'], ['#f3e5f5','#7b1fa2'], ['#e3f2fd','#1565c0'],
+  ['#fce4ec', '#e91e8c'],
+  ['#e8eaf6', '#3949ab'],
+  ['#e8f5e9', '#2e7d32'],
+  ['#fff3e0', '#e65100'],
+  ['#f3e5f5', '#7b1fa2'],
+  ['#e3f2fd', '#1565c0'],
 ]
 
 const avatarColor = computed(() => {
@@ -50,9 +54,12 @@ const avatarColor = computed(() => {
 })
 
 onMounted(async () => {
-  const token   = getTokenFromLocalStorage()
+  const token = getTokenFromLocalStorage()
   const payload = token ? parseJwt(token) : null
-  if (!token || !payload?.sub) { router.replace('/login'); return }
+  if (!token || !payload?.sub) {
+    router.replace('/login')
+    return
+  }
 
   idUsuario.value = Number(payload.sub)
 
@@ -61,16 +68,15 @@ onMounted(async () => {
     emailUsuario.value = data.email || ''
 
     if (data.cliente) {
-      idCliente.value                  = data.cliente.id
-      form.value.nombre                = data.cliente.nombre          || ''
-      form.value.apellidoPaterno       = data.cliente.apellidoPaterno || ''
-      form.value.apellidoMaterno       = data.cliente.apellidoMaterno || ''
-      form.value.celular               = data.cliente.celular         || ''
-      form.value.direccion             = data.cliente.direccion       || ''
+      idCliente.value = data.cliente.id
+      form.value.nombre = data.cliente.nombre || ''
+      form.value.apellidoPaterno = data.cliente.apellidoPaterno || ''
+      form.value.apellidoMaterno = data.cliente.apellidoMaterno || ''
+      form.value.celular = data.cliente.celular || ''
+      form.value.direccion = data.cliente.direccion || ''
     }
 
     form.value.imagenUrl = data.imagenUrl || ''
-
   } catch (e: any) {
     error.value = e?.response?.data?.message || 'No se pudieron cargar tus datos.'
   } finally {
@@ -84,7 +90,7 @@ async function subirImagen(file: File) {
     return
   }
   subiendoImg.value = true
-  error.value       = null
+  error.value = null
 
   const fd = new FormData()
   fd.append('file', file)
@@ -125,28 +131,34 @@ function quitarImagen() {
 
 async function guardarCambios() {
   if (!idUsuario.value) return
-  if (!form.value.nombre.trim())          { error.value = 'El nombre es obligatorio.';          return }
-  if (!form.value.apellidoPaterno.trim()) { error.value = 'El apellido paterno es obligatorio.'; return }
+  if (!form.value.nombre.trim()) {
+    error.value = 'El nombre es obligatorio.'
+    return
+  }
+  if (!form.value.apellidoPaterno.trim()) {
+    error.value = 'El apellido paterno es obligatorio.'
+    return
+  }
 
   guardando.value = true
-  error.value     = null
+  error.value = null
 
   try {
     await http.put(`/usuarios/${idUsuario.value}`, {
       imagenUrl: form.value.imagenUrl,
       cliente: {
-        nombre:          form.value.nombre.trim(),
+        nombre: form.value.nombre.trim(),
         apellidoPaterno: form.value.apellidoPaterno.trim(),
         apellidoMaterno: form.value.apellidoMaterno.trim(),
-        celular:         form.value.celular.trim(),
-        direccion:       form.value.direccion.trim(),
+        celular: form.value.celular.trim(),
+        direccion: form.value.direccion.trim(),
       },
     })
     mostrarExito('¡Perfil actualizado correctamente!')
     setTimeout(() => router.push('/perfil'), 1500)
   } catch (e: any) {
     const msg = e?.response?.data?.message
-    error.value = Array.isArray(msg) ? msg.join('\n') : (msg || 'Error al guardar los cambios.')
+    error.value = Array.isArray(msg) ? msg.join('\n') : msg || 'Error al guardar los cambios.'
   } finally {
     guardando.value = false
   }
@@ -154,15 +166,18 @@ async function guardarCambios() {
 
 function mostrarExito(msg: string) {
   exito.value = msg
-  setTimeout(() => { exito.value = null }, 3000)
+  setTimeout(() => {
+    exito.value = null
+  }, 3000)
 }
 
-function cancelar() { router.push('/perfil') }
+function cancelar() {
+  router.push('/perfil')
+}
 </script>
 
 <template>
   <div class="page-wrap">
-
     <!-- ── Cargando ── -->
     <div v-if="cargando" class="loading-wrap">
       <div class="loading-spinner"></div>
@@ -170,18 +185,14 @@ function cancelar() { router.push('/perfil') }
     </div>
 
     <section v-else class="perfil-container">
-
       <!-- ── Header ── -->
       <div class="page-header">
-        <span class="section-tag">
-          <i class="pi pi-user"></i> Mi cuenta
-        </span>
+        <span class="section-tag"> <i class="pi pi-user"></i> Mi cuenta </span>
         <h2 class="page-titulo">Editar perfil</h2>
         <p class="page-sub">Actualiza tu información personal y de contacto</p>
       </div>
 
       <div class="profile-card">
-
         <!-- ── Hero ── -->
         <div class="card-hero">
           <div class="avatar-ring">
@@ -189,7 +200,9 @@ function cancelar() { router.push('/perfil') }
               v-if="!form.imagenUrl"
               class="avatar-letra"
               :style="`background:${avatarColor.bg}; color:${avatarColor.color}`"
-            >{{ inicial }}</div>
+            >
+              {{ inicial }}
+            </div>
             <img v-else :src="form.imagenUrl" alt="Avatar" class="avatar-img" />
           </div>
           <div class="hero-info">
@@ -203,7 +216,6 @@ function cancelar() { router.push('/perfil') }
 
         <!-- ── Form body ── -->
         <div class="card-body">
-
           <Transition name="banner-fade">
             <div v-if="error" class="banner banner-err">
               <i class="pi pi-exclamation-circle"></i>
@@ -218,7 +230,6 @@ function cancelar() { router.push('/perfil') }
           </Transition>
 
           <form @submit.prevent="guardarCambios" novalidate>
-
             <!-- ── Sección 1: Foto ── -->
             <div class="sec-header">
               <span class="sec-num">1</span>
@@ -240,7 +251,7 @@ function cancelar() { router.push('/perfil') }
                 ref="fileInput"
                 type="file"
                 accept="image/*"
-                style="display:none"
+                style="display: none"
                 @change="alSeleccionarImagen"
               />
 
@@ -257,11 +268,7 @@ function cancelar() { router.push('/perfil') }
                     <span>Cambiar foto</span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  class="btn-quitar-img"
-                  @click.stop="quitarImagen"
-                >
+                <button type="button" class="btn-quitar-img" @click.stop="quitarImagen">
                   <i class="pi pi-times"></i> Quitar foto
                 </button>
               </template>
@@ -290,9 +297,7 @@ function cancelar() { router.push('/perfil') }
 
             <div class="fields-grid">
               <div class="field full">
-                <label class="field-label" for="nombre">
-                  Nombre <span class="req">*</span>
-                </label>
+                <label class="field-label" for="nombre"> Nombre <span class="req">*</span> </label>
                 <div class="input-wrap">
                   <i class="pi pi-user input-icon"></i>
                   <input
@@ -348,12 +353,7 @@ function cancelar() { router.push('/perfil') }
                 <label class="field-label">Correo electrónico</label>
                 <div class="input-wrap">
                   <i class="pi pi-envelope input-icon"></i>
-                  <input
-                    :value="emailUsuario"
-                    type="email"
-                    class="field-input has-icon"
-                    disabled
-                  />
+                  <input :value="emailUsuario" type="email" class="field-input has-icon" disabled />
                 </div>
                 <span class="field-hint">El correo no puede modificarse.</span>
               </div>
@@ -399,20 +399,14 @@ function cancelar() { router.push('/perfil') }
               >
                 Cancelar
               </button>
-              <button
-                type="submit"
-                class="btn-guardar"
-                :disabled="guardando || subiendoImg"
-              >
+              <button type="submit" class="btn-guardar" :disabled="guardando || subiendoImg">
                 <i :class="guardando ? 'pi pi-spin pi-spinner' : 'pi pi-save'"></i>
                 {{ guardando ? 'Guardando...' : 'Guardar cambios' }}
               </button>
             </div>
-
           </form>
         </div>
       </div>
-
     </section>
   </div>
 </template>
@@ -422,7 +416,7 @@ function cancelar() { router.push('/perfil') }
 .page-wrap {
   min-height: 80vh;
   padding: 2.5rem 1rem 4rem;
-  background: #FFE3EE;
+  background: #ffe3ee;
   display: flex;
   justify-content: center;
   font-family: 'Segoe UI', 'Nunito', Arial, sans-serif;
@@ -435,7 +429,7 @@ function cancelar() { router.push('/perfil') }
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  color: #D83B7E;
+  color: #d83b7e;
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -444,12 +438,16 @@ function cancelar() { router.push('/perfil') }
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: 3px solid #F2C4D8;
-  border-top-color: #D83B7E;
+  border: 3px solid #f2c4d8;
+  border-top-color: #d83b7e;
   animation: spin 0.75s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ── Contenedor ── */
 .perfil-container {
@@ -466,7 +464,7 @@ function cancelar() { router.push('/perfil') }
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: #D83B7E;
+  background: #d83b7e;
   color: #fff;
   font-size: 0.72rem;
   font-weight: 700;
@@ -481,13 +479,13 @@ function cancelar() { router.push('/perfil') }
 .page-titulo {
   font-size: clamp(1.4rem, 4vw, 1.8rem);
   font-weight: 800;
-  color: #4A0E2E;
+  color: #4a0e2e;
   margin: 0 0 0.2rem;
 }
 
 .page-sub {
   font-size: 0.875rem;
-  color: #9E5070;
+  color: #9e5070;
   margin: 0;
 }
 
@@ -495,8 +493,8 @@ function cancelar() { router.push('/perfil') }
 .profile-card {
   background: #ffffff;
   border-radius: 24px;
-  border: 1.5px solid #F2C4D8;
-  box-shadow: 0 8px 32px rgba(216, 59, 126, 0.10);
+  border: 1.5px solid #f2c4d8;
+  box-shadow: 0 8px 32px rgba(216, 59, 126, 0.1);
   overflow: hidden;
 }
 
@@ -506,8 +504,8 @@ function cancelar() { router.push('/perfil') }
   align-items: center;
   gap: 1.1rem;
   padding: 1.4rem 1.75rem;
-  background: #FFF5F9;
-  border-bottom: 1.5px solid #F2C4D8;
+  background: #fff5f9;
+  border-bottom: 1.5px solid #f2c4d8;
   position: relative;
 }
 
@@ -516,9 +514,9 @@ function cancelar() { router.push('/perfil') }
   height: 64px;
   border-radius: 50%;
   padding: 3px;
-  background: #D83B7E;
+  background: #d83b7e;
   flex-shrink: 0;
-  box-shadow: 0 4px 16px rgba(216, 59, 126, 0.30);
+  box-shadow: 0 4px 16px rgba(216, 59, 126, 0.3);
 }
 
 .avatar-letra,
@@ -543,7 +541,7 @@ function cancelar() { router.push('/perfil') }
 .hero-nombre {
   font-size: 0.95rem;
   font-weight: 800;
-  color: #4A0E2E;
+  color: #4a0e2e;
   margin: 0 0 0.1rem;
   white-space: nowrap;
   overflow: hidden;
@@ -552,7 +550,7 @@ function cancelar() { router.push('/perfil') }
 
 .hero-email {
   font-size: 0.78rem;
-  color: #B07090;
+  color: #b07090;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -563,21 +561,24 @@ function cancelar() { router.push('/perfil') }
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1.5px solid #F2C4D8;
+  border: 1.5px solid #f2c4d8;
   background: white;
-  color: #D83B7E;
+  color: #d83b7e;
   font-size: 0.85rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.2s;
   flex-shrink: 0;
 }
 
 .btn-hero-edit:hover {
-  background: #FFE3EE;
-  border-color: #D83B7E;
+  background: #ffe3ee;
+  border-color: #d83b7e;
   transform: scale(1.08);
 }
 
@@ -603,11 +604,11 @@ function cancelar() { router.push('/perfil') }
 .banner-err {
   background: #fff1f4;
   color: #b0203a;
-  border: 1.5px solid #F5B8C4;
+  border: 1.5px solid #f5b8c4;
 }
 
 .banner-err i {
-  color: #D83B7E;
+  color: #d83b7e;
   flex-shrink: 0;
 }
 
@@ -634,7 +635,7 @@ function cancelar() { router.push('/perfil') }
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  background: #D83B7E;
+  background: #d83b7e;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -648,29 +649,32 @@ function cancelar() { router.push('/perfil') }
 .sec-titulo {
   font-size: 0.88rem;
   font-weight: 700;
-  color: #4A0E2E;
+  color: #4a0e2e;
   margin: 0 0 0.1rem;
 }
 
 .sec-sub {
   font-size: 0.72rem;
-  color: #B07090;
+  color: #b07090;
   margin: 0;
 }
 
 .sec-divider {
   height: 1.5px;
-  background: linear-gradient(90deg, transparent, #F2C4D8, transparent);
+  background: linear-gradient(90deg, transparent, #f2c4d8, transparent);
   margin: 1.3rem 0;
 }
 
 /* ── Upload zone ── */
 .upload-zone {
-  border: 2px dashed #F2C4D8;
+  border: 2px dashed #f2c4d8;
   border-radius: 16px;
-  background: #FFF5F9;
+  background: #fff5f9;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    box-shadow 0.2s;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -679,19 +683,19 @@ function cancelar() { router.push('/perfil') }
 }
 
 .upload-zone:hover {
-  border-color: #D83B7E;
-  background: #FFE3EE;
+  border-color: #d83b7e;
+  background: #ffe3ee;
 }
 
 .upload-zone.drag-over {
-  border-color: #4A0E2E;
+  border-color: #4a0e2e;
   background: #ffd6e8;
   box-shadow: 0 0 0 4px rgba(216, 59, 126, 0.13);
 }
 
 .upload-zone.tiene-img {
   border-style: solid;
-  border-color: #F2C4D8;
+  border-color: #f2c4d8;
   background: white;
 }
 
@@ -708,31 +712,31 @@ function cancelar() { router.push('/perfil') }
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: #FFE3EE;
-  border: 1.5px solid #F2C4D8;
+  background: #ffe3ee;
+  border: 1.5px solid #f2c4d8;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.4rem;
-  color: #D83B7E;
+  color: #d83b7e;
   margin-bottom: 0.25rem;
 }
 
 .upload-spinner {
   font-size: 2rem;
-  color: #D83B7E;
+  color: #d83b7e;
 }
 
 .upload-titulo {
   font-weight: 700;
-  color: #4A0E2E;
+  color: #4a0e2e;
   font-size: 0.88rem;
   margin: 0;
 }
 
 .upload-hint {
   font-size: 0.72rem;
-  color: #B07090;
+  color: #b07090;
 }
 
 /* Preview */
@@ -779,19 +783,21 @@ function cancelar() { router.push('/perfil') }
   gap: 0.3rem;
   padding: 0.45rem 0.95rem;
   margin: 0.65rem 0 0.5rem;
-  background: #FFE3EE;
-  color: #D83B7E;
-  border: 1.5px solid #F2C4D8;
+  background: #ffe3ee;
+  color: #d83b7e;
+  border: 1.5px solid #f2c4d8;
   border-radius: 50px;
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
 }
 
 .btn-quitar-img:hover {
-  background: #F2C4D8;
-  border-color: #D83B7E;
+  background: #f2c4d8;
+  border-color: #d83b7e;
 }
 
 /* ── Campos ── */
@@ -814,12 +820,12 @@ function cancelar() { router.push('/perfil') }
 .field-label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #7A2B50;
+  color: #7a2b50;
   letter-spacing: 0.2px;
 }
 
 .req {
-  color: #D83B7E;
+  color: #d83b7e;
 }
 
 .input-wrap {
@@ -831,7 +837,7 @@ function cancelar() { router.push('/perfil') }
   left: 0.85rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #D83B7E;
+  color: #d83b7e;
   font-size: 0.82rem;
   pointer-events: none;
 }
@@ -839,19 +845,22 @@ function cancelar() { router.push('/perfil') }
 .field-input {
   width: 100%;
   padding: 0.68rem 1rem;
-  border: 1.5px solid #F2C4D8;
+  border: 1.5px solid #f2c4d8;
   border-radius: 12px;
   font-size: 0.875rem;
-  color: #4A0E2E;
+  color: #4a0e2e;
   outline: none;
-  background: #FFF5F9;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  background: #fff5f9;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background 0.2s;
   box-sizing: border-box;
   font-family: inherit;
 }
 
 .field-input::placeholder {
-  color: #C090A8;
+  color: #c090a8;
 }
 
 .field-input.has-icon {
@@ -859,21 +868,21 @@ function cancelar() { router.push('/perfil') }
 }
 
 .field-input:focus {
-  border-color: #D83B7E;
+  border-color: #d83b7e;
   box-shadow: 0 0 0 3px rgba(216, 59, 126, 0.11);
   background: white;
 }
 
 .field-input:disabled {
-  background: #FFF0F5;
-  color: #C090A8;
+  background: #fff0f5;
+  color: #c090a8;
   cursor: not-allowed;
-  border-color: #F5D8E6;
+  border-color: #f5d8e6;
 }
 
 .field-hint {
   font-size: 0.7rem;
-  color: #B07090;
+  color: #b07090;
 }
 
 /* ── Acciones ── */
@@ -886,20 +895,23 @@ function cancelar() { router.push('/perfil') }
 .btn-cancelar {
   padding: 0.68rem 1.4rem;
   border-radius: 50px;
-  border: 1.5px solid #E8C0D0;
+  border: 1.5px solid #e8c0d0;
   background: white;
-  color: #7A2B50;
+  color: #7a2b50;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
   font-family: inherit;
 }
 
 .btn-cancelar:hover:not(:disabled) {
-  background: #FFE3EE;
-  border-color: #D83B7E;
-  color: #D83B7E;
+  background: #ffe3ee;
+  border-color: #d83b7e;
+  color: #d83b7e;
 }
 
 .btn-cancelar:disabled {
@@ -914,20 +926,23 @@ function cancelar() { router.push('/perfil') }
   padding: 0.68rem 1.6rem;
   border-radius: 50px;
   border: none;
-  background: #D83B7E;
+  background: #d83b7e;
   color: white;
   font-weight: 700;
   font-size: 0.875rem;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(216, 59, 126, 0.32);
-  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s,
+    box-shadow 0.2s;
   font-family: inherit;
 }
 
 .btn-guardar:hover:not(:disabled) {
   opacity: 0.9;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(216, 59, 126, 0.40);
+  box-shadow: 0 6px 20px rgba(216, 59, 126, 0.4);
 }
 
 .btn-guardar:disabled {
@@ -939,7 +954,9 @@ function cancelar() { router.push('/perfil') }
 /* ── Transiciones ── */
 .banner-fade-enter-active,
 .banner-fade-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
 }
 
 .banner-fade-enter-from {
@@ -954,11 +971,22 @@ function cancelar() { router.push('/perfil') }
 
 /* ── Responsive ── */
 @media (max-width: 480px) {
-  .card-body     { padding: 1.25rem; }
-  .fields-grid   { grid-template-columns: 1fr; }
-  .field.full    { grid-column: 1; }
-  .form-acciones { flex-direction: column-reverse; }
+  .card-body {
+    padding: 1.25rem;
+  }
+  .fields-grid {
+    grid-template-columns: 1fr;
+  }
+  .field.full {
+    grid-column: 1;
+  }
+  .form-acciones {
+    flex-direction: column-reverse;
+  }
   .btn-cancelar,
-  .btn-guardar   { width: 100%; justify-content: center; }
+  .btn-guardar {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

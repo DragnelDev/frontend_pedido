@@ -45,30 +45,35 @@ type Pedido = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Estado
 // ─────────────────────────────────────────────────────────────────────────────
-const router       = useRouter()
-const cargando     = ref(true)
-const pedidos      = ref<Pedido[]>([])
+const router = useRouter()
+const cargando = ref(true)
+const pedidos = ref<Pedido[]>([])
 const filtroEstado = ref<'todos' | 'pendiente' | 'entregado' | 'cancelado'>('todos')
-const q            = ref('')
-const abierto      = ref<number | null>(null)
+const q = ref('')
+const abierto = ref<number | null>(null)
 const paginaActual = ref(1)
-const POR_PAGINA   = 10
+const POR_PAGINA = 10
 
 // Modales
-const modalImg     = ref('')
+const modalImg = ref('')
 const showModalImg = ref(false)
 const modalMapaUrl = ref('')
 const modalMapaLink = ref('')
 const showModalMapa = ref(false)
 
-type ConfirmPayload = { titulo: string; mensaje: string; tipo: 'advertencia' | 'peligro'; accion: () => Promise<void> }
-const confirm      = ref<ConfirmPayload | null>(null)
+type ConfirmPayload = {
+  titulo: string
+  mensaje: string
+  tipo: 'advertencia' | 'peligro'
+  accion: () => Promise<void>
+}
+const confirm = ref<ConfirmPayload | null>(null)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Montaje y carga
 // ─────────────────────────────────────────────────────────────────────────────
 onMounted(async () => {
-  const token   = getTokenFromLocalStorage()
+  const token = getTokenFromLocalStorage()
   const payload = token ? parseJwt(token) : null
   if (!token || payload?.rol !== 'EMPLEADO') {
     alert('Acceso restringido.')
@@ -83,7 +88,7 @@ async function cargarPedidos() {
   cargando.value = true
   try {
     const { data } = await http.get<Pedido[]>('/pedidos')
-    pedidos.value = data.map(p => ({ ...p, detallePedido: undefined, _cargandoDetalle: false }))
+    pedidos.value = data.map((p) => ({ ...p, detallePedido: undefined, _cargandoDetalle: false }))
   } catch (e: any) {
     alert(e?.response?.data?.message || 'Error al cargar pedidos')
   } finally {
@@ -93,9 +98,12 @@ async function cargarPedidos() {
 
 // Carga lazy del detalle al expandir una fila
 async function toggleDetalle(id: number) {
-  if (abierto.value === id) { abierto.value = null; return }
+  if (abierto.value === id) {
+    abierto.value = null
+    return
+  }
 
-  const pedido = pedidos.value.find(p => p.id === id)
+  const pedido = pedidos.value.find((p) => p.id === id)
   if (!pedido) {
     console.error('Pedido no encontrado:', id)
     return
@@ -121,19 +129,21 @@ async function toggleDetalle(id: number) {
       precioUnitario: d.precioUnitario,
       producto: d.producto,
     }))
-    pedido.pagos          = data.pagos || []
+    pedido.pagos = data.pagos || []
     pedido.direccionEnvio = data.direccionEnvio || data.direccion_envio || ''
-    pedido.referencia     = data.referencia || ''
-    pedido.latitud        = data.latitud ?? null
-    pedido.longitud       = data.longitud ?? null
-    pedido.fechaEntrega   = data.fechaEntrega || data.fecha_entrega || ''
-    pedido.fechaCreacion  = data.fechaCreacion || data.fecha_creacion || pedido.fechaCreacion || ''
+    pedido.referencia = data.referencia || ''
+    pedido.latitud = data.latitud ?? null
+    pedido.longitud = data.longitud ?? null
+    pedido.fechaEntrega = data.fechaEntrega || data.fecha_entrega || ''
+    pedido.fechaCreacion = data.fechaCreacion || data.fecha_creacion || pedido.fechaCreacion || ''
     if (data.usuario) pedido.usuario = data.usuario
 
     console.log('Detalle cargado exitosamente para pedido:', id)
   } catch (error: any) {
     console.error('Error al cargar detalle del pedido:', error?.response?.data || error.message)
-    alert(`Error: ${error?.response?.data?.message || error.message || 'No se pudo cargar el detalle'}`)
+    alert(
+      `Error: ${error?.response?.data?.message || error.message || 'No se pudo cargar el detalle'}`,
+    )
     pedido.detallePedido = []
     pedido.pagos = []
     abierto.value = null
@@ -148,10 +158,10 @@ async function toggleDetalle(id: number) {
 function pedirCambioEstadoPedido(pedido: Pedido, nuevoEstado: string) {
   const esRiesgoso = nuevoEstado === 'cancelado'
   confirm.value = {
-    titulo:  `Cambiar estado del pedido`,
-    mensaje: `¿Confirmas cambiar el pedido #${String(pedido.id).padStart(5,'0')} a "${nuevoEstado}"?`,
-    tipo:    esRiesgoso ? 'peligro' : 'advertencia',
-    accion:  async () => {
+    titulo: `Cambiar estado del pedido`,
+    mensaje: `¿Confirmas cambiar el pedido #${String(pedido.id).padStart(5, '0')} a "${nuevoEstado}"?`,
+    tipo: esRiesgoso ? 'peligro' : 'advertencia',
+    accion: async () => {
       await http.patch(`/pedidos/${pedido.id}/estado`, { estado: nuevoEstado })
       pedido.estado = nuevoEstado as any
     },
@@ -162,10 +172,10 @@ function pedirCambioEstadoPago(pedido: Pedido, nuevoEstado: string) {
   if (!pedido.pagos?.[0]) return alert('Este pedido no tiene registro de pago.')
   const pago = pedido.pagos[0]
   confirm.value = {
-    titulo:  `Cambiar estado del pago`,
-    mensaje: `¿Confirmas cambiar el pago del pedido #${String(pedido.id).padStart(5,'0')} a "${nuevoEstado.replace('_',' ')}"?`,
-    tipo:    nuevoEstado === 'rechazado' ? 'peligro' : 'advertencia',
-    accion:  async () => {
+    titulo: `Cambiar estado del pago`,
+    mensaje: `¿Confirmas cambiar el pago del pedido #${String(pedido.id).padStart(5, '0')} a "${nuevoEstado.replace('_', ' ')}"?`,
+    tipo: nuevoEstado === 'rechazado' ? 'peligro' : 'advertencia',
+    accion: async () => {
       await http.patch(`/pagos/${pago.id}`, { estado: nuevoEstado })
       pago.estado = nuevoEstado
       if (nuevoEstado === 'rechazado') {
@@ -180,20 +190,23 @@ async function ejecutarConfirm() {
   const payload = confirm.value
   confirm.value = null
   if (!payload) return
-  try { await payload.accion() }
-  catch (e: any) { alert(e?.response?.data?.message || 'Error al actualizar') }
+  try {
+    await payload.accion()
+  } catch (e: any) {
+    alert(e?.response?.data?.message || 'Error al actualizar')
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KPIs
 // ─────────────────────────────────────────────────────────────────────────────
 const kpis = computed(() => {
-  const total      = pedidos.value.length
-  const pendientes = pedidos.value.filter(p => p.estado === 'pendiente').length
-  const entregados = pedidos.value.filter(p => p.estado === 'entregado').length
-  const cancelados = pedidos.value.filter(p => p.estado === 'cancelado').length
-  const ingresos   = pedidos.value
-    .filter(p => p.estado === 'entregado')
+  const total = pedidos.value.length
+  const pendientes = pedidos.value.filter((p) => p.estado === 'pendiente').length
+  const entregados = pedidos.value.filter((p) => p.estado === 'entregado').length
+  const cancelados = pedidos.value.filter((p) => p.estado === 'cancelado').length
+  const ingresos = pedidos.value
+    .filter((p) => p.estado === 'entregado')
     .reduce((s, p) => s + Number(p.total), 0)
   return { total, pendientes, entregados, cancelados, ingresos }
 })
@@ -203,40 +216,52 @@ const kpis = computed(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 const filtrados = computed(() => {
   let arr = [...pedidos.value]
-  if (filtroEstado.value !== 'todos') arr = arr.filter(p => p.estado === filtroEstado.value)
+  if (filtroEstado.value !== 'todos') arr = arr.filter((p) => p.estado === filtroEstado.value)
   const s = q.value.trim().toLowerCase()
-  if (s) arr = arr.filter(p =>
-    String(p.id).includes(s) ||
-    (p.usuario?.cliente?.nombre || '').toLowerCase().includes(s) ||
-    (p.usuario?.email || '').toLowerCase().includes(s)
-  )
+  if (s)
+    arr = arr.filter(
+      (p) =>
+        String(p.id).includes(s) ||
+        (p.usuario?.cliente?.nombre || '').toLowerCase().includes(s) ||
+        (p.usuario?.email || '').toLowerCase().includes(s),
+    )
   return arr.sort((a, b) => b.id - a.id)
 })
 
 const totalPaginas = computed(() => Math.max(1, Math.ceil(filtrados.value.length / POR_PAGINA)))
-const paginados    = computed(() => {
+const paginados = computed(() => {
   const i = (paginaActual.value - 1) * POR_PAGINA
   return filtrados.value.slice(i, i + POR_PAGINA)
 })
 
 function cambiarPagina(p: number) {
-  if (p >= 1 && p <= totalPaginas.value) { paginaActual.value = p; abierto.value = null }
+  if (p >= 1 && p <= totalPaginas.value) {
+    paginaActual.value = p
+    abierto.value = null
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers visuales
 // ─────────────────────────────────────────────────────────────────────────────
-function estadoPago(p: Pedido) { return p.pagos?.[0]?.estado || 'sin_pago' }
+function estadoPago(p: Pedido) {
+  return p.pagos?.[0]?.estado || 'sin_pago'
+}
 
 function fmtFecha(iso?: string) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('es-BO', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
-function fmtBs(n?: number) { return (Number(n) || 0).toFixed(2) }
+function fmtBs(n?: number) {
+  return (Number(n) || 0).toFixed(2)
+}
 
 function fmtCoord(v?: number | null | string) {
   const n = Number(v)
@@ -250,7 +275,10 @@ function mapaUrl(lat: number | string | undefined | null, lng: number | string |
   return `https://www.openstreetmap.org/?mlat=${a}&mlon=${b}#map=16/${a}/${b}`
 }
 
-function mapaEmbedUrl(lat: number | string | undefined | null, lng: number | string | undefined | null) {
+function mapaEmbedUrl(
+  lat: number | string | undefined | null,
+  lng: number | string | undefined | null,
+) {
   const a = Number(lat)
   const b = Number(lng)
   if (!Number.isFinite(a) || !Number.isFinite(b)) return ''
@@ -262,7 +290,10 @@ function mapaEmbedUrl(lat: number | string | undefined | null, lng: number | str
   return `https://www.openstreetmap.org/export/embed.html?bbox=${left},${bottom},${right},${top}&layer=mapnik&marker=${a},${b}`
 }
 
-function mapaStaticUrl(lat: number | string | undefined | null, lng: number | string | undefined | null) {
+function mapaStaticUrl(
+  lat: number | string | undefined | null,
+  lng: number | string | undefined | null,
+) {
   // Usa una imagen estática de OpenStreetMap via staticmap (gratuito)
   const a = Number(lat)
   const b = Number(lng)
@@ -271,20 +302,20 @@ function mapaStaticUrl(lat: number | string | undefined | null, lng: number | st
 }
 
 const tipoEnvioLabel: Record<string, string> = {
-  domicilio:    '🚚 Domicilio',
-  delivery:     '🚚 Delivery',
-  express:      '⚡ Express',
-  local:        '🏪 Retiro local',
-  retiro_tienda:'🏪 Retiro tienda',
+  domicilio: '🚚 Domicilio',
+  delivery: '🚚 Delivery',
+  express: '⚡ Express',
+  local: '🏪 Retiro local',
+  retiro_tienda: '🏪 Retiro tienda',
 }
 
-const ESTADOS_PEDIDO = ['pendiente','entregado','cancelado']
-const ESTADOS_PAGO   = ['pendiente','en_revision','aprobado','rechazado']
+const ESTADOS_PEDIDO = ['pendiente', 'entregado', 'cancelado']
+const ESTADOS_PAGO = ['pendiente', 'en_revision', 'aprobado', 'rechazado']
 
 // Páginas a mostrar en paginación
 const pageButtons = computed(() => {
   const total = totalPaginas.value
-  const cur   = paginaActual.value
+  const cur = paginaActual.value
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
   const pages: (number | '...')[] = [1]
   if (cur > 3) pages.push('...')
@@ -297,7 +328,6 @@ const pageButtons = computed(() => {
 
 <template>
   <section class="admin-wrap">
-
     <!-- ── Header ──────────────────────────────────────────────────────────── -->
     <div class="page-header">
       <div class="header-left">
@@ -316,7 +346,7 @@ const pageButtons = computed(() => {
     <!-- ── KPIs ────────────────────────────────────────────────────────────── -->
     <div class="kpis-grid">
       <div class="kpi-card">
-        <div class="kpi-icon" style="background:#fce4ec; color:#e91e8c">
+        <div class="kpi-icon" style="background: #fce4ec; color: #e91e8c">
           <i class="pi pi-list"></i>
         </div>
         <div>
@@ -324,39 +354,48 @@ const pageButtons = computed(() => {
           <p class="kpi-label">Total pedidos</p>
         </div>
       </div>
-      <div class="kpi-card kpi-clickable" @click="filtroEstado = 'pendiente'; paginaActual = 1">
-        <div class="kpi-icon" style="background:#fff3e0; color:#e65100">
+      <div
+        class="kpi-card kpi-clickable"
+        @click="((filtroEstado = 'pendiente'), (paginaActual = 1))"
+      >
+        <div class="kpi-icon" style="background: #fff3e0; color: #e65100">
           <i class="pi pi-clock"></i>
         </div>
         <div>
-          <p class="kpi-valor" style="color:#e65100">{{ kpis.pendientes }}</p>
+          <p class="kpi-valor" style="color: #e65100">{{ kpis.pendientes }}</p>
           <p class="kpi-label">Pendientes</p>
         </div>
       </div>
-      <div class="kpi-card kpi-clickable" @click="filtroEstado = 'entregado'; paginaActual = 1">
-        <div class="kpi-icon" style="background:#e8f5e9; color:#2e7d32">
+      <div
+        class="kpi-card kpi-clickable"
+        @click="((filtroEstado = 'entregado'), (paginaActual = 1))"
+      >
+        <div class="kpi-icon" style="background: #e8f5e9; color: #2e7d32">
           <i class="pi pi-check-circle"></i>
         </div>
         <div>
-          <p class="kpi-valor" style="color:#2e7d32">{{ kpis.entregados }}</p>
+          <p class="kpi-valor" style="color: #2e7d32">{{ kpis.entregados }}</p>
           <p class="kpi-label">Entregados</p>
         </div>
       </div>
-      <div class="kpi-card kpi-clickable" @click="filtroEstado = 'cancelado'; paginaActual = 1">
-        <div class="kpi-icon" style="background:#fce4ec; color:#c62828">
+      <div
+        class="kpi-card kpi-clickable"
+        @click="((filtroEstado = 'cancelado'), (paginaActual = 1))"
+      >
+        <div class="kpi-icon" style="background: #fce4ec; color: #c62828">
           <i class="pi pi-times-circle"></i>
         </div>
         <div>
-          <p class="kpi-valor" style="color:#c62828">{{ kpis.cancelados }}</p>
+          <p class="kpi-valor" style="color: #c62828">{{ kpis.cancelados }}</p>
           <p class="kpi-label">Cancelados</p>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon" style="background:#f3e5f5; color:#7b1fa2">
+        <div class="kpi-icon" style="background: #f3e5f5; color: #7b1fa2">
           <i class="pi pi-wallet"></i>
         </div>
         <div>
-          <p class="kpi-valor" style="color:#7b1fa2">Bs. {{ fmtBs(kpis.ingresos) }}</p>
+          <p class="kpi-valor" style="color: #7b1fa2">Bs. {{ fmtBs(kpis.ingresos) }}</p>
           <p class="kpi-label">Ingresos entregados</p>
         </div>
       </div>
@@ -366,17 +405,29 @@ const pageButtons = computed(() => {
     <div class="filtros-bar">
       <div class="search-wrap">
         <i class="pi pi-search search-icon"></i>
-        <input v-model="q" type="search" placeholder="Buscar por ID, cliente, email..." @input="paginaActual = 1" />
+        <input
+          v-model="q"
+          type="search"
+          placeholder="Buscar por ID, cliente, email..."
+          @input="paginaActual = 1"
+        />
       </div>
       <div class="filtro-tabs">
         <button
-          v-for="e in ['todos','pendiente','entregado','cancelado']" :key="e"
-          class="tab-btn" :class="{ activo: filtroEstado === e }"
-          @click="filtroEstado = e as any; paginaActual = 1"
+          v-for="e in ['todos', 'pendiente', 'entregado', 'cancelado']"
+          :key="e"
+          class="tab-btn"
+          :class="{ activo: filtroEstado === e }"
+          @click="
+            () => {
+              filtroEstado = e as 'todos' | 'pendiente' | 'entregado' | 'cancelado'
+              paginaActual = 1
+            }
+          "
         >
           {{ e === 'todos' ? 'Todos' : e.charAt(0).toUpperCase() + e.slice(1) }}
           <span class="tab-count">
-            {{ e === 'todos' ? pedidos.length : pedidos.filter(p => p.estado === e).length }}
+            {{ e === 'todos' ? pedidos.length : pedidos.filter((p) => p.estado === e).length }}
           </span>
         </button>
       </div>
@@ -388,15 +439,15 @@ const pageButtons = computed(() => {
         <table>
           <thead>
             <tr>
-              <th style="width:80px">ID</th>
+              <th style="width: 80px">ID</th>
               <th>Cliente</th>
-              <th style="width:120px">Total</th>
-              <th style="width:110px">Método</th>
-              <th style="width:130px">Tipo envío</th>
-              <th style="width:155px">Estado pago</th>
-              <th style="width:155px">Estado pedido</th>
-              <th style="width:140px">Fecha</th>
-              <th style="width:90px">Acciones</th>
+              <th style="width: 120px">Total</th>
+              <th style="width: 110px">Método</th>
+              <th style="width: 130px">Tipo envío</th>
+              <th style="width: 155px">Estado pago</th>
+              <th style="width: 155px">Estado pedido</th>
+              <th style="width: 140px">Fecha</th>
+              <th style="width: 90px">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -411,7 +462,7 @@ const pageButtons = computed(() => {
                 <!-- Fila principal -->
                 <tr :class="{ 'row-abierta': abierto === p.id }">
                   <td>
-                    <span class="id-badge">#{{ String(p.id).padStart(5,'0') }}</span>
+                    <span class="id-badge">#{{ String(p.id).padStart(5, '0') }}</span>
                   </td>
                   <td>
                     <p class="td-nombre">{{ p.usuario?.cliente?.nombre || 'Sin cliente' }}</p>
@@ -422,33 +473,45 @@ const pageButtons = computed(() => {
                   </td>
                   <td>
                     <span class="metodo-badge">
-                      {{ p.metodoPago === 'efectivo' ? '💵' : p.metodoPago === 'qr' ? '📱' : p.metodoPago === 'transferencia' ? '🏦' : '💳' }}
+                      {{
+                        p.metodoPago === 'efectivo'
+                          ? '💵'
+                          : p.metodoPago === 'qr'
+                            ? '📱'
+                            : p.metodoPago === 'transferencia'
+                              ? '🏦'
+                              : '💳'
+                      }}
                       {{ p.metodoPago }}
                     </span>
                   </td>
                   <td>
                     <span class="tipo-envio-badge">
-                      {{ tipoEnvioLabel[p.tipoEnvio] || ('📦 ' + (p.tipoEnvio || '—')) }}
+                      {{ tipoEnvioLabel[p.tipoEnvio] || '📦 ' + (p.tipoEnvio || '—') }}
                     </span>
                   </td>
                   <td>
                     <select
                       v-if="p.pagos !== undefined"
-                      class="estado-select" :class="estadoPago(p)"
+                      class="estado-select"
+                      :class="estadoPago(p)"
                       :value="estadoPago(p)"
                       @change="pedirCambioEstadoPago(p, ($event.target as HTMLSelectElement).value)"
                     >
                       <option v-for="s in ESTADOS_PAGO" :key="s" :value="s">
-                        {{ s.replace('_',' ') }}
+                        {{ s.replace('_', ' ') }}
                       </option>
                     </select>
                     <span v-else class="estado-badge sin_pago">sin pago</span>
                   </td>
                   <td>
                     <select
-                      class="estado-select" :class="p.estado"
+                      class="estado-select"
+                      :class="p.estado"
                       :value="p.estado"
-                      @change="pedirCambioEstadoPedido(p, ($event.target as HTMLSelectElement).value)"
+                      @change="
+                        pedirCambioEstadoPedido(p, ($event.target as HTMLSelectElement).value)
+                      "
                     >
                       <option v-for="s in ESTADOS_PEDIDO" :key="s" :value="s">{{ s }}</option>
                     </select>
@@ -465,29 +528,35 @@ const pageButtons = computed(() => {
                 <!-- Fila de detalle expandible -->
                 <tr v-if="abierto === p.id" class="fila-detalle">
                   <td colspan="9">
-
                     <!-- Cargando detalle -->
                     <div v-if="p._cargandoDetalle" class="detalle-cargando">
                       <i class="pi pi-spin pi-spinner"></i> Cargando detalle...
                     </div>
 
                     <div v-else class="detalle-content">
-
                       <!-- Productos -->
                       <div class="detalle-box">
                         <h4 class="box-titulo"><i class="pi pi-box"></i> Productos</h4>
                         <div v-if="!p.detallePedido?.length" class="empty-box">Sin productos</div>
                         <div v-for="d in p.detallePedido" :key="d.id" class="prod-row">
                           <div class="prod-img-wrap">
-                            <img v-if="d.producto?.imagenUrl" :src="d.producto.imagenUrl" :alt="d.producto?.nombre" />
-                            <div v-else class="prod-img-placeholder"><i class="pi pi-image"></i></div>
+                            <img
+                              v-if="d.producto?.imagenUrl"
+                              :src="d.producto.imagenUrl"
+                              :alt="d.producto?.nombre"
+                            />
+                            <div v-else class="prod-img-placeholder">
+                              <i class="pi pi-image"></i>
+                            </div>
                             <span class="prod-qty-badge">{{ d.cantidad }}</span>
                           </div>
                           <div class="prod-info">
                             <p class="prod-nombre">{{ d.producto?.nombre || '—' }}</p>
                             <p class="prod-precio-unit">Bs. {{ fmtBs(d.precioUnitario) }} c/u</p>
                           </div>
-                          <span class="prod-subtotal">Bs. {{ fmtBs(d.cantidad * d.precioUnitario) }}</span>
+                          <span class="prod-subtotal"
+                            >Bs. {{ fmtBs(d.cantidad * d.precioUnitario) }}</span
+                          >
                         </div>
                         <!-- Mini total -->
                         <div class="prod-total-row">
@@ -511,7 +580,9 @@ const pageButtons = computed(() => {
                           </div>
                           <div class="info-fila">
                             <span>Estado</span>
-                            <span class="estado-badge" :class="pg.estado">{{ pg.estado.replace('_',' ') }}</span>
+                            <span class="estado-badge" :class="pg.estado">{{
+                              pg.estado.replace('_', ' ')
+                            }}</span>
                           </div>
                           <div v-if="pg.maskedCard" class="info-fila">
                             <span>Tarjeta</span><span>{{ pg.maskedCard }}</span>
@@ -521,7 +592,10 @@ const pageButtons = computed(() => {
                           </div>
                           <div v-if="pg.comprobante" class="info-fila">
                             <span>Comprobante</span>
-                            <button class="btn-comprobante" @click="modalImg = pg.comprobante!; showModalImg = true">
+                            <button
+                              class="btn-comprobante"
+                              @click="((modalImg = pg.comprobante!), (showModalImg = true))"
+                            >
                               <i class="pi pi-image"></i> Ver imagen
                             </button>
                           </div>
@@ -550,25 +624,37 @@ const pageButtons = computed(() => {
                             <span>Referencia</span>
                             <span>{{ p.referencia }}</span>
                           </div>
-                          <div v-if="!p.tipoEnvio && !p.direccionEnvio" class="empty-box">Sin datos de envío</div>
+                          <div v-if="!p.tipoEnvio && !p.direccionEnvio" class="empty-box">
+                            Sin datos de envío
+                          </div>
                         </div>
 
                         <!-- Mapa estático si hay coordenadas -->
-                        <div v-if="p.latitud != null && p.longitud != null" class="mapa-preview-wrap">
-                          <div class="mapa-label"><i class="pi pi-map-marker"></i> Ubicación del cliente</div>
+                        <div
+                          v-if="p.latitud != null && p.longitud != null"
+                          class="mapa-preview-wrap"
+                        >
+                          <div class="mapa-label">
+                            <i class="pi pi-map-marker"></i> Ubicación del cliente
+                          </div>
                           <div class="mapa-coords">
                             {{ fmtCoord(p.latitud) }}, {{ fmtCoord(p.longitud) }}
                           </div>
                           <button
                             v-if="mapaEmbedUrl(p.latitud, p.longitud)"
                             class="btn-ver-mapa"
-                            @click="(modalMapaUrl = mapaEmbedUrl(p.latitud, p.longitud), modalMapaLink = mapaUrl(p.latitud, p.longitud), showModalMapa = true)"
+                            @click="
+                              () => {
+                                modalMapaUrl = mapaEmbedUrl(p.latitud, p.longitud)
+                                modalMapaLink = mapaUrl(p.latitud, p.longitud)
+                                showModalMapa = true
+                              }
+                            "
                           >
                             <i class="pi pi-map"></i> Ver mapa
                           </button>
                         </div>
                       </div>
-
                     </div>
                   </td>
                 </tr>
@@ -579,9 +665,15 @@ const pageButtons = computed(() => {
                 <td colspan="9" class="td-vacio">
                   <div class="vacio-wrap">
                     <span class="vacio-icon">🛒</span>
-                    <p>No hay pedidos {{ filtroEstado !== 'todos' ? `con estado "${filtroEstado}"` : '' }}</p>
-                    <button v-if="filtroEstado !== 'todos'" class="btn-reset-filtro"
-                      @click="filtroEstado = 'todos'">
+                    <p>
+                      No hay pedidos
+                      {{ filtroEstado !== 'todos' ? `con estado "${filtroEstado}"` : '' }}
+                    </p>
+                    <button
+                      v-if="filtroEstado !== 'todos'"
+                      class="btn-reset-filtro"
+                      @click="filtroEstado = 'todos'"
+                    >
                       Ver todos los pedidos
                     </button>
                   </div>
@@ -594,15 +686,29 @@ const pageButtons = computed(() => {
 
       <!-- Paginación -->
       <div v-if="totalPaginas > 1" class="paginacion">
-        <button class="btn-pag" :disabled="paginaActual === 1" @click="cambiarPagina(paginaActual - 1)">
+        <button
+          class="btn-pag"
+          :disabled="paginaActual === 1"
+          @click="cambiarPagina(paginaActual - 1)"
+        >
           <i class="pi pi-chevron-left"></i>
         </button>
         <template v-for="btn in pageButtons" :key="String(btn)">
           <span v-if="btn === '...'" class="pag-dots">…</span>
-          <button v-else class="btn-num" :class="{ activo: btn === paginaActual }"
-            @click="cambiarPagina(btn as number)">{{ btn }}</button>
+          <button
+            v-else
+            class="btn-num"
+            :class="{ activo: btn === paginaActual }"
+            @click="cambiarPagina(btn as number)"
+          >
+            {{ btn }}
+          </button>
         </template>
-        <button class="btn-pag" :disabled="paginaActual === totalPaginas" @click="cambiarPagina(paginaActual + 1)">
+        <button
+          class="btn-pag"
+          :disabled="paginaActual === totalPaginas"
+          @click="cambiarPagina(paginaActual + 1)"
+        >
           <i class="pi pi-chevron-right"></i>
         </button>
         <span class="pag-info">{{ filtrados.length }} pedidos</span>
@@ -663,13 +769,14 @@ const pageButtons = computed(() => {
               referrerpolicy="no-referrer-when-downgrade"
             ></iframe>
             <div class="modal-mapa-actions">
-              <a :href="modalMapaLink" target="_blank" class="btn-ver-mapa">Abrir en OpenStreetMap</a>
+              <a :href="modalMapaLink" target="_blank" class="btn-ver-mapa"
+                >Abrir en OpenStreetMap</a
+              >
             </div>
           </div>
         </div>
       </Transition>
     </Teleport>
-
   </section>
 </template>
 
@@ -691,19 +798,37 @@ const pageButtons = computed(() => {
   gap: 1rem;
 }
 
-.header-left { display: flex; align-items: center; gap: 1rem; }
-
-.page-icon {
-  width: 48px; height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #e91e8c, #f06292);
-  display: flex; align-items: center; justify-content: center;
-  color: white; font-size: 1.2rem; flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(233,30,140,0.3);
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.page-titulo { font-size: 1.5rem; font-weight: 800; color: #880e4f; margin: 0 0 0.15rem; }
-.page-sub    { font-size: 0.82rem; color: #f48fb1; margin: 0; }
+.page-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
+}
+
+.page-titulo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.15rem;
+}
+.page-sub {
+  font-size: 0.82rem;
+  color: #f48fb1;
+  margin: 0;
+}
 
 .btn-recargar {
   display: flex;
@@ -720,8 +845,14 @@ const pageButtons = computed(() => {
   transition: all 0.2s;
 }
 
-.btn-recargar:hover:not(:disabled) { background: #fce4ec; border-color: #e91e8c; }
-.btn-recargar:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-recargar:hover:not(:disabled) {
+  background: #fce4ec;
+  border-color: #e91e8c;
+}
+.btn-recargar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* ── KPIs ───────────────────────────────────────────────────────────────────── */
 .kpis-grid {
@@ -739,7 +870,7 @@ const pageButtons = computed(() => {
   border-radius: 16px;
   padding: 1rem 1.25rem;
   border: 1px solid #fce4ec;
-  box-shadow: 0 2px 10px rgba(233,30,140,0.06);
+  box-shadow: 0 2px 10px rgba(233, 30, 140, 0.06);
 }
 
 .kpi-card.kpi-clickable {
@@ -749,20 +880,33 @@ const pageButtons = computed(() => {
 
 .kpi-card.kpi-clickable:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(233,30,140,0.12);
+  box-shadow: 0 6px 20px rgba(233, 30, 140, 0.12);
   border-color: #f48fb1;
 }
 
 .kpi-icon {
-  width: 42px; height: 42px;
+  width: 42px;
+  height: 42px;
   border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1rem;
   flex-shrink: 0;
 }
 
-.kpi-valor { font-size: 1.4rem; font-weight: 800; color: #880e4f; margin: 0 0 0.1rem; }
-.kpi-label { font-size: 0.72rem; color: #aaa; font-weight: 500; margin: 0; }
+.kpi-valor {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.1rem;
+}
+.kpi-label {
+  font-size: 0.72rem;
+  color: #aaa;
+  font-weight: 500;
+  margin: 0;
+}
 
 /* ── Filtros ────────────────────────────────────────────────────────────────── */
 .filtros-bar {
@@ -774,7 +918,9 @@ const pageButtons = computed(() => {
   flex-wrap: wrap;
 }
 
-.search-wrap { position: relative; }
+.search-wrap {
+  position: relative;
+}
 
 .search-icon {
   position: absolute;
@@ -797,9 +943,15 @@ const pageButtons = computed(() => {
   transition: border-color 0.2s;
 }
 
-.search-wrap input:focus { border-color: #e91e8c; }
+.search-wrap input:focus {
+  border-color: #e91e8c;
+}
 
-.filtro-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.filtro-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
 
 .tab-btn {
   display: flex;
@@ -816,11 +968,18 @@ const pageButtons = computed(() => {
   transition: all 0.2s;
 }
 
-.tab-btn:hover { border-color: #f48fb1; color: #c2185b; }
-.tab-btn.activo { background: linear-gradient(135deg,#e91e8c,#f06292); color: white; border-color: #e91e8c; }
+.tab-btn:hover {
+  border-color: #f48fb1;
+  color: #c2185b;
+}
+.tab-btn.activo {
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  color: white;
+  border-color: #e91e8c;
+}
 
 .tab-count {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.3);
   color: inherit;
   font-size: 0.68rem;
   font-weight: 700;
@@ -828,20 +987,29 @@ const pageButtons = computed(() => {
   border-radius: 50px;
 }
 
-.tab-btn:not(.activo) .tab-count { background: #fce4ec; color: #e91e8c; }
+.tab-btn:not(.activo) .tab-count {
+  background: #fce4ec;
+  color: #e91e8c;
+}
 
 /* ── Card / Tabla ───────────────────────────────────────────────────────────── */
 .card {
   background: white;
   border-radius: 18px;
-  box-shadow: 0 4px 20px rgba(233,30,140,0.08);
+  box-shadow: 0 4px 20px rgba(233, 30, 140, 0.08);
   overflow: hidden;
   border: 1px solid #fce4ec;
 }
 
-.table-wrap { overflow-x: auto; }
+.table-wrap {
+  overflow-x: auto;
+}
 
-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
 
 th {
   background: linear-gradient(135deg, #e91e8c, #f06292);
@@ -861,12 +1029,21 @@ td {
   vertical-align: middle;
 }
 
-tr:last-child td { border-bottom: none; }
-tr:not(.fila-detalle):hover td { background: #fff9fb; }
-tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
+tr:last-child td {
+  border-bottom: none;
+}
+tr:not(.fila-detalle):hover td {
+  background: #fff9fb;
+}
+tr.row-abierta td {
+  background: #fff0f5;
+  border-bottom-color: transparent;
+}
 
 /* ── Skeleton ───────────────────────────────────────────────────────────────── */
-.row-skeleton td { padding: 0.65rem 1rem; }
+.row-skeleton td {
+  padding: 0.65rem 1rem;
+}
 .skeleton-line {
   height: 20px;
   border-radius: 6px;
@@ -876,8 +1053,12 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
 }
 
 @keyframes skeleton-shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ── Badges y celdas ────────────────────────────────────────────────────────── */
@@ -891,11 +1072,26 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   white-space: nowrap;
 }
 
-.td-nombre { font-weight: 700; color: #880e4f; font-size: 0.875rem; margin: 0 0 0.15rem; }
-.td-email  { color: #bbb; font-size: 0.75rem; }
-.td-fecha  { font-size: 0.75rem; color: #aaa; white-space: nowrap; }
+.td-nombre {
+  font-weight: 700;
+  color: #880e4f;
+  font-size: 0.875rem;
+  margin: 0 0 0.15rem;
+}
+.td-email {
+  color: #bbb;
+  font-size: 0.75rem;
+}
+.td-fecha {
+  font-size: 0.75rem;
+  color: #aaa;
+  white-space: nowrap;
+}
 
-.monto { font-weight: 800; color: #e91e8c; }
+.monto {
+  font-weight: 800;
+  color: #e91e8c;
+}
 
 .metodo-badge {
   display: inline-flex;
@@ -911,7 +1107,9 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   white-space: nowrap;
 }
 
-.metodo-badge.small { font-size: 0.72rem; }
+.metodo-badge.small {
+  font-size: 0.72rem;
+}
 
 .tipo-envio-badge {
   display: inline-block;
@@ -921,7 +1119,9 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   white-space: nowrap;
 }
 
-.tipo-envio-badge.small { font-size: 0.72rem; }
+.tipo-envio-badge.small {
+  font-size: 0.72rem;
+}
 
 /* ── Select de estado ───────────────────────────────────────────────────────── */
 .estado-select {
@@ -942,13 +1142,42 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   background-position: right 0.5rem center;
 }
 
-.estado-select.pendiente, .estado-badge.pendiente { background: #fff3e0; color: #e65100; border-color: #ffe0b2; }
-.estado-select.en_revision, .estado-badge.en_revision { background: #e3f2fd; color: #1565c0; border-color: #bbdefb; }
-.estado-select.aprobado, .estado-badge.aprobado { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
-.estado-select.entregado, .estado-badge.entregado { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
-.estado-select.rechazado, .estado-badge.rechazado,
-.estado-select.cancelado, .estado-badge.cancelado { background: #fce4ec; color: #c62828; border-color: #f8bbd0; }
-.estado-badge.sin_pago { background: #f5f5f5; color: #9e9e9e; }
+.estado-select.pendiente,
+.estado-badge.pendiente {
+  background: #fff3e0;
+  color: #e65100;
+  border-color: #ffe0b2;
+}
+.estado-select.en_revision,
+.estado-badge.en_revision {
+  background: #e3f2fd;
+  color: #1565c0;
+  border-color: #bbdefb;
+}
+.estado-select.aprobado,
+.estado-badge.aprobado {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #c8e6c9;
+}
+.estado-select.entregado,
+.estado-badge.entregado {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #c8e6c9;
+}
+.estado-select.rechazado,
+.estado-badge.rechazado,
+.estado-select.cancelado,
+.estado-badge.cancelado {
+  background: #fce4ec;
+  color: #c62828;
+  border-color: #f8bbd0;
+}
+.estado-badge.sin_pago {
+  background: #f5f5f5;
+  color: #9e9e9e;
+}
 
 .estado-badge {
   display: inline-block;
@@ -976,7 +1205,9 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   white-space: nowrap;
 }
 
-.btn-toggle:hover { background: #f8bbd0; }
+.btn-toggle:hover {
+  background: #f8bbd0;
+}
 
 /* ── Detalle expandible ─────────────────────────────────────────────────────── */
 .fila-detalle > td {
@@ -1007,7 +1238,7 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   padding: 1.25rem;
   border-radius: 14px;
   border: 1px solid #fce4ec;
-  box-shadow: 0 2px 10px rgba(233,30,140,0.05);
+  box-shadow: 0 2px 10px rgba(233, 30, 140, 0.05);
 }
 
 .box-titulo {
@@ -1022,7 +1253,13 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   border-bottom: 1.5px solid #fce4ec;
 }
 
-.empty-box { text-align: center; color: #ccc; font-style: italic; font-size: 0.8rem; padding: 1rem; }
+.empty-box {
+  text-align: center;
+  color: #ccc;
+  font-style: italic;
+  font-size: 0.8rem;
+  padding: 1rem;
+}
 
 /* Productos en detalle */
 .prod-row {
@@ -1036,11 +1273,15 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   border: 1px solid #fce4ec;
 }
 
-.prod-img-wrap { position: relative; flex-shrink: 0; }
+.prod-img-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
 
 .prod-img-wrap img,
 .prod-img-placeholder {
-  width: 48px; height: 48px;
+  width: 48px;
+  height: 48px;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid #fce4ec;
@@ -1054,22 +1295,47 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
 
 .prod-qty-badge {
   position: absolute;
-  top: -5px; right: -5px;
-  width: 18px; height: 18px;
+  top: -5px;
+  right: -5px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: linear-gradient(135deg,#e91e8c,#f06292);
+  background: linear-gradient(135deg, #e91e8c, #f06292);
   color: white;
   font-size: 0.6rem;
   font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1.5px solid white;
 }
 
-.prod-info { flex: 1; min-width: 0; }
-.prod-nombre     { font-weight: 700; color: #880e4f; font-size: 0.82rem; margin: 0 0 0.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.prod-precio-unit { font-size: 0.7rem; color: #bbb; margin: 0; }
+.prod-info {
+  flex: 1;
+  min-width: 0;
+}
+.prod-nombre {
+  font-weight: 700;
+  color: #880e4f;
+  font-size: 0.82rem;
+  margin: 0 0 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prod-precio-unit {
+  font-size: 0.7rem;
+  color: #bbb;
+  margin: 0;
+}
 
-.prod-subtotal { font-weight: 800; color: #e91e8c; font-size: 0.82rem; white-space: nowrap; flex-shrink: 0; }
+.prod-subtotal {
+  font-weight: 800;
+  color: #e91e8c;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 .prod-total-row {
   display: flex;
@@ -1084,7 +1350,11 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
 }
 
 /* Info lista (pago / envío) */
-.info-lista { display: flex; flex-direction: column; gap: 0.6rem; }
+.info-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
 
 .info-fila {
   display: flex;
@@ -1095,10 +1365,20 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   border-bottom: 1px solid #fce4ec;
 }
 
-.info-fila:last-child { border-bottom: none; }
-.info-fila > span:first-child { color: #bbb; font-weight: 500; }
+.info-fila:last-child {
+  border-bottom: none;
+}
+.info-fila > span:first-child {
+  color: #bbb;
+  font-weight: 500;
+}
 
-.dir-text { font-size: 0.8rem; color: #555; text-align: right; max-width: 200px; }
+.dir-text {
+  font-size: 0.8rem;
+  color: #555;
+  text-align: right;
+  max-width: 200px;
+}
 
 .btn-comprobante {
   display: inline-flex;
@@ -1115,7 +1395,9 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   transition: background 0.2s;
 }
 
-.btn-comprobante:hover { background: #bbdefb; }
+.btn-comprobante:hover {
+  background: #bbdefb;
+}
 
 /* Mapa preview */
 .mapa-preview-wrap {
@@ -1158,14 +1440,30 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   transition: background 0.2s;
 }
 
-.btn-ver-mapa:hover { background: #bbdefb; }
+.btn-ver-mapa:hover {
+  background: #bbdefb;
+}
 
 /* ── Estado vacío ───────────────────────────────────────────────────────────── */
-.td-vacio { padding: 3rem 1rem !important; }
+.td-vacio {
+  padding: 3rem 1rem !important;
+}
 
-.vacio-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-.vacio-icon { font-size: 2.5rem; opacity: 0.35; }
-.vacio-wrap p { color: #bbb; font-size: 0.875rem; margin: 0; }
+.vacio-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.vacio-icon {
+  font-size: 2.5rem;
+  opacity: 0.35;
+}
+.vacio-wrap p {
+  color: #bbb;
+  font-size: 0.875rem;
+  margin: 0;
+}
 
 .btn-reset-filtro {
   padding: 0.45rem 1.1rem;
@@ -1180,7 +1478,9 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   transition: background 0.2s;
 }
 
-.btn-reset-filtro:hover { background: #f8bbd0; }
+.btn-reset-filtro:hover {
+  background: #f8bbd0;
+}
 
 /* ── Paginación ─────────────────────────────────────────────────────────────── */
 .paginacion {
@@ -1193,9 +1493,14 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   flex-wrap: wrap;
 }
 
-.pag-dots { color: #ccc; font-weight: 600; padding: 0 0.2rem; }
+.pag-dots {
+  color: #ccc;
+  font-weight: 600;
+  padding: 0 0.2rem;
+}
 
-.btn-pag, .btn-num {
+.btn-pag,
+.btn-num {
   padding: 0.45rem 0.75rem;
   border-radius: 8px;
   border: 1.5px solid #f8bbd0;
@@ -1207,17 +1512,32 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   transition: all 0.2s;
 }
 
-.btn-pag:hover:not(:disabled), .btn-num:hover { background: #fce4ec; border-color: #f48fb1; }
-.btn-pag:disabled { opacity: 0.35; cursor: not-allowed; }
-.btn-num.activo { background: linear-gradient(135deg,#e91e8c,#f06292); color: white; border-color: #e91e8c; }
+.btn-pag:hover:not(:disabled),
+.btn-num:hover {
+  background: #fce4ec;
+  border-color: #f48fb1;
+}
+.btn-pag:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.btn-num.activo {
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  color: white;
+  border-color: #e91e8c;
+}
 
-.pag-info { font-size: 0.75rem; color: #bbb; margin-left: 0.5rem; }
+.pag-info {
+  font-size: 0.75rem;
+  color: #bbb;
+  margin-left: 0.5rem;
+}
 
 /* ── Modales ────────────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(136,14,79,0.45);
+  background: rgba(136, 14, 79, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1232,15 +1552,32 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   border-radius: 22px;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 20px 60px rgba(233,30,140,0.25);
+  box-shadow: 0 20px 60px rgba(233, 30, 140, 0.25);
   text-align: center;
 }
 
-.confirm-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
-.modal-confirm h3 { font-size: 1.1rem; font-weight: 800; color: #880e4f; margin: 0 0 0.6rem; }
-.modal-confirm p  { color: #666; font-size: 0.875rem; line-height: 1.5; margin: 0 0 1.5rem; }
+.confirm-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+.modal-confirm h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.6rem;
+}
+.modal-confirm p {
+  color: #666;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
 
-.confirm-actions { display: flex; justify-content: center; gap: 0.75rem; }
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
 
 .btn-cancel {
   padding: 0.65rem 1.4rem;
@@ -1254,7 +1591,9 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   transition: background 0.2s;
 }
 
-.btn-cancel:hover { background: #f5f5f5; }
+.btn-cancel:hover {
+  background: #f5f5f5;
+}
 
 .btn-confirm {
   padding: 0.65rem 1.4rem;
@@ -1269,16 +1608,18 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
 .btn-confirm.advertencia {
   background: linear-gradient(135deg, #e91e8c, #f06292);
   color: white;
-  box-shadow: 0 4px 14px rgba(233,30,140,0.3);
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
 }
 
 .btn-confirm.peligro {
   background: linear-gradient(135deg, #c62828, #e53935);
   color: white;
-  box-shadow: 0 4px 14px rgba(198,40,40,0.3);
+  box-shadow: 0 4px 14px rgba(198, 40, 40, 0.3);
 }
 
-.btn-confirm:hover { opacity: 0.88; }
+.btn-confirm:hover {
+  opacity: 0.88;
+}
 
 .modal-img-wrap {
   position: relative;
@@ -1289,24 +1630,30 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
   width: 100%;
   max-height: 90vh;
   overflow: auto;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
 .btn-close {
   position: absolute;
-  top: 0.75rem; right: 0.75rem;
-  width: 34px; height: 34px;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 34px;
+  height: 34px;
   border: none;
   background: #fce4ec;
   color: #c2185b;
   border-radius: 50%;
   font-size: 0.85rem;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.2s;
 }
 
-.btn-close:hover { background: #f8bbd0; }
+.btn-close:hover {
+  background: #f8bbd0;
+}
 
 .modal-img-titulo {
   font-weight: 700;
@@ -1344,20 +1691,42 @@ tr.row-abierta td { background: #fff0f5; border-bottom-color: transparent; }
 }
 
 /* ── Transición modal ───────────────────────────────────────────────────────── */
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.22s ease; }
-.modal-fade-enter-from,  .modal-fade-leave-to      { opacity: 0; }
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.22s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
 
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 1100px) {
-  .kpis-grid { grid-template-columns: repeat(3, 1fr); }
+  .kpis-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
-  .admin-wrap   { padding: 1rem; }
-  .page-header  { flex-direction: column; align-items: flex-start; }
-  .filtros-bar  { flex-direction: column; align-items: stretch; }
-  .search-wrap input { width: 100%; }
-  .kpis-grid    { grid-template-columns: repeat(2, 1fr); }
-  .detalle-content { grid-template-columns: 1fr; }
+  .admin-wrap {
+    padding: 1rem;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .filtros-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-wrap input {
+    width: 100%;
+  }
+  .kpis-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .detalle-content {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

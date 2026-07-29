@@ -56,7 +56,6 @@ onMounted(() => {
 <template>
   <section class="productos-section">
     <div class="container">
-
       <!-- Header -->
       <div class="section-header">
         <div>
@@ -64,9 +63,7 @@ onMounted(() => {
           <h2 class="section-titulo">Productos destacados</h2>
           <p class="section-sub">Los favoritos de nuestros clientes, siempre frescos</p>
         </div>
-        <a class="ver-todos" href="/productos">
-          Ver todos <i class="pi pi-arrow-right"></i>
-        </a>
+        <a class="ver-todos" href="/productos"> Ver todos <i class="pi pi-arrow-right"></i> </a>
       </div>
 
       <!-- Swiper -->
@@ -83,13 +80,8 @@ onMounted(() => {
         loop
         class="ofertas-swiper"
       >
-        <SwiperSlide
-          v-for="producto in productos"
-          :key="producto.id"
-          class="slide-wrap"
-        >
+        <SwiperSlide v-for="producto in productos" :key="producto.id" class="slide-wrap">
           <div class="card-producto">
-
             <!-- Imagen -->
             <div class="img-wrap">
               <img
@@ -118,11 +110,9 @@ onMounted(() => {
                 <span>Añadir al carrito</span>
               </button>
             </div>
-
           </div>
         </SwiperSlide>
       </Swiper>
-
     </div>
   </section>
 
@@ -195,7 +185,7 @@ onMounted(() => {
   /* CAMBIADO: Título principal en rosa oscuro insignia */
   color: #c2185b;
   letter-spacing: -0.5px;
-  margin: 0 0 0.3... ;
+  margin: 0 0 0.3...;
   line-height: 1.2;
 }
 .section-sub {
@@ -220,12 +210,24 @@ onMounted(() => {
   border: 1.5px solid #ffd6e8;
   background: #fff;
   flex-shrink: 0;
-  transition: background 0.18s, border-color 0.18s, color 0.18s;
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    color 0.18s;
 }
-.ver-todos i { font-size: 0.75rem; transition: transform 0.18s; }
+.ver-todos i {
+  font-size: 0.75rem;
+  transition: transform 0.18s;
+}
 /* CAMBIADO: Al pasar por encima, adopta el fondo degradado corporativo */
-.ver-todos:hover { background: linear-gradient(135deg, #e91e8c, #f06292); border-color: #e91e8c; color: #fff; }
-.ver-todos:hover i { transform: translateX(3px); }
+.ver-todos:hover {
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  border-color: #e91e8c;
+  color: #fff;
+}
+.ver-todos:hover i {
+  transform: translateX(3px);
+}
 
 /* ── Swiper ── */
 .ofertas-swiper {
@@ -246,10 +248,18 @@ onMounted(() => {
   /* CAMBIADO: Color de las flechas a rosa del badge */
   color: #ff80b0;
   box-shadow: 0 4px 10px rgba(233, 30, 140, 0.1);
-  transition: background 0.18s, border-color 0.18s, color 0.18s;
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    color 0.18s;
 }
-.ofertas-swiper :deep(.swiper-button-prev) { left: calc(50% - 52px); }
-.ofertas-swiper :deep(.swiper-button-next) { right: calc(50% - 52px); left: auto; }
+.ofertas-swiper :deep(.swiper-button-prev) {
+  left: calc(50% - 52px);
+}
+.ofertas-swiper :deep(.swiper-button-next) {
+  right: calc(50% - 52px);
+  left: auto;
+}
 /* CAMBIADO: Botones de navegación en hover con degradado del botón del hero */
 .ofertas-swiper :deep(.swiper-button-prev:hover),
 .ofertas-swiper :deep(.swiper-button-next:hover) {
@@ -263,7 +273,9 @@ onMounted(() => {
   font-weight: 800;
 }
 
-.slide-wrap { height: auto; }
+.slide-wrap {
+  height: auto;
+}
 
 /* ── Card ── */
 .card-producto {
@@ -275,7 +287,10 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
 }
 .card-producto:hover {
   transform: translateY(-6px);
@@ -298,7 +313,9 @@ onMounted(() => {
   display: block;
   transition: transform 0.4s ease;
 }
-.card-producto:hover .prod-img { transform: scale(1.07); }
+.card-producto:hover .prod-img {
+  transform: scale(1.07);
+}
 .img-gradient {
   position: absolute;
   inset: 0;
@@ -324,8 +341,12 @@ onMounted(() => {
   cursor: pointer;
   transition: opacity 0.25s ease;
 }
-.overlay-detalle i { font-size: 1.5rem; }
-.card-producto:hover .overlay-detalle { opacity: 1; }
+.overlay-detalle i {
+  font-size: 1.5rem;
+}
+.card-producto:hover .overlay-detalle {
+  opacity: 1;
+}
 
 /* Precio flotante en imagen */
 .precio-badge {
@@ -387,11 +408,18 @@ onMounted(() => {
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(233, 30, 140, 0.2);
-  transition: transform 0.18s, box-shadow 0.18s;
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s;
   margin-top: auto;
 }
-.btn-carrito i { font-size: 0.85rem; }
-.btn-carrito:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(233, 30, 140, 0.35); }
+.btn-carrito i {
+  font-size: 0.85rem;
+}
+.btn-carrito:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(233, 30, 140, 0.35);
+}
 
 /* ── Modal ── */
 .modal-body {
@@ -444,7 +472,9 @@ onMounted(() => {
   cursor: pointer;
   transition: background 0.15s;
 }
-.btn-modal-cancel:hover { background: #fff0f5; }
+.btn-modal-cancel:hover {
+  background: #fff0f5;
+}
 .btn-modal-ok {
   padding: 0.62rem 1.4rem;
   border-radius: 50px;
@@ -456,13 +486,23 @@ onMounted(() => {
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(233, 30, 140, 0.2);
-  transition: transform 0.18s, box-shadow 0.18s;
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s;
 }
-.btn-modal-ok:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(233, 30, 140, 0.35); }
+.btn-modal-ok:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(233, 30, 140, 0.35);
+}
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
-  .section-header { flex-direction: column; align-items: flex-start; }
-  .productos-section { padding: 3.5rem 0 3rem; }
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .productos-section {
+    padding: 3.5rem 0 3rem;
+  }
 }
 </style>

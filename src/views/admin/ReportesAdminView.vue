@@ -6,16 +6,16 @@ import http from '@/plugins/axios'
 // Estado
 // ─────────────────────────────────────────────────────────────────────────────
 const cargando = ref(true)
-const error    = ref<string | null>(null)
+const error = ref<string | null>(null)
 
-const totalVentas        = ref(0)
-const totalPedidos       = ref(0)
-const pedidosPendientes  = ref(0)
-const pedidosEntregados  = ref(0)
-const pedidosCancelados  = ref(0)
-const ticketPromedio     = ref(0)
+const totalVentas = ref(0)
+const totalPedidos = ref(0)
+const pedidosPendientes = ref(0)
+const pedidosEntregados = ref(0)
+const pedidosCancelados = ref(0)
+const ticketPromedio = ref(0)
 
-const topProductos    = ref<{ nombre: string; total: number; cantidad: number }[]>([])
+const topProductos = ref<{ nombre: string; total: number; cantidad: number }[]>([])
 const ventasPorMetodo = ref<{ metodo: string; total: number; cantidad: number }[]>([])
 const pedidosRecientes = ref<any[]>([])
 
@@ -29,36 +29,30 @@ onMounted(cargar)
 
 async function cargar() {
   cargando.value = true
-  error.value    = null
+  error.value = null
   try {
-    const [resPedidos, resPagos] = await Promise.all([
-      http.get('/pedidos'),
-      http.get('/pagos'),
-    ])
+    const [resPedidos, resPagos] = await Promise.all([http.get('/pedidos'), http.get('/pagos')])
 
     const pedidos: any[] = resPedidos.data
-    const pagos: any[]   = resPagos.data
+    const pagos: any[] = resPagos.data
 
     // ── Métricas de pedidos ─────────────────────────────────────────────
-    totalPedidos.value      = pedidos.length
-    pedidosPendientes.value = pedidos.filter(p => p.estado === 'pendiente').length
-    pedidosEntregados.value = pedidos.filter(p => p.estado === 'entregado').length
-    pedidosCancelados.value = pedidos.filter(p => p.estado === 'cancelado').length
+    totalPedidos.value = pedidos.length
+    pedidosPendientes.value = pedidos.filter((p) => p.estado === 'pendiente').length
+    pedidosEntregados.value = pedidos.filter((p) => p.estado === 'entregado').length
+    pedidosCancelados.value = pedidos.filter((p) => p.estado === 'cancelado').length
 
     // ── Ingresos (pagos aprobados/confirmados) ──────────────────────────
-    const pagosAprobados = pagos.filter(p =>
-      p.estado === 'aprobado' || p.estado === 'confirmado'
-    )
-    totalVentas.value  = pagosAprobados.reduce((s, p) => s + Number(p.monto || 0), 0)
-    ticketPromedio.value = pedidosEntregados.value > 0
-      ? totalVentas.value / pedidosEntregados.value
-      : 0
+    const pagosAprobados = pagos.filter((p) => p.estado === 'aprobado' || p.estado === 'confirmado')
+    totalVentas.value = pagosAprobados.reduce((s, p) => s + Number(p.monto || 0), 0)
+    ticketPromedio.value =
+      pedidosEntregados.value > 0 ? totalVentas.value / pedidosEntregados.value : 0
 
     // ── Ventas por método ───────────────────────────────────────────────
     const metodos: Record<string, { total: number; cantidad: number }> = {}
     for (const p of pagos) {
       if (!metodos[p.metodo]) metodos[p.metodo] = { total: 0, cantidad: 0 }
-      metodos[p.metodo].total    += Number(p.monto || 0)
+      metodos[p.metodo].total += Number(p.monto || 0)
       metodos[p.metodo].cantidad += 1
     }
     ventasPorMetodo.value = Object.entries(metodos)
@@ -69,11 +63,11 @@ async function cargar() {
     const conteo: Record<string, { nombre: string; total: number; cantidad: number }> = {}
     for (const pedido of pedidos) {
       if (pedido.estado !== 'entregado') continue
-      for (const det of (pedido.detallePedido || pedido.pedidosProductos || [])) {
+      for (const det of pedido.detallePedido || pedido.pedidosProductos || []) {
         const nombre = det.producto?.nombre || det.nombre || `#${det.idProducto}`
         if (!conteo[nombre]) conteo[nombre] = { nombre, total: 0, cantidad: 0 }
         conteo[nombre].cantidad += Number(det.cantidad || 0)
-        conteo[nombre].total    += Number(det.precioUnitario || 0) * Number(det.cantidad || 0)
+        conteo[nombre].total += Number(det.precioUnitario || 0) * Number(det.cantidad || 0)
       }
     }
     topProductos.value = Object.values(conteo)
@@ -81,10 +75,7 @@ async function cargar() {
       .slice(0, 6)
 
     // ── Pedidos recientes ───────────────────────────────────────────────
-    pedidosRecientes.value = [...pedidos]
-      .sort((a, b) => b.id - a.id)
-      .slice(0, 8)
-
+    pedidosRecientes.value = [...pedidos].sort((a, b) => b.id - a.id).slice(0, 8)
   } catch (e: any) {
     error.value = e?.response?.data?.message || 'No se pudieron cargar los reportes.'
     console.error(e)
@@ -97,45 +88,43 @@ async function cargar() {
 // Computed
 // ─────────────────────────────────────────────────────────────────────────────
 const porcentajeEntregados = computed(() =>
-  totalPedidos.value > 0
-    ? Math.round((pedidosEntregados.value / totalPedidos.value) * 100)
-    : 0
+  totalPedidos.value > 0 ? Math.round((pedidosEntregados.value / totalPedidos.value) * 100) : 0,
 )
 
 const pedidosFiltrados = computed(() => {
   if (filtroEstado.value === 'todos') return pedidosRecientes.value
-  return pedidosRecientes.value.filter(p => p.estado === filtroEstado.value)
+  return pedidosRecientes.value.filter((p) => p.estado === filtroEstado.value)
 })
 
 const maxCantidadTop = computed(() =>
-  topProductos.value.length
-    ? Math.max(...topProductos.value.map(p => p.cantidad))
-    : 1
+  topProductos.value.length ? Math.max(...topProductos.value.map((p) => p.cantidad)) : 1,
 )
 
 const maxMontoMetodo = computed(() =>
-  ventasPorMetodo.value.length
-    ? Math.max(...ventasPorMetodo.value.map(m => m.total))
-    : 1
+  ventasPorMetodo.value.length ? Math.max(...ventasPorMetodo.value.map((m) => m.total)) : 1,
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
-function fmtBs(n: number) { return Number(n || 0).toFixed(2) }
+function fmtBs(n: number) {
+  return Number(n || 0).toFixed(2)
+}
 
 function fmtFecha(iso?: string) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('es-BO', {
-    day: '2-digit', month: 'short', year: 'numeric',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   })
 }
 
 const METODO_ICON: Record<string, string> = {
-  efectivo:      '💵',
-  qr:            '📱',
+  efectivo: '💵',
+  qr: '📱',
   transferencia: '🏦',
-  tarjeta:       '💳',
+  tarjeta: '💳',
 }
 
 const ESTADO_CFG: Record<string, { bg: string; color: string }> = {
@@ -151,7 +140,6 @@ function estadoCfg(estado: string) {
 
 <template>
   <div class="admin-wrap">
-
     <!-- ── Header ──────────────────────────────────────────────────────────── -->
     <div class="page-header">
       <div class="header-left">
@@ -171,9 +159,7 @@ function estadoCfg(estado: string) {
     <div v-if="error && !cargando" class="error-banner">
       <i class="pi pi-exclamation-triangle"></i>
       <span>{{ error }}</span>
-      <button class="btn-retry" @click="cargar">
-        <i class="pi pi-refresh"></i> Reintentar
-      </button>
+      <button class="btn-retry" @click="cargar"><i class="pi pi-refresh"></i> Reintentar</button>
     </div>
 
     <!-- ── Skeleton ─────────────────────────────────────────────────────────── -->
@@ -194,12 +180,13 @@ function estadoCfg(estado: string) {
     </template>
 
     <template v-else-if="!error">
-
       <!-- ── KPIs ──────────────────────────────────────────────────────────── -->
       <div class="kpi-grid">
-
         <div class="kpi-card kpi-featured">
-          <div class="kpi-icon-wrap" style="background:linear-gradient(135deg,#e91e8c,#f06292); color:white">
+          <div
+            class="kpi-icon-wrap"
+            style="background: linear-gradient(135deg, #e91e8c, #f06292); color: white"
+          >
             <i class="pi pi-wallet"></i>
           </div>
           <div class="kpi-info">
@@ -210,7 +197,7 @@ function estadoCfg(estado: string) {
         </div>
 
         <div class="kpi-card">
-          <div class="kpi-icon-wrap" style="background:#e8eaf6; color:#3949ab">
+          <div class="kpi-icon-wrap" style="background: #e8eaf6; color: #3949ab">
             <i class="pi pi-list"></i>
           </div>
           <div class="kpi-info">
@@ -221,48 +208,44 @@ function estadoCfg(estado: string) {
         </div>
 
         <div class="kpi-card kpi-click" @click="filtroEstado = 'entregado'">
-          <div class="kpi-icon-wrap" style="background:#e8f5e9; color:#2e7d32">
+          <div class="kpi-icon-wrap" style="background: #e8f5e9; color: #2e7d32">
             <i class="pi pi-check-circle"></i>
           </div>
           <div class="kpi-info">
             <p class="kpi-label">Entregados</p>
-            <h3 class="kpi-valor" style="color:#2e7d32">{{ pedidosEntregados }}</h3>
+            <h3 class="kpi-valor" style="color: #2e7d32">{{ pedidosEntregados }}</h3>
             <span class="kpi-sub">{{ porcentajeEntregados }}% del total</span>
           </div>
         </div>
 
         <div class="kpi-card kpi-click" @click="filtroEstado = 'pendiente'">
-          <div class="kpi-icon-wrap" style="background:#fff3e0; color:#e65100">
+          <div class="kpi-icon-wrap" style="background: #fff3e0; color: #e65100">
             <i class="pi pi-clock"></i>
           </div>
           <div class="kpi-info">
             <p class="kpi-label">Pendientes</p>
-            <h3 class="kpi-valor" style="color:#e65100">{{ pedidosPendientes }}</h3>
+            <h3 class="kpi-valor" style="color: #e65100">{{ pedidosPendientes }}</h3>
             <span class="kpi-sub">Por procesar</span>
           </div>
         </div>
 
         <div class="kpi-card">
-          <div class="kpi-icon-wrap" style="background:#f3e5f5; color:#7b1fa2">
+          <div class="kpi-icon-wrap" style="background: #f3e5f5; color: #7b1fa2">
             <i class="pi pi-tag"></i>
           </div>
           <div class="kpi-info">
             <p class="kpi-label">Ticket promedio</p>
-            <h3 class="kpi-valor" style="color:#7b1fa2">Bs. {{ fmtBs(ticketPromedio) }}</h3>
+            <h3 class="kpi-valor" style="color: #7b1fa2">Bs. {{ fmtBs(ticketPromedio) }}</h3>
             <span class="kpi-sub">Por pedido entregado</span>
           </div>
         </div>
-
       </div>
 
       <!-- ── Fila 2: Métodos + Estado ───────────────────────────────────────── -->
       <div class="reportes-grid">
-
         <!-- Ventas por método -->
         <div class="reporte-card">
-          <h4 class="card-titulo">
-            <i class="pi pi-credit-card"></i> Ventas por método de pago
-          </h4>
+          <h4 class="card-titulo"><i class="pi pi-credit-card"></i> Ventas por método de pago</h4>
 
           <div v-if="!ventasPorMetodo.length" class="empty-box">Sin datos de pago</div>
 
@@ -280,7 +263,7 @@ function estadoCfg(estado: string) {
               <div class="barra-wrap">
                 <div
                   class="barra-fill metodo-bar"
-                  :style="{ width: (m.total / maxMontoMetodo * 100) + '%' }"
+                  :style="{ width: (m.total / maxMontoMetodo) * 100 + '%' }"
                 ></div>
               </div>
             </div>
@@ -289,9 +272,7 @@ function estadoCfg(estado: string) {
 
         <!-- Estado de pedidos con barras -->
         <div class="reporte-card">
-          <h4 class="card-titulo">
-            <i class="pi pi-chart-pie"></i> Distribución de estados
-          </h4>
+          <h4 class="card-titulo"><i class="pi pi-chart-pie"></i> Distribución de estados</h4>
 
           <!-- Donut visual simple con CSS -->
           <div class="estado-resumen">
@@ -299,11 +280,24 @@ function estadoCfg(estado: string) {
               <div class="donut-ring">
                 <svg viewBox="0 0 36 36" class="donut-svg">
                   <!-- Fondo -->
-                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="#fce4ec" stroke-width="3.5"/>
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.9"
+                    fill="none"
+                    stroke="#fce4ec"
+                    stroke-width="3.5"
+                  />
                   <!-- Entregados -->
                   <circle
-                    cx="18" cy="18" r="15.9" fill="none" stroke="#4caf50" stroke-width="3.5"
-                    stroke-dasharray="100" stroke-dashoffset="0"
+                    cx="18"
+                    cy="18"
+                    r="15.9"
+                    fill="none"
+                    stroke="#4caf50"
+                    stroke-width="3.5"
+                    stroke-dasharray="100"
+                    stroke-dashoffset="0"
                     :stroke-dasharray="`${porcentajeEntregados} ${100 - porcentajeEntregados}`"
                     stroke-linecap="round"
                     transform="rotate(-90 18 18)"
@@ -319,50 +313,64 @@ function estadoCfg(estado: string) {
             <div class="estado-barras">
               <div class="estado-fila">
                 <div class="estado-izq">
-                  <span class="estado-dot" style="background:#e65100"></span>
+                  <span class="estado-dot" style="background: #e65100"></span>
                   <span>Pendientes</span>
                 </div>
                 <div class="estado-der">
                   <span class="estado-n">{{ pedidosPendientes }}</span>
                   <div class="barra-wrap">
-                    <div class="barra-fill" style="background:linear-gradient(90deg,#ff9800,#ffb74d)"
-                      :style="{ width: totalPedidos > 0 ? (pedidosPendientes / totalPedidos * 100) + '%' : '0%' }">
-                    </div>
+                    <div
+                      class="barra-fill"
+                      style="background: linear-gradient(90deg, #ff9800, #ffb74d)"
+                      :style="{
+                        width:
+                          totalPedidos > 0 ? (pedidosPendientes / totalPedidos) * 100 + '%' : '0%',
+                      }"
+                    ></div>
                   </div>
                 </div>
               </div>
               <div class="estado-fila">
                 <div class="estado-izq">
-                  <span class="estado-dot" style="background:#2e7d32"></span>
+                  <span class="estado-dot" style="background: #2e7d32"></span>
                   <span>Entregados</span>
                 </div>
                 <div class="estado-der">
                   <span class="estado-n">{{ pedidosEntregados }}</span>
                   <div class="barra-wrap">
-                    <div class="barra-fill" style="background:linear-gradient(90deg,#4caf50,#81c784)"
-                      :style="{ width: totalPedidos > 0 ? (pedidosEntregados / totalPedidos * 100) + '%' : '0%' }">
-                    </div>
+                    <div
+                      class="barra-fill"
+                      style="background: linear-gradient(90deg, #4caf50, #81c784)"
+                      :style="{
+                        width:
+                          totalPedidos > 0 ? (pedidosEntregados / totalPedidos) * 100 + '%' : '0%',
+                      }"
+                    ></div>
                   </div>
                 </div>
               </div>
               <div class="estado-fila">
                 <div class="estado-izq">
-                  <span class="estado-dot" style="background:#c62828"></span>
+                  <span class="estado-dot" style="background: #c62828"></span>
                   <span>Cancelados</span>
                 </div>
                 <div class="estado-der">
                   <span class="estado-n">{{ pedidosCancelados }}</span>
                   <div class="barra-wrap">
-                    <div class="barra-fill" style="background:linear-gradient(90deg,#e91e8c,#f48fb1)"
-                      :style="{ width: totalPedidos > 0 ? (pedidosCancelados / totalPedidos * 100) + '%' : '0%' }">
-                    </div>
+                    <div
+                      class="barra-fill"
+                      style="background: linear-gradient(90deg, #e91e8c, #f48fb1)"
+                      :style="{
+                        width:
+                          totalPedidos > 0 ? (pedidosCancelados / totalPedidos) * 100 + '%' : '0%',
+                      }"
+                    ></div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
       </div>
 
       <!-- ── Top Productos ──────────────────────────────────────────────────── -->
@@ -382,7 +390,7 @@ function estadoCfg(estado: string) {
               <div class="barra-wrap">
                 <div
                   class="barra-fill top-bar"
-                  :style="{ width: (p.cantidad / maxCantidadTop * 100) + '%' }"
+                  :style="{ width: (p.cantidad / maxCantidadTop) * 100 + '%' }"
                 ></div>
               </div>
             </div>
@@ -397,17 +405,19 @@ function estadoCfg(estado: string) {
       <!-- ── Pedidos recientes ──────────────────────────────────────────────── -->
       <div class="reporte-card">
         <div class="card-titulo-wrap">
-          <h4 class="card-titulo">
-            <i class="pi pi-clock"></i> Pedidos recientes
-          </h4>
+          <h4 class="card-titulo"><i class="pi pi-clock"></i> Pedidos recientes</h4>
           <!-- Filtro rápido sobre la tabla -->
           <div class="tabla-tabs">
             <button
-              v-for="e in ['todos','pendiente','entregado','cancelado']"
+              v-for="e in ['todos', 'pendiente', 'entregado', 'cancelado']"
               :key="e"
               class="tabla-tab"
               :class="{ activo: filtroEstado === e }"
-              @click="filtroEstado = e as any"
+              @click="
+                () => {
+                  filtroEstado = e as 'todos' | 'pendiente' | 'entregado' | 'cancelado'
+                }
+              "
             >
               {{ e === 'todos' ? 'Todos' : e.charAt(0).toUpperCase() + e.slice(1) }}
             </button>
@@ -418,24 +428,26 @@ function estadoCfg(estado: string) {
           <table class="tabla">
             <thead>
               <tr>
-                <th style="width:85px">#ID</th>
+                <th style="width: 85px">#ID</th>
                 <th>Cliente</th>
-                <th style="width:130px">Total</th>
-                <th style="width:110px">Método</th>
-                <th style="width:120px">Estado</th>
-                <th style="width:130px">Fecha</th>
+                <th style="width: 130px">Total</th>
+                <th style="width: 110px">Método</th>
+                <th style="width: 120px">Estado</th>
+                <th style="width: 130px">Fecha</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="p in pedidosFiltrados" :key="p.id">
                 <td>
-                  <span class="id-badge">#{{ String(p.id).padStart(5,'0') }}</span>
+                  <span class="id-badge">#{{ String(p.id).padStart(5, '0') }}</span>
                 </td>
                 <td>
                   <p class="td-nombre">{{ p.usuario?.cliente?.nombre || 'Venta local' }}</p>
                   <small v-if="p.usuario?.email" class="td-email">{{ p.usuario.email }}</small>
                 </td>
-                <td><span class="monto">Bs. {{ fmtBs(p.total) }}</span></td>
+                <td>
+                  <span class="monto">Bs. {{ fmtBs(p.total) }}</span>
+                </td>
                 <td>
                   <span class="metodo-badge-tabla">
                     {{ METODO_ICON[p.metodoPago] || '💰' }} {{ p.metodoPago }}
@@ -445,7 +457,8 @@ function estadoCfg(estado: string) {
                   <span
                     class="estado-badge"
                     :style="`background:${estadoCfg(p.estado).bg}; color:${estadoCfg(p.estado).color}`"
-                  >{{ p.estado }}</span>
+                    >{{ p.estado }}</span
+                  >
                 </td>
                 <td class="fecha-cell">{{ fmtFecha(p.fechaCreacion) }}</td>
               </tr>
@@ -459,7 +472,6 @@ function estadoCfg(estado: string) {
           </table>
         </div>
       </div>
-
     </template>
   </div>
 </template>
@@ -482,19 +494,37 @@ function estadoCfg(estado: string) {
   gap: 1rem;
 }
 
-.header-left { display: flex; align-items: center; gap: 1rem; }
-
-.page-icon {
-  width: 48px; height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #e91e8c, #f06292);
-  display: flex; align-items: center; justify-content: center;
-  color: white; font-size: 1.2rem; flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(233,30,140,0.3);
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.page-titulo { font-size: 1.5rem; font-weight: 800; color: #880e4f; margin: 0 0 0.15rem; }
-.page-sub    { font-size: 0.82rem; color: #f48fb1; margin: 0; }
+.page-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
+}
+
+.page-titulo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.15rem;
+}
+.page-sub {
+  font-size: 0.82rem;
+  color: #f48fb1;
+  margin: 0;
+}
 
 .btn-recargar {
   display: flex;
@@ -511,8 +541,14 @@ function estadoCfg(estado: string) {
   transition: all 0.2s;
 }
 
-.btn-recargar:hover:not(:disabled) { background: #fce4ec; border-color: #e91e8c; }
-.btn-recargar:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-recargar:hover:not(:disabled) {
+  background: #fce4ec;
+  border-color: #e91e8c;
+}
+.btn-recargar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* ── Error ──────────────────────────────────────────────────────────────────── */
 .error-banner {
@@ -545,7 +581,9 @@ function estadoCfg(estado: string) {
   transition: background 0.2s;
 }
 
-.btn-retry:hover { background: #ffcdd2; }
+.btn-retry:hover {
+  background: #ffcdd2;
+}
 
 /* ── Skeleton ───────────────────────────────────────────────────────────────── */
 .kpi-skeleton {
@@ -559,7 +597,8 @@ function estadoCfg(estado: string) {
 }
 
 .sk-icon {
-  width: 48px; height: 48px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   background: linear-gradient(90deg, #fce4ec 25%, #fff9fb 50%, #fce4ec 75%);
   background-size: 200% 100%;
@@ -567,7 +606,12 @@ function estadoCfg(estado: string) {
   flex-shrink: 0;
 }
 
-.sk-lines { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+.sk-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
 
 .sk-line {
   height: 12px;
@@ -577,10 +621,16 @@ function estadoCfg(estado: string) {
   animation: shimmer 1.4s infinite;
 }
 
-.sk-lg { width: 60%; }
-.sk-sm { width: 40%; }
+.sk-lg {
+  width: 60%;
+}
+.sk-sm {
+  width: 40%;
+}
 
-.sk-card-body { min-height: 160px; }
+.sk-card-body {
+  min-height: 160px;
+}
 .sk-block {
   height: 100%;
   min-height: 140px;
@@ -591,8 +641,12 @@ function estadoCfg(estado: string) {
 }
 
 @keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ── KPI Grid ───────────────────────────────────────────────────────────────── */
@@ -610,15 +664,17 @@ function estadoCfg(estado: string) {
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: 0 3px 14px rgba(233,30,140,0.07);
+  box-shadow: 0 3px 14px rgba(233, 30, 140, 0.07);
   border: 1px solid #fce4ec;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .kpi-card.kpi-featured {
   border-color: #f48fb1;
   background: linear-gradient(135deg, #fff0f7, #fff9fb);
-  box-shadow: 0 4px 18px rgba(233,30,140,0.12);
+  box-shadow: 0 4px 18px rgba(233, 30, 140, 0.12);
 }
 
 .kpi-card.kpi-click {
@@ -627,22 +683,43 @@ function estadoCfg(estado: string) {
 
 .kpi-card.kpi-click:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(233,30,140,0.14);
+  box-shadow: 0 8px 24px rgba(233, 30, 140, 0.14);
   border-color: #f48fb1;
 }
 
 .kpi-icon-wrap {
-  width: 46px; height: 46px;
+  width: 46px;
+  height: 46px;
   border-radius: 13px;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.1rem;
   flex-shrink: 0;
 }
 
-.kpi-label { font-size: 0.7rem; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 0.15rem; }
-.kpi-valor { font-size: 1.3rem; font-weight: 800; color: #880e4f; margin: 0 0 0.1rem; }
-.kpi-big   { font-size: 1.5rem; color: #e91e8c; }
-.kpi-sub   { font-size: 0.7rem; color: #ccc; }
+.kpi-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #bbb;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 0.15rem;
+}
+.kpi-valor {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.1rem;
+}
+.kpi-big {
+  font-size: 1.5rem;
+  color: #e91e8c;
+}
+.kpi-sub {
+  font-size: 0.7rem;
+  color: #ccc;
+}
 
 /* ── Reportes grid (2 col) ──────────────────────────────────────────────────── */
 .reportes-grid {
@@ -657,11 +734,13 @@ function estadoCfg(estado: string) {
   background: white;
   border-radius: 18px;
   padding: 1.4rem;
-  box-shadow: 0 3px 14px rgba(233,30,140,0.07);
+  box-shadow: 0 3px 14px rgba(233, 30, 140, 0.07);
   border: 1px solid #fce4ec;
 }
 
-.mb-card { margin-bottom: 1.25rem; }
+.mb-card {
+  margin-bottom: 1.25rem;
+}
 
 .card-titulo {
   display: flex;
@@ -675,12 +754,25 @@ function estadoCfg(estado: string) {
   border-bottom: 1.5px solid #fce4ec;
 }
 
-.card-sub-hint { font-size: 0.7rem; font-weight: 500; color: #bbb; margin-left: 0.25rem; }
+.card-sub-hint {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #bbb;
+  margin-left: 0.25rem;
+}
 
 /* ── Métodos de pago ────────────────────────────────────────────────────────── */
-.metodo-lista { display: flex; flex-direction: column; gap: 0.85rem; }
+.metodo-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
 
-.metodo-row { display: flex; flex-direction: column; gap: 0.35rem; }
+.metodo-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
 
 .metodo-header {
   display: flex;
@@ -688,11 +780,30 @@ function estadoCfg(estado: string) {
   gap: 0.65rem;
 }
 
-.metodo-icono { font-size: 1.25rem; flex-shrink: 0; }
+.metodo-icono {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
 
-.metodo-nombre { font-weight: 700; color: #880e4f; font-size: 0.84rem; margin: 0; text-transform: capitalize; }
-.metodo-cant   { font-size: 0.7rem; color: #bbb; margin: 0; }
-.metodo-monto  { margin-left: auto; font-weight: 800; color: #e91e8c; font-size: 0.9rem; white-space: nowrap; }
+.metodo-nombre {
+  font-weight: 700;
+  color: #880e4f;
+  font-size: 0.84rem;
+  margin: 0;
+  text-transform: capitalize;
+}
+.metodo-cant {
+  font-size: 0.7rem;
+  color: #bbb;
+  margin: 0;
+}
+.metodo-monto {
+  margin-left: auto;
+  font-weight: 800;
+  color: #e91e8c;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
 
 /* ── Barras genéricas ───────────────────────────────────────────────────────── */
 .barra-wrap {
@@ -709,8 +820,12 @@ function estadoCfg(estado: string) {
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.metodo-bar { background: linear-gradient(90deg, #e91e8c, #f06292); }
-.top-bar    { background: linear-gradient(90deg, #7b1fa2, #ab47bc); }
+.metodo-bar {
+  background: linear-gradient(90deg, #e91e8c, #f06292);
+}
+.top-bar {
+  background: linear-gradient(90deg, #7b1fa2, #ab47bc);
+}
 
 /* ── Estado donut + barras ──────────────────────────────────────────────────── */
 .estado-resumen {
@@ -719,14 +834,20 @@ function estadoCfg(estado: string) {
   gap: 1.5rem;
 }
 
-.donut-wrap { flex-shrink: 0; }
+.donut-wrap {
+  flex-shrink: 0;
+}
 
 .donut-ring {
   position: relative;
-  width: 110px; height: 110px;
+  width: 110px;
+  height: 110px;
 }
 
-.donut-svg { width: 100%; height: 100%; }
+.donut-svg {
+  width: 100%;
+  height: 100%;
+}
 
 .donut-center {
   position: absolute;
@@ -737,10 +858,24 @@ function estadoCfg(estado: string) {
   justify-content: center;
 }
 
-.donut-pct   { font-size: 1.3rem; font-weight: 800; color: #2e7d32; line-height: 1; }
-.donut-label { font-size: 0.62rem; color: #bbb; font-weight: 600; }
+.donut-pct {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #2e7d32;
+  line-height: 1;
+}
+.donut-label {
+  font-size: 0.62rem;
+  color: #bbb;
+  font-weight: 600;
+}
 
-.estado-barras { flex: 1; display: flex; flex-direction: column; gap: 0.85rem; }
+.estado-barras {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
 
 .estado-fila {
   display: flex;
@@ -759,17 +894,33 @@ function estadoCfg(estado: string) {
 }
 
 .estado-dot {
-  width: 9px; height: 9px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.estado-der { display: flex; align-items: center; gap: 0.5rem; flex: 1; }
+.estado-der {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
 
-.estado-n { font-weight: 800; color: #880e4f; font-size: 0.9rem; min-width: 24px; text-align: right; }
+.estado-n {
+  font-weight: 800;
+  color: #880e4f;
+  font-size: 0.9rem;
+  min-width: 24px;
+  text-align: right;
+}
 
 /* ── Top productos ──────────────────────────────────────────────────────────── */
-.top-productos-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+.top-productos-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
 
 .top-prod-row {
   display: flex;
@@ -784,7 +935,13 @@ function estadoCfg(estado: string) {
   flex-shrink: 0;
 }
 
-.top-info { flex: 1; display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.top-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
 
 .top-nombre {
   font-weight: 700;
@@ -796,10 +953,23 @@ function estadoCfg(estado: string) {
   text-overflow: ellipsis;
 }
 
-.top-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 0.05rem; flex-shrink: 0; }
+.top-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
+  flex-shrink: 0;
+}
 
-.top-cant  { font-size: 0.72rem; color: #aaa; }
-.top-monto { font-size: 0.82rem; font-weight: 800; color: #e91e8c; }
+.top-cant {
+  font-size: 0.72rem;
+  color: #aaa;
+}
+.top-monto {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #e91e8c;
+}
 
 /* ── Tabla pedidos recientes ────────────────────────────────────────────────── */
 .card-titulo-wrap {
@@ -813,9 +983,17 @@ function estadoCfg(estado: string) {
   gap: 0.5rem;
 }
 
-.card-titulo-wrap .card-titulo { margin: 0; padding: 0; border: none; }
+.card-titulo-wrap .card-titulo {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
 
-.tabla-tabs { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.tabla-tabs {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
 
 .tabla-tab {
   padding: 0.3rem 0.75rem;
@@ -829,14 +1007,29 @@ function estadoCfg(estado: string) {
   transition: all 0.18s;
 }
 
-.tabla-tab:hover { border-color: #f48fb1; color: #c2185b; }
-.tabla-tab.activo { background: linear-gradient(135deg,#e91e8c,#f06292); color: white; border-color: #e91e8c; }
+.tabla-tab:hover {
+  border-color: #f48fb1;
+  color: #c2185b;
+}
+.tabla-tab.activo {
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  color: white;
+  border-color: #e91e8c;
+}
 
-.table-wrap { overflow-x: auto; }
+.table-wrap {
+  overflow-x: auto;
+}
 
-.tabla { width: 100%; border-collapse: collapse; min-width: 520px; }
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
 
-thead { background: linear-gradient(135deg, #e91e8c, #f06292); }
+thead {
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+}
 
 th {
   padding: 0.85rem 1rem;
@@ -856,14 +1049,42 @@ td {
   vertical-align: middle;
 }
 
-tbody tr:last-child td { border-bottom: none; }
-tbody tr:hover td { background: #fff9fb; }
+tbody tr:last-child td {
+  border-bottom: none;
+}
+tbody tr:hover td {
+  background: #fff9fb;
+}
 
-.id-badge { background: #fce4ec; color: #c2185b; font-weight: 700; font-size: 0.75rem; padding: 0.2rem 0.55rem; border-radius: 50px; white-space: nowrap; }
-.td-nombre { font-weight: 700; color: #880e4f; font-size: 0.875rem; margin: 0 0 0.1rem; }
-.td-email  { color: #bbb; font-size: 0.72rem; display: block; }
-.monto     { font-weight: 800; color: #e91e8c; }
-.fecha-cell { font-size: 0.75rem; color: #aaa; white-space: nowrap; }
+.id-badge {
+  background: #fce4ec;
+  color: #c2185b;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 50px;
+  white-space: nowrap;
+}
+.td-nombre {
+  font-weight: 700;
+  color: #880e4f;
+  font-size: 0.875rem;
+  margin: 0 0 0.1rem;
+}
+.td-email {
+  color: #bbb;
+  font-size: 0.72rem;
+  display: block;
+}
+.monto {
+  font-weight: 800;
+  color: #e91e8c;
+}
+.fecha-cell {
+  font-size: 0.75rem;
+  color: #aaa;
+  white-space: nowrap;
+}
 
 .metodo-badge-tabla {
   display: inline-flex;
@@ -898,16 +1119,36 @@ tbody tr:hover td { background: #fff9fb; }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 1100px) {
-  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
-  .kpi-card.kpi-featured { grid-column: 1 / -1; flex-direction: row; }
+  .kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .kpi-card.kpi-featured {
+    grid-column: 1 / -1;
+    flex-direction: row;
+  }
 }
 
 @media (max-width: 768px) {
-  .admin-wrap      { padding: 1rem; }
-  .kpi-grid        { grid-template-columns: repeat(2, 1fr); }
-  .reportes-grid   { grid-template-columns: 1fr; }
-  .estado-resumen  { flex-direction: column; align-items: flex-start; }
-  .card-titulo-wrap { flex-direction: column; align-items: flex-start; }
-  .page-header     { flex-direction: column; align-items: flex-start; }
+  .admin-wrap {
+    padding: 1rem;
+  }
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .reportes-grid {
+    grid-template-columns: 1fr;
+  }
+  .estado-resumen {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .card-titulo-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

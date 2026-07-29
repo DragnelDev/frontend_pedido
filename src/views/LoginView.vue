@@ -54,7 +54,7 @@ async function loginConGoogle() {
   error.value = false
   try {
     const authStore = useAuthStore()
-    
+
     // OPCIÓN A: Redirección directa al endpoint de Google/OAuth en tu backend NestJS
     // window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`
 
@@ -160,12 +160,7 @@ async function loginConGoogle() {
       </div>
 
       <!-- BOTÓN DE GOOGLE -->
-      <button 
-        type="button" 
-        class="btn-google" 
-        @click="loginConGoogle" 
-        :disabled="cargando"
-      >
+      <button type="button" class="btn-google" @click="loginConGoogle" :disabled="cargando">
         <svg class="google-icon" viewBox="0 0 24 24">
           <path
             fill="#4285F4"
@@ -224,14 +219,39 @@ async function loginConGoogle() {
   animation: float 6s ease-in-out infinite;
 }
 
-.deco-1 { top: 5%; left: 5%; animation-delay: 0s; font-size: 5rem; }
-.deco-2 { top: 10%; right: 8%; animation-delay: 1.5s; font-size: 3.5rem; }
-.deco-3 { bottom: 12%; left: 10%; animation-delay: 3s; font-size: 4rem; }
-.deco-4 { bottom: 8%; right: 5%; animation-delay: 0.8s; font-size: 3rem; }
+.deco-1 {
+  top: 5%;
+  left: 5%;
+  animation-delay: 0s;
+  font-size: 5rem;
+}
+.deco-2 {
+  top: 10%;
+  right: 8%;
+  animation-delay: 1.5s;
+  font-size: 3.5rem;
+}
+.deco-3 {
+  bottom: 12%;
+  left: 10%;
+  animation-delay: 3s;
+  font-size: 4rem;
+}
+.deco-4 {
+  bottom: 8%;
+  right: 5%;
+  animation-delay: 0.8s;
+  font-size: 3rem;
+}
 
 @keyframes float {
-  0%, 100% { transform: translateY(0) rotate(-5deg); }
-  50% { transform: translateY(-18px) rotate(5deg); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(-5deg);
+  }
+  50% {
+    transform: translateY(-18px) rotate(5deg);
+  }
 }
 
 /* ── CARD ── */
@@ -249,8 +269,14 @@ async function loginConGoogle() {
 }
 
 /* ── MARCA ── */
-.login-brand { text-align: center; margin-bottom: 1.5rem; }
-.brand-icon { font-size: 3rem; margin-bottom: 0.4rem; }
+.login-brand {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.brand-icon {
+  font-size: 3rem;
+  margin-bottom: 0.4rem;
+}
 .brand-name {
   font-size: 1.7rem;
   font-weight: 800;
@@ -258,7 +284,11 @@ async function loginConGoogle() {
   margin: 0 0 0.2rem;
   letter-spacing: -0.5px;
 }
-.brand-sub { font-size: 0.8rem; color: #bbb; margin: 0; }
+.brand-sub {
+  font-size: 0.8rem;
+  color: #bbb;
+  margin: 0;
+}
 
 /* ── TÍTULO ── */
 .login-titulo {
@@ -313,7 +343,9 @@ async function loginConGoogle() {
   color: #333;
   outline: none;
   background: #fff9fb;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .field-input:focus {
@@ -322,7 +354,9 @@ async function loginConGoogle() {
   background: white;
 }
 
-.field-input::placeholder { color: #ccc; }
+.field-input::placeholder {
+  color: #ccc;
+}
 
 .toggle-pass {
   position: absolute;
@@ -336,7 +370,9 @@ async function loginConGoogle() {
   transition: color 0.2s;
 }
 
-.toggle-pass:hover { color: #e91e8c; }
+.toggle-pass:hover {
+  color: #e91e8c;
+}
 
 /* ── ERROR ── */
 .error-msg {
@@ -365,7 +401,9 @@ async function loginConGoogle() {
   cursor: pointer;
   margin-top: 0.5rem;
   box-shadow: 0 6px 20px rgba(233, 30, 140, 0.35);
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 
 .btn-submit:hover:not(:disabled) {
@@ -374,7 +412,10 @@ async function loginConGoogle() {
   box-shadow: 0 10px 28px rgba(233, 30, 140, 0.45);
 }
 
-.btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+.btn-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
 
 /* ── SEPARADOR ── */
 .divider {
@@ -413,7 +454,10 @@ async function loginConGoogle() {
   border: 1.5px solid #e5e7eb;
   border-radius: 50px;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    transform 0.2s;
 }
 
 .btn-google:hover:not(:disabled) {
@@ -422,7 +466,10 @@ async function loginConGoogle() {
   transform: translateY(-1px);
 }
 
-.btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .google-icon {
   width: 20px;
@@ -441,7 +488,9 @@ async function loginConGoogle() {
   border-radius: 50px;
   cursor: pointer;
   margin-top: 0.75rem;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .btn-secondary:hover {
@@ -464,12 +513,24 @@ async function loginConGoogle() {
   animation: dot-bounce 1.2s infinite;
 }
 
-.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
-.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 @keyframes dot-bounce {
-  0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; }
-  40% { transform: scale(1); opacity: 1; }
+  0%,
+  80%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* ── FOOTER ── */
@@ -487,7 +548,9 @@ async function loginConGoogle() {
   margin-left: 0.25rem;
 }
 
-.link-register:hover { text-decoration: underline; }
+.link-register:hover {
+  text-decoration: underline;
+}
 
 /* ── RESPONSIVE ── */
 @media (max-width: 480px) {
@@ -495,6 +558,8 @@ async function loginConGoogle() {
     padding: 2rem 1.5rem;
     border-radius: 20px;
   }
-  .deco { font-size: 2.5rem; }
+  .deco {
+    font-size: 2.5rem;
+  }
 }
 </style>

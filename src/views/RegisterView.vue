@@ -9,7 +9,7 @@ import {
   type ClienteRegistrable,
 } from '@/servicios/registroClienteService'
 
-const router     = useRouter()
+const router = useRouter()
 const DEFAULT_PWD = import.meta.env.VITE_DEFAULT_PASSWORD || 'hola123'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,23 +17,23 @@ const DEFAULT_PWD = import.meta.env.VITE_DEFAULT_PASSWORD || 'hola123'
 // ─────────────────────────────────────────────────────────────────────────────
 type Modo = 'buscar' | 'registrar'
 
-const modo               = ref<Modo>('buscar')
-const clienteEncontrado  = ref<ClienteRegistrable | null>(null)
-const cargando           = ref(false)
-const error              = ref<string | null>(null)
-const exito              = ref(false)
+const modo = ref<Modo>('buscar')
+const clienteEncontrado = ref<ClienteRegistrable | null>(null)
+const cargando = ref(false)
+const error = ref<string | null>(null)
+const exito = ref(false)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Formulario
 // ─────────────────────────────────────────────────────────────────────────────
 const datos = ref({
   cedulaIdentidad: '',
-  nombre:          '',
+  nombre: '',
   apellidoPaterno: '',
   apellidoMaterno: '',
-  celular:         '',
-  email:           '',
-  direccion:       '',
+  celular: '',
+  email: '',
+  direccion: '',
 })
 
 const erroresCampos = ref<Record<string, string>>({})
@@ -48,7 +48,8 @@ const tituloModo = computed(() => {
 
 const subModo = computed(() => {
   if (modo.value === 'buscar') return 'Ingresa tu CI o correo para verificar si ya tienes cuenta'
-  if (clienteEncontrado.value) return `Cliente encontrado: ${clienteEncontrado.value.nombre} ${clienteEncontrado.value.apellidoPaterno || ''}`
+  if (clienteEncontrado.value)
+    return `Cliente encontrado: ${clienteEncontrado.value.nombre} ${clienteEncontrado.value.apellidoPaterno || ''}`
   return 'Completa tus datos para crear una nueva cuenta'
 })
 
@@ -64,7 +65,7 @@ function getErrorMessage(err: unknown): string {
 // ─────────────────────────────────────────────────────────────────────────────
 async function buscarCliente() {
   error.value = null
-  const ci    = datos.value.cedulaIdentidad.trim()
+  const ci = datos.value.cedulaIdentidad.trim()
   const email = datos.value.email.trim()
 
   if (!ci && !email) {
@@ -79,20 +80,20 @@ async function buscarCliente() {
       clienteEncontrado.value = cliente
       datos.value = {
         cedulaIdentidad: cliente.cedulaIdentidad,
-        nombre:          cliente.nombre,
+        nombre: cliente.nombre,
         apellidoPaterno: cliente.apellidoPaterno || '',
         apellidoMaterno: cliente.apellidoMaterno || '',
-        celular:         cliente.celular         || '',
-        email:           cliente.email           || '',
-        direccion:       cliente.direccion       || '',
+        celular: cliente.celular || '',
+        email: cliente.email || '',
+        direccion: cliente.direccion || '',
       }
     } else {
       clienteEncontrado.value = null
       // precarga ci/email para no reescribir
       datos.value.cedulaIdentidad = ci
-      datos.value.email           = email
+      datos.value.email = email
     }
-    modo.value  = 'registrar'
+    modo.value = 'registrar'
     error.value = null
   } catch {
     error.value = 'Error al buscar el cliente. Verifica tu conexión e intenta de nuevo.'
@@ -108,11 +109,12 @@ function validarRegistro(): boolean {
   erroresCampos.value = {}
   const d = datos.value
   if (!d.cedulaIdentidad.trim()) erroresCampos.value.cedulaIdentidad = 'La cédula es obligatoria'
-  if (!d.nombre.trim())          erroresCampos.value.nombre          = 'El nombre es obligatorio'
-  if (!d.apellidoPaterno.trim()) erroresCampos.value.apellidoPaterno = 'El apellido paterno es obligatorio'
-  if (!d.celular.trim())         erroresCampos.value.celular         = 'El celular es obligatorio'
-  if (!d.email.trim())           erroresCampos.value.email           = 'El correo es obligatorio'
-  if (!d.direccion.trim())       erroresCampos.value.direccion       = 'La dirección es obligatoria'
+  if (!d.nombre.trim()) erroresCampos.value.nombre = 'El nombre es obligatorio'
+  if (!d.apellidoPaterno.trim())
+    erroresCampos.value.apellidoPaterno = 'El apellido paterno es obligatorio'
+  if (!d.celular.trim()) erroresCampos.value.celular = 'El celular es obligatorio'
+  if (!d.email.trim()) erroresCampos.value.email = 'El correo es obligatorio'
+  if (!d.direccion.trim()) erroresCampos.value.direccion = 'La dirección es obligatoria'
   return Object.keys(erroresCampos.value).length === 0
 }
 
@@ -121,7 +123,7 @@ function validarRegistro(): boolean {
 // ─────────────────────────────────────────────────────────────────────────────
 async function crearUsuarioFinal() {
   if (!validarRegistro()) return
-  error.value    = null
+  error.value = null
   cargando.value = true
 
   try {
@@ -130,19 +132,19 @@ async function crearUsuarioFinal() {
     if (!idCliente) {
       const nuevoCliente = await crearCliente({
         cedulaIdentidad: datos.value.cedulaIdentidad.trim(),
-        nombre:          datos.value.nombre.trim(),
+        nombre: datos.value.nombre.trim(),
         apellidoPaterno: datos.value.apellidoPaterno.trim(),
         apellidoMaterno: datos.value.apellidoMaterno.trim(),
-        celular:         datos.value.celular.trim(),
-        email:           datos.value.email.trim(),
-        direccion:       datos.value.direccion.trim(),
+        celular: datos.value.celular.trim(),
+        email: datos.value.email.trim(),
+        direccion: datos.value.direccion.trim(),
       })
       idCliente = nuevoCliente.id
     }
 
     await crearUsuario({
-      email:     datos.value.email.trim(),
-      rol:       'CLIENTE',
+      email: datos.value.email.trim(),
+      rol: 'CLIENTE',
       idCliente,
     })
 
@@ -154,7 +156,6 @@ async function crearUsuarioFinal() {
 
     localStorage.setItem('token', loginData.access_token)
     exito.value = true
-
   } catch (err) {
     error.value = getErrorMessage(err)
   } finally {
@@ -163,13 +164,18 @@ async function crearUsuarioFinal() {
 }
 
 function reiniciarFlujo() {
-  modo.value              = 'buscar'
+  modo.value = 'buscar'
   clienteEncontrado.value = null
-  error.value             = null
-  erroresCampos.value     = {}
+  error.value = null
+  erroresCampos.value = {}
   datos.value = {
-    cedulaIdentidad: '', nombre: '', apellidoPaterno: '',
-    apellidoMaterno: '', celular: '', email: '', direccion: '',
+    cedulaIdentidad: '',
+    nombre: '',
+    apellidoPaterno: '',
+    apellidoMaterno: '',
+    celular: '',
+    email: '',
+    direccion: '',
   }
 }
 
@@ -181,7 +187,6 @@ function irAInicio() {
 
 <template>
   <div class="register-page">
-
     <!-- Decoraciones flotantes -->
     <span class="deco d1" aria-hidden="true">🍰</span>
     <span class="deco d2" aria-hidden="true">🍓</span>
@@ -189,7 +194,6 @@ function irAInicio() {
     <span class="deco d4" aria-hidden="true">🍩</span>
 
     <div class="register-card">
-
       <!-- ── Logo / Marca ──────────────────────────────────────────────── -->
       <div class="brand">
         <div class="brand-logo">🍓</div>
@@ -232,12 +236,14 @@ function irAInicio() {
 
       <!-- ══ PASO 1: Buscar ════════════════════════════════════════════════ -->
       <Transition name="fade-slide" mode="out-in">
-        <form v-if="modo === 'buscar'" key="buscar" @submit.prevent="buscarCliente" class="form-body">
-
+        <form
+          v-if="modo === 'buscar'"
+          key="buscar"
+          @submit.prevent="buscarCliente"
+          class="form-body"
+        >
           <div class="field">
-            <label class="field-label" for="buscar-ci">
-              Cédula de identidad
-            </label>
+            <label class="field-label" for="buscar-ci"> Cédula de identidad </label>
             <div class="input-wrap">
               <i class="pi pi-id-card input-icon"></i>
               <input
@@ -256,9 +262,7 @@ function irAInicio() {
           </div>
 
           <div class="field">
-            <label class="field-label" for="buscar-email">
-              Correo electrónico
-            </label>
+            <label class="field-label" for="buscar-email"> Correo electrónico </label>
             <div class="input-wrap">
               <i class="pi pi-envelope input-icon"></i>
               <input
@@ -272,23 +276,17 @@ function irAInicio() {
           </div>
 
           <button type="submit" class="btn-primary" :disabled="cargando">
-            <span v-if="cargando">
-              <i class="pi pi-spin pi-spinner"></i> Buscando...
-            </span>
-            <span v-else>
-              <i class="pi pi-search"></i> Buscar mi cuenta
-            </span>
+            <span v-if="cargando"> <i class="pi pi-spin pi-spinner"></i> Buscando... </span>
+            <span v-else> <i class="pi pi-search"></i> Buscar mi cuenta </span>
           </button>
 
           <button type="button" class="btn-outline" @click="modo = 'registrar'">
             <i class="pi pi-user-plus"></i> Soy nuevo, crear cuenta
           </button>
-
         </form>
 
         <!-- ══ PASO 2: Registro ══════════════════════════════════════════════ -->
         <form v-else key="registrar" @submit.prevent="crearUsuarioFinal" class="form-body">
-
           <!-- CI + Celular -->
           <div class="field-row">
             <div class="field" :class="{ 'field-error': erroresCampos.cedulaIdentidad }">
@@ -311,7 +309,9 @@ function irAInicio() {
             </div>
 
             <div class="field" :class="{ 'field-error': erroresCampos.celular }">
-              <label class="field-label" for="reg-celular">Celular <span class="req">*</span></label>
+              <label class="field-label" for="reg-celular"
+                >Celular <span class="req">*</span></label
+              >
               <div class="input-wrap">
                 <i class="pi pi-phone input-icon"></i>
                 <input
@@ -350,7 +350,9 @@ function irAInicio() {
             </div>
 
             <div class="field" :class="{ 'field-error': erroresCampos.apellidoPaterno }">
-              <label class="field-label" for="reg-apPat">Ap. paterno <span class="req">*</span></label>
+              <label class="field-label" for="reg-apPat"
+                >Ap. paterno <span class="req">*</span></label
+              >
               <div class="input-wrap">
                 <i class="pi pi-user input-icon"></i>
                 <input
@@ -386,7 +388,9 @@ function irAInicio() {
 
           <!-- Email -->
           <div class="field" :class="{ 'field-error': erroresCampos.email }">
-            <label class="field-label" for="reg-email">Correo electrónico <span class="req">*</span></label>
+            <label class="field-label" for="reg-email"
+              >Correo electrónico <span class="req">*</span></label
+            >
             <div class="input-wrap">
               <i class="pi pi-envelope input-icon"></i>
               <input
@@ -423,7 +427,8 @@ function irAInicio() {
           <!-- Nota contraseña -->
           <div class="pwd-nota">
             <i class="pi pi-info-circle"></i>
-            Tu contraseña inicial será <strong>{{ DEFAULT_PWD }}</strong>. Cámbiala luego en tu perfil.
+            Tu contraseña inicial será <strong>{{ DEFAULT_PWD }}</strong
+            >. Cámbiala luego en tu perfil.
           </div>
 
           <!-- Acciones -->
@@ -432,15 +437,10 @@ function irAInicio() {
               <i class="pi pi-arrow-left"></i> Atrás
             </button>
             <button type="submit" class="btn-primary" :disabled="cargando">
-              <span v-if="cargando">
-                <i class="pi pi-spin pi-spinner"></i> Creando cuenta...
-              </span>
-              <span v-else>
-                <i class="pi pi-check"></i> Crear cuenta
-              </span>
+              <span v-if="cargando"> <i class="pi pi-spin pi-spinner"></i> Creando cuenta... </span>
+              <span v-else> <i class="pi pi-check"></i> Crear cuenta </span>
             </button>
           </div>
-
         </form>
       </Transition>
 
@@ -449,7 +449,6 @@ function irAInicio() {
         ¿Ya tienes cuenta?
         <RouterLink to="/login" class="link-login">Inicia sesión</RouterLink>
       </p>
-
     </div>
 
     <!-- ── Modal éxito ───────────────────────────────────────────────────── -->
@@ -465,17 +464,12 @@ function irAInicio() {
               Bienvenid@ a <strong>Berry Sweet</strong>, {{ datos.nombre }}.<br />
               Ya iniciaste sesión automáticamente.
             </p>
-            <p class="exito-email">
-              <i class="pi pi-envelope"></i> {{ datos.email }}
-            </p>
-            <button class="btn-primary" @click="irAInicio">
-              🍰 Ir al inicio
-            </button>
+            <p class="exito-email"><i class="pi pi-envelope"></i> {{ datos.email }}</p>
+            <button class="btn-primary" @click="irAInicio">🍰 Ir al inicio</button>
           </div>
         </div>
       </Transition>
     </Teleport>
-
   </div>
 </template>
 
@@ -502,14 +496,37 @@ function irAInicio() {
   user-select: none;
 }
 
-.d1 { top: 6%;  left: 4%;   animation-delay: 0s; }
-.d2 { top: 8%;  right: 5%;  animation-delay: 2s; font-size: 2.8rem; }
-.d3 { bottom: 6%; right: 8%; animation-delay: 4s; }
-.d4 { bottom: 12%; left: 8%; animation-delay: 1.5s; font-size: 2.5rem; }
+.d1 {
+  top: 6%;
+  left: 4%;
+  animation-delay: 0s;
+}
+.d2 {
+  top: 8%;
+  right: 5%;
+  animation-delay: 2s;
+  font-size: 2.8rem;
+}
+.d3 {
+  bottom: 6%;
+  right: 8%;
+  animation-delay: 4s;
+}
+.d4 {
+  bottom: 12%;
+  left: 8%;
+  animation-delay: 1.5s;
+  font-size: 2.5rem;
+}
 
 @keyframes float {
-  0%, 100% { transform: translateY(0)    rotate(-4deg); }
-  50%       { transform: translateY(-18px) rotate(4deg); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(-18px) rotate(4deg);
+  }
 }
 
 /* ── Card ───────────────────────────────────────────────────────────────────── */
@@ -533,7 +550,9 @@ function irAInicio() {
   margin-bottom: 1.5rem;
 }
 
-.brand-logo { font-size: 1.6rem; }
+.brand-logo {
+  font-size: 1.6rem;
+}
 .brand-name {
   font-size: 1.1rem;
   font-weight: 800;
@@ -557,9 +576,12 @@ function irAInicio() {
 }
 
 .step-dot {
-  width: 30px; height: 30px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.78rem;
   font-weight: 800;
   border: 2px solid #fce4ec;
@@ -572,7 +594,7 @@ function irAInicio() {
   background: linear-gradient(135deg, #e91e8c, #f06292);
   border-color: #e91e8c;
   color: white;
-  box-shadow: 0 4px 12px rgba(233,30,140,0.3);
+  box-shadow: 0 4px 12px rgba(233, 30, 140, 0.3);
 }
 
 .step.done .step-dot {
@@ -581,9 +603,17 @@ function irAInicio() {
   color: #2e7d32;
 }
 
-.step-label { font-size: 0.72rem; font-weight: 600; color: #ccc; }
-.step.activo .step-label { color: #e91e8c; }
-.step.done   .step-label { color: #2e7d32; }
+.step-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #ccc;
+}
+.step.activo .step-label {
+  color: #e91e8c;
+}
+.step.done .step-label {
+  color: #2e7d32;
+}
 
 .step-line {
   width: 60px;
@@ -593,13 +623,27 @@ function irAInicio() {
   transition: background 0.3s;
 }
 
-.step-line.done { background: linear-gradient(90deg, #f48fb1, #e91e8c); }
+.step-line.done {
+  background: linear-gradient(90deg, #f48fb1, #e91e8c);
+}
 
 /* ── Card header ────────────────────────────────────────────────────────────── */
-.card-header { margin-bottom: 1.25rem; }
+.card-header {
+  margin-bottom: 1.25rem;
+}
 
-.card-titulo { font-size: 1.25rem; font-weight: 800; color: #880e4f; margin: 0 0 0.25rem; }
-.card-sub    { font-size: 0.82rem; color: #aaa; margin: 0 0 0.5rem; line-height: 1.4; }
+.card-titulo {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.25rem;
+}
+.card-sub {
+  font-size: 0.82rem;
+  color: #aaa;
+  margin: 0 0 0.5rem;
+  line-height: 1.4;
+}
 
 .cliente-found-badge {
   display: inline-flex;
@@ -631,7 +675,10 @@ function irAInicio() {
   line-height: 1.4;
 }
 
-.error-banner i { flex-shrink: 0; margin-top: 0.1rem; }
+.error-banner i {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
 
 /* ── Formulario ─────────────────────────────────────────────────────────────── */
 .form-body {
@@ -646,7 +693,11 @@ function irAInicio() {
   gap: 0.75rem;
 }
 
-.field { display: flex; flex-direction: column; gap: 0.3rem; }
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
 
 .field-label {
   font-size: 0.78rem;
@@ -654,9 +705,13 @@ function irAInicio() {
   color: #880e4f;
 }
 
-.req { color: #e91e8c; }
+.req {
+  color: #e91e8c;
+}
 
-.input-wrap { position: relative; }
+.input-wrap {
+  position: relative;
+}
 
 .input-icon {
   position: absolute;
@@ -677,14 +732,16 @@ function irAInicio() {
   color: #333;
   outline: none;
   background: #fff9fb;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   box-sizing: border-box;
   font-family: inherit;
 }
 
 .field-input:focus {
   border-color: #e91e8c;
-  box-shadow: 0 0 0 3px rgba(233,30,140,0.09);
+  box-shadow: 0 0 0 3px rgba(233, 30, 140, 0.09);
   background: white;
 }
 
@@ -694,9 +751,13 @@ function irAInicio() {
   cursor: not-allowed;
 }
 
-.field-input::placeholder { color: #ccc; }
+.field-input::placeholder {
+  color: #ccc;
+}
 
-.field-error .field-input { border-color: #ef5350; }
+.field-error .field-input {
+  border-color: #ef5350;
+}
 
 .campo-error {
   display: flex;
@@ -740,8 +801,13 @@ function irAInicio() {
   line-height: 1.45;
 }
 
-.pwd-nota i { flex-shrink: 0; margin-top: 0.1rem; }
-.pwd-nota strong { color: #e65100; }
+.pwd-nota i {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+.pwd-nota strong {
+  color: #e65100;
+}
 
 /* Acciones del form */
 .form-acciones {
@@ -762,16 +828,25 @@ function irAInicio() {
   border: none;
   border-radius: 50px;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(233,30,140,0.3);
-  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 6px 20px rgba(233, 30, 140, 0.3);
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
 }
 
-.btn-primary:hover:not(:disabled) { opacity: 0.92; transform: translateY(-2px); }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-2px);
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
 
 .btn-outline {
   width: 100%;
@@ -783,14 +858,19 @@ function irAInicio() {
   font-weight: 700;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
 }
 
-.btn-outline:hover { background: #fce4ec; border-color: #f48fb1; }
+.btn-outline:hover {
+  background: #fce4ec;
+  border-color: #f48fb1;
+}
 
 .btn-back {
   display: flex;
@@ -809,7 +889,9 @@ function irAInicio() {
   flex-shrink: 0;
 }
 
-.btn-back:hover { background: #f8bbd0; }
+.btn-back:hover {
+  background: #f8bbd0;
+}
 
 /* ── Footer ─────────────────────────────────────────────────────────────────── */
 .register-footer {
@@ -826,13 +908,15 @@ function irAInicio() {
   margin-left: 0.2rem;
 }
 
-.link-login:hover { text-decoration: underline; }
+.link-login:hover {
+  text-decoration: underline;
+}
 
 /* ── Modal éxito ────────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(136,14,79,0.45);
+  background: rgba(136, 14, 79, 0.45);
   backdrop-filter: blur(5px);
   z-index: 9999;
   display: flex;
@@ -848,29 +932,52 @@ function irAInicio() {
   width: 100%;
   max-width: 380px;
   text-align: center;
-  box-shadow: 0 24px 64px rgba(136,14,79,0.22);
+  box-shadow: 0 24px 64px rgba(136, 14, 79, 0.22);
 }
 
 .exito-anillo {
-  width: 88px; height: 88px;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
   background: linear-gradient(135deg, #fce4ec, #fff9fb);
   border: 3px solid #f48fb1;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 0 auto 1.25rem;
-  box-shadow: 0 0 0 8px rgba(233,30,140,0.07), 0 6px 24px rgba(233,30,140,0.15);
-  animation: pop-in 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
+  box-shadow:
+    0 0 0 8px rgba(233, 30, 140, 0.07),
+    0 6px 24px rgba(233, 30, 140, 0.15);
+  animation: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 @keyframes pop-in {
-  from { transform: scale(0.4); opacity: 0; }
-  to   { transform: scale(1);   opacity: 1; }
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
-.exito-emoji { font-size: 2.5rem; }
+.exito-emoji {
+  font-size: 2.5rem;
+}
 
-.modal-exito h3 { font-size: 1.3rem; font-weight: 800; color: #880e4f; margin: 0 0 0.65rem; }
-.modal-exito p  { font-size: 0.875rem; color: #666; line-height: 1.5; margin: 0 0 0.4rem; }
+.modal-exito h3 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.65rem;
+}
+.modal-exito p {
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.5;
+  margin: 0 0 0.4rem;
+}
 
 .exito-email {
   display: inline-flex;
@@ -886,20 +993,41 @@ function irAInicio() {
 }
 
 /* ── Transiciones ───────────────────────────────────────────────────────────── */
-.fade-slide-enter-active, .fade-slide-leave-active {
-  transition: opacity 0.22s ease, transform 0.22s ease;
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
 }
 
-.fade-slide-enter-from { opacity: 0; transform: translateX(16px); }
-.fade-slide-leave-to   { opacity: 0; transform: translateX(-16px); }
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateX(16px);
+}
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-16px);
+}
 
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.22s ease; }
-.modal-fade-enter-from,  .modal-fade-leave-to      { opacity: 0; }
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.22s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
 
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .register-card { padding: 1.75rem 1.25rem 1.5rem; }
-  .field-row     { grid-template-columns: 1fr; }
-  .form-acciones { grid-template-columns: 1fr; }
+  .register-card {
+    padding: 1.75rem 1.25rem 1.5rem;
+  }
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+  .form-acciones {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

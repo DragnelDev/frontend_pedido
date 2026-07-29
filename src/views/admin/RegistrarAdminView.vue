@@ -406,7 +406,7 @@ async function confirmarVenta() {
           cantidad: item.cantidad,
           precioUnitario: item.producto.precio,
         }),
-    )
+      ),
     )
 
     // 4. Registrar pago (tabla `pagos`)

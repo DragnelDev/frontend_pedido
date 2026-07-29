@@ -1,218 +1,215 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory } from 'vue-router'
 
 // públicas
-import HomeView from "@/views/HomeView.vue";
+import HomeView from '@/views/HomeView.vue'
 
 // layout admin
-import { getTokenFromLocalStorage, parseJwt } from "@/helpers";
-import AdminLayout from "@/layouts/AdminLayout.vue";
+import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
+import AdminLayout from '@/layouts/AdminLayout.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     // público
     {
-      path: "/",
-      name: "home",
+      path: '/',
+      name: 'home',
       component: HomeView,
     },
     {
-      path: "/about",
-      name: "about",
-      component: () => import("@/views/AboutView.vue"),
+      path: '/about',
+      name: 'about',
+      component: () => import('@/views/AboutView.vue'),
     },
     {
-      path: "/shop",
-      name: "shop",
-      component: () => import("@/views/ShopView.vue"),
+      path: '/shop',
+      name: 'shop',
+      component: () => import('@/views/ShopView.vue'),
     },
 
     // Rutas viejas redirigidas
     {
-      path: "/categorias",
-      name: "categorias",
-      redirect: "/admin/categorias",
+      path: '/categorias',
+      name: 'categorias',
+      redirect: '/admin/categorias',
     },
     {
-      path: "/productos",
-      name: "productos",
-      component: () => import("@/views/ProductosView.vue"),
+      path: '/productos',
+      name: 'productos',
+      component: () => import('@/views/ProductosView.vue'),
     },
     {
-      path: "/categorias/:id?",
-      name: "categoria-productos",
-      component: () => import("@/views/CategoriasProductos.vue"),
+      path: '/categorias/:id?',
+      name: 'categoria-productos',
+      component: () => import('@/views/CategoriasProductos.vue'),
     },
     {
-      path: "/productos/:id",
-      name: "detalle-producto",
-      component: () => import("@/views/ProductoDetalle.vue"),
+      path: '/productos/:id',
+      name: 'detalle-producto',
+      component: () => import('@/views/ProductoDetalle.vue'),
     },
     {
-      path: "/carrito",
-      name: "carrito",
-      component: () => import("@/views/CarritoView.vue"),
+      path: '/carrito',
+      name: 'carrito',
+      component: () => import('@/views/CarritoView.vue'),
     },
     {
-      path: "/checkout",
-      name: "checkout",
-      component: () => import("@/views/CheckoutView.vue"),
+      path: '/checkout',
+      name: 'checkout',
+      component: () => import('@/views/CheckoutView.vue'),
     },
     {
-      path: "/checkout/envio",
-      name: "checkout-envio",
-      component: () => import("@/views/CheckoutEnvioView.vue"),
+      path: '/checkout/envio',
+      name: 'checkout-envio',
+      component: () => import('@/views/CheckoutEnvioView.vue'),
     },
     {
-      path: "/checkout/resumen",
-      name: "checkout-resumen",
-      component: () => import("@/views/CheckoutResumenView.vue"),
+      path: '/checkout/resumen',
+      name: 'checkout-resumen',
+      component: () => import('@/views/CheckoutResumenView.vue'),
     },
     {
-      path: "/checkout/gracias",
-      name: "checkout-gracias",
-      component: () => import("@/views/CheckoutGraciasView.vue"),
+      path: '/checkout/gracias',
+      name: 'checkout-gracias',
+      component: () => import('@/views/CheckoutGraciasView.vue'),
     },
     {
-      path: "/login",
-      name: "login",
-      component: () => import("@/views/LoginView.vue"),
+      path: '/login',
+      name: 'login',
+      component: () => import('@/views/LoginView.vue'),
     },
     {
-      path: "/cambiar-contrasena-obligatorio",
-      name: "cambiar-contrasena-obligatorio",
-      component: () => import("@/views/CambiarClaveView.vue"),
+      path: '/cambiar-contrasena-obligatorio',
+      name: 'cambiar-contrasena-obligatorio',
+      component: () => import('@/views/CambiarClaveView.vue'),
       meta: { requiresAuth: true },
     },
     {
-      path: "/mis-pedidos",
-      name: "mis-pedidos",
-      component: () => import("@/views/MisPedidosView.vue"),
+      path: '/mis-pedidos',
+      name: 'mis-pedidos',
+      component: () => import('@/views/MisPedidosView.vue'),
       meta: { requiresAuth: true },
     },
     {
-      path: "/perfil",
-      name: "perfil",
-      component: () => import("@/views/PerfilView.vue"),
+      path: '/perfil',
+      name: 'perfil',
+      component: () => import('@/views/PerfilView.vue'),
       meta: { requiresAuth: true },
     },
     {
-      path: "/perfil/editar",
-      name: "editar-perfil",
-      component: () => import("@/views/EditarPerfilView.vue"),
+      path: '/perfil/editar',
+      name: 'editar-perfil',
+      component: () => import('@/views/EditarPerfilView.vue'),
     },
     {
-      path: "/register",
-      name: "register",
-      component: () => import("@/views/RegisterView.vue"),
+      path: '/register',
+      name: 'register',
+      component: () => import('@/views/RegisterView.vue'),
     },
     // .
 
     // ADMIN (layout + children) - Solo accesible para usuarios con rol admin
     {
-      path: "/admin",
+      path: '/admin',
       component: AdminLayout,
       meta: { requiresAuth: true, requiresAdmin: true },
       children: [
-        { path: "", redirect: "/admin/reportes" },
+        { path: '', redirect: '/admin/reportes' },
         {
-          path: "reportes",
-          name: "admin-reportes",
-          component: () => import("@/views/admin/ReportesAdminView.vue"),
+          path: 'reportes',
+          name: 'admin-reportes',
+          component: () => import('@/views/admin/ReportesAdminView.vue'),
         },
         {
-          path: "registrar-venta",
-          name: "admin-registrar-venta",
-          component: () => import("@/views/admin/RegistrarAdminView.vue"),
+          path: 'registrar-venta',
+          name: 'admin-registrar-venta',
+          component: () => import('@/views/admin/RegistrarAdminView.vue'),
         },
         {
-          path: "productos",
-          name: "admin-productos",
-          component: () => import("@/views/admin/ProductoView.vue"),
+          path: 'productos',
+          name: 'admin-productos',
+          component: () => import('@/views/admin/ProductoView.vue'),
         },
         {
-          path: "categorias",
-          name: "admin-categorias",
-          component: () => import("@/views/admin/CategoriaView.vue"),
+          path: 'categorias',
+          name: 'admin-categorias',
+          component: () => import('@/views/admin/CategoriaView.vue'),
         },
         {
-          path: "pedidos",
-          name: "admin-pedidos",
-          component: () => import("@/views/admin/PedidosAdminView.vue"),
+          path: 'pedidos',
+          name: 'admin-pedidos',
+          component: () => import('@/views/admin/PedidosAdminView.vue'),
         },
         {
-          path: "pagos",
-          name: "admin-pagos",
-          component: () => import("@/views/admin/PagosAdminView.vue"),
+          path: 'pagos',
+          name: 'admin-pagos',
+          component: () => import('@/views/admin/PagosAdminView.vue'),
         },
         {
-          path: "insumos",
-          name: "insumos",
-          component: () => import("@/views/admin/InsumosView.vue"), // Módulo Recomendado
+          path: 'insumos',
+          name: 'insumos',
+          component: () => import('@/views/admin/InsumosView.vue'), // Módulo Recomendado
         },
         {
-          path: "cocina",
-          name: "cocina-produccion",
-          component: () => import("@/views/admin/PantallaCocinaView.vue"), // Módulo Recomendado
+          path: 'cocina',
+          name: 'cocina-produccion',
+          component: () => import('@/views/admin/PantallaCocinaView.vue'), // Módulo Recomendado
         },
         {
-          path: "usuarios",
-          name: "admin-usuarios",
-          component: () => import("@/views/admin/UsuariosAdminView.vue"),
+          path: 'usuarios',
+          name: 'admin-usuarios',
+          component: () => import('@/views/admin/UsuariosAdminView.vue'),
         },
         {
-          path: "empleados",
-          name: "admin-empleados",
-          component: () => import("@/views/admin/EmpleadosAdminView.vue"),
+          path: 'empleados',
+          name: 'admin-empleados',
+          component: () => import('@/views/admin/EmpleadosAdminView.vue'),
         },
         {
-          path: "clientes",
-          name: "admin-clientes",
-          component: () => import("@/views/admin/ClientesAdminView.vue"),
+          path: 'clientes',
+          name: 'admin-clientes',
+          component: () => import('@/views/admin/ClientesAdminView.vue'),
         },
         {
-          path: "perfil-empleado",
-          name: "admin-perfil-empleado",
-          component: () => import("@/views/admin/PerfilEmpleadoView.vue"),
+          path: 'perfil-empleado',
+          name: 'admin-perfil-empleado',
+          component: () => import('@/views/admin/PerfilEmpleadoView.vue'),
         },
         {
-          path: "configuracion",
-          name: "configuracion-empresa",
-          component: () => import("@/views/admin/ConfiguracionView.vue"),
+          path: 'configuracion',
+          name: 'configuracion-empresa',
+          component: () => import('@/views/admin/ConfiguracionView.vue'),
         },
         {
-          path: "contabilidad/caja",
-          name: "contabilidad-caja",
-          component: () =>
-            import("@/views/admin/contabilidad/CierreCajaView.vue"),
+          path: 'contabilidad/caja',
+          name: 'contabilidad-caja',
+          component: () => import('@/views/admin/contabilidad/CierreCajaView.vue'),
         },
         {
-          path: "contabilidad/gastos",
-          name: "contabilidad-gastos",
-          component: () =>
-            import("@/views/admin/contabilidad/GastosEgresosView.vue"),
+          path: 'contabilidad/gastos',
+          name: 'contabilidad-gastos',
+          component: () => import('@/views/admin/contabilidad/GastosEgresosView.vue'),
         },
         {
-          path: "contabilidad/libro-ventas",
-          name: "contabilidad-libro-ventas",
-          component: () =>
-            import("@/views/admin/contabilidad/LibroVentasView.vue"),
+          path: 'contabilidad/libro-ventas',
+          name: 'contabilidad-libro-ventas',
+          component: () => import('@/views/admin/contabilidad/LibroVentasView.vue'),
         },
       ],
     },
 
     // Ruta de acceso denegado
     {
-      path: "/acceso-denegado",
-      name: "acceso-denegado",
-      component: () => import("@/views/AccesoDenegadoView.vue"),
+      path: '/acceso-denegado',
+      name: 'acceso-denegado',
+      component: () => import('@/views/AccesoDenegadoView.vue'),
     },
   ],
-});
+})
 
 // Guard de navegación para verificar autenticación y rol de admin
 router.beforeEach((to, from, next) => {
-  const token = getTokenFromLocalStorage();
+  const token = getTokenFromLocalStorage()
 
   // Verificar si la ruta requiere rol de admin
   if (to.meta?.requiresAdmin) {
@@ -220,33 +217,33 @@ router.beforeEach((to, from, next) => {
     if (!token) {
       // Si no hay token, redirigir al login con la URL de retorno
       return next({
-        name: "login",
+        name: 'login',
         query: { returnUrl: to.fullPath },
-      });
+      })
     }
 
     // Si tiene token, verificar el rol
-    const decoded = parseJwt(token);
-    const userRole = decoded?.rol || decoded?.role || decoded?.tipo;
+    const decoded = parseJwt(token)
+    const userRole = decoded?.rol || decoded?.role || decoded?.tipo
 
     if (!decoded || !userRole) {
-      console.warn("Token inválido o sin rol para admin:", decoded);
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      console.warn('Token inválido o sin rol para admin:', decoded)
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
       return next({
-        name: "login",
+        name: 'login',
         query: { returnUrl: to.fullPath },
-      });
+      })
     }
 
     // Verificar si el usuario es admin
-    if (userRole !== "EMPLEADO") {
+    if (userRole !== 'EMPLEADO') {
       // Si está logueado pero NO es admin, mostrar acceso denegado
-      return next({ name: "acceso-denegado" });
+      return next({ name: 'acceso-denegado' })
     }
 
     // Si es admin, permitir acceso
-    return next();
+    return next()
   }
 
   // Verificar si la ruta requiere solo autenticación (sin ser admin)
@@ -254,14 +251,14 @@ router.beforeEach((to, from, next) => {
     if (!token) {
       // Si no hay token, redirigir al login
       return next({
-        name: "login",
+        name: 'login',
         query: { returnUrl: to.fullPath },
-      });
+      })
     }
   }
 
   // Si todo está bien, continuar con la navegación
-  next();
-});
+  next()
+})
 
-export default router;
+export default router

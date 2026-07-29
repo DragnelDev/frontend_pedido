@@ -62,7 +62,11 @@ type Usuario = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Configuración por tipo
 // ─────────────────────────────────────────────────────────────────────────────
-type ColDef = { label: string; campo: string; tipo?: 'avatar' | 'badge' | 'bool' | 'fecha' | 'mono' }
+type ColDef = {
+  label: string
+  campo: string
+  tipo?: 'avatar' | 'badge' | 'bool' | 'fecha' | 'mono'
+}
 
 type TipoConfig = {
   titulo: string
@@ -76,53 +80,53 @@ type TipoConfig = {
 
 const CONFIG: Record<string, TipoConfig> = {
   clientes: {
-    titulo:   'Clientes',
+    titulo: 'Clientes',
     singular: 'Cliente',
-    sub:      'Gestiona los clientes registrados',
-    icon:     'pi pi-users',
-    emoji:    '👥',
+    sub: 'Gestiona los clientes registrados',
+    icon: 'pi pi-users',
+    emoji: '👥',
     endpoint: '/clientes',
     columnas: [
-      { label: 'Nombre',    campo: 'nombre',           tipo: 'avatar' },
-      { label: 'Ap. Paterno',campo: 'apellidoPaterno'                 },
-      { label: 'CI',        campo: 'cedulaIdentidad',  tipo: 'mono'   },
-      { label: 'Email',     campo: 'email'                             },
-      { label: 'Celular',   campo: 'celular',          tipo: 'mono'   },
-      { label: 'Dirección', campo: 'direccion'                         },
+      { label: 'Nombre', campo: 'nombre', tipo: 'avatar' },
+      { label: 'Ap. Paterno', campo: 'apellidoPaterno' },
+      { label: 'CI', campo: 'cedulaIdentidad', tipo: 'mono' },
+      { label: 'Email', campo: 'email' },
+      { label: 'Celular', campo: 'celular', tipo: 'mono' },
+      { label: 'Dirección', campo: 'direccion' },
     ],
   },
   empleados: {
-    titulo:   'Empleados',
+    titulo: 'Empleados',
     singular: 'Empleado',
-    sub:      'Gestiona el personal de Berry Sweet',
-    icon:     'pi pi-id-card',
-    emoji:    '👔',
+    sub: 'Gestiona el personal de Berry Sweet',
+    icon: 'pi pi-id-card',
+    emoji: '👔',
     endpoint: '/empleados',
     columnas: [
-      { label: 'Nombre',     campo: 'nombre',           tipo: 'avatar' },
-      { label: 'Ap. Paterno',campo: 'apellidoPaterno'                  },
-      { label: 'CI',         campo: 'cedulaIdentidad',  tipo: 'mono'   },
-      { label: 'Cargo',      campo: 'cargo',            tipo: 'badge'  },
-      { label: 'Email',      campo: 'email'                             },
-      { label: 'Celular',    campo: 'celular',          tipo: 'mono'   },
-      { label: 'Activo',     campo: 'activo',           tipo: 'bool'   },
+      { label: 'Nombre', campo: 'nombre', tipo: 'avatar' },
+      { label: 'Ap. Paterno', campo: 'apellidoPaterno' },
+      { label: 'CI', campo: 'cedulaIdentidad', tipo: 'mono' },
+      { label: 'Cargo', campo: 'cargo', tipo: 'badge' },
+      { label: 'Email', campo: 'email' },
+      { label: 'Celular', campo: 'celular', tipo: 'mono' },
+      { label: 'Activo', campo: 'activo', tipo: 'bool' },
     ],
   },
   usuarios: {
-    titulo:   'Usuarios',
+    titulo: 'Usuarios',
     singular: 'Usuario',
-    sub:      'Gestiona los accesos al sistema',
-    icon:     'pi pi-user',
-    emoji:    '🔐',
+    sub: 'Gestiona los accesos al sistema',
+    icon: 'pi pi-user',
+    emoji: '🔐',
     endpoint: '/usuarios',
     columnas: [
-      { label: 'Foto',      campo: 'imagenUrl',     tipo: 'avatar' },
-      { label: 'Email',     campo: 'email'                           },
-      { label: 'Rol',       campo: 'rol',           tipo: 'badge'  },
-      { label: 'Vinculado', campo: '_vinculado'                    },
-      { label: 'Activo',    campo: 'activo',        tipo: 'bool'   },
-      { label: 'Cambio clave', campo: 'fechaCambioClave', tipo: 'fecha'  },
-      { label: 'Creado',    campo: 'fechaCreacion', tipo: 'fecha'  },
+      { label: 'Foto', campo: 'imagenUrl', tipo: 'avatar' },
+      { label: 'Email', campo: 'email' },
+      { label: 'Rol', campo: 'rol', tipo: 'badge' },
+      { label: 'Vinculado', campo: '_vinculado' },
+      { label: 'Activo', campo: 'activo', tipo: 'bool' },
+      { label: 'Cambio clave', campo: 'fechaCambioClave', tipo: 'fecha' },
+      { label: 'Creado', campo: 'fechaCreacion', tipo: 'fecha' },
     ],
   },
 }
@@ -131,82 +135,155 @@ const CONFIG: Record<string, TipoConfig> = {
 // Campos de formulario por tipo (camelCase, alineados al DER)
 // ─────────────────────────────────────────────────────────────────────────────
 type CampoForm = {
-  key: string; label: string
+  key: string
+  label: string
   type: 'text' | 'email' | 'number' | 'date' | 'select' | 'password' | 'tel' | 'search'
   required?: boolean
   opciones?: string[]
   placeholder?: string
-  soloCrear?: boolean   // solo aparece al crear, no al editar
-  visibleSi?: (rol: string) => boolean  // mostrar campo según rol seleccionado
+  soloCrear?: boolean // solo aparece al crear, no al editar
+  visibleSi?: (rol: string) => boolean // mostrar campo según rol seleccionado
 }
 
 const CAMPOS_FORM: Record<string, CampoForm[]> = {
   clientes: [
-    { key: 'nombre',           label: 'Nombre',           type: 'text',  required: true,  placeholder: 'Nombre del cliente' },
-    { key: 'apellidoPaterno',  label: 'Apellido paterno', type: 'text',  required: true,  placeholder: 'Apellido paterno' },
-    { key: 'apellidoMaterno',  label: 'Apellido materno', type: 'text',                   placeholder: 'Apellido materno' },
-    { key: 'cedulaIdentidad',  label: 'Cédula de identidad', type: 'text', required: true, placeholder: 'Número de CI' },
-    { key: 'celular',          label: 'Celular',          type: 'tel',                    placeholder: '75000000' },
-    { key: 'email',            label: 'Correo electrónico', type: 'email',                placeholder: 'correo@ejemplo.com' },
-    { key: 'direccion',        label: 'Dirección',        type: 'text',                   placeholder: 'Calle y número' },
+    {
+      key: 'nombre',
+      label: 'Nombre',
+      type: 'text',
+      required: true,
+      placeholder: 'Nombre del cliente',
+    },
+    {
+      key: 'apellidoPaterno',
+      label: 'Apellido paterno',
+      type: 'text',
+      required: true,
+      placeholder: 'Apellido paterno',
+    },
+    {
+      key: 'apellidoMaterno',
+      label: 'Apellido materno',
+      type: 'text',
+      placeholder: 'Apellido materno',
+    },
+    {
+      key: 'cedulaIdentidad',
+      label: 'Cédula de identidad',
+      type: 'text',
+      required: true,
+      placeholder: 'Número de CI',
+    },
+    { key: 'celular', label: 'Celular', type: 'tel', placeholder: '75000000' },
+    { key: 'email', label: 'Correo electrónico', type: 'email', placeholder: 'correo@ejemplo.com' },
+    { key: 'direccion', label: 'Dirección', type: 'text', placeholder: 'Calle y número' },
   ],
   empleados: [
-    { key: 'nombre',           label: 'Nombre',           type: 'text',  required: true,  placeholder: 'Nombre' },
-    { key: 'apellidoPaterno',  label: 'Apellido paterno', type: 'text',  required: true,  placeholder: 'Apellido paterno' },
-    { key: 'apellidoMaterno',  label: 'Apellido materno', type: 'text',                   placeholder: 'Apellido materno' },
-    { key: 'cedulaIdentidad',  label: 'Cédula de identidad', type: 'text', required: true, placeholder: 'Número de CI' },
-    { key: 'cargo',            label: 'Cargo',            type: 'text',                   placeholder: 'Ej: Cajero, Repartidor...' },
-    { key: 'salario',          label: 'Salario (Bs.)',    type: 'number',                 placeholder: '0.00' },
-    { key: 'celular',          label: 'Celular',          type: 'tel',                    placeholder: '75000000' },
-    { key: 'email',            label: 'Correo electrónico', type: 'email',                placeholder: 'correo@ejemplo.com' },
-    { key: 'direccion',        label: 'Dirección',        type: 'text',                   placeholder: 'Dirección del empleado' },
-    { key: 'fechaNacimiento',  label: 'Fecha de nacimiento', type: 'date' },
-    { key: 'fechaIngreso',     label: 'Fecha de ingreso',    type: 'date' },
+    { key: 'nombre', label: 'Nombre', type: 'text', required: true, placeholder: 'Nombre' },
+    {
+      key: 'apellidoPaterno',
+      label: 'Apellido paterno',
+      type: 'text',
+      required: true,
+      placeholder: 'Apellido paterno',
+    },
+    {
+      key: 'apellidoMaterno',
+      label: 'Apellido materno',
+      type: 'text',
+      placeholder: 'Apellido materno',
+    },
+    {
+      key: 'cedulaIdentidad',
+      label: 'Cédula de identidad',
+      type: 'text',
+      required: true,
+      placeholder: 'Número de CI',
+    },
+    { key: 'cargo', label: 'Cargo', type: 'text', placeholder: 'Ej: Cajero, Repartidor...' },
+    { key: 'salario', label: 'Salario (Bs.)', type: 'number', placeholder: '0.00' },
+    { key: 'celular', label: 'Celular', type: 'tel', placeholder: '75000000' },
+    { key: 'email', label: 'Correo electrónico', type: 'email', placeholder: 'correo@ejemplo.com' },
+    { key: 'direccion', label: 'Dirección', type: 'text', placeholder: 'Dirección del empleado' },
+    { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' },
+    { key: 'fechaIngreso', label: 'Fecha de ingreso', type: 'date' },
   ],
   usuarios: [
-    { key: 'rol',         label: 'Rol del sistema',    type: 'select',   required: true, opciones: ['CLIENTE', 'EMPLEADO'] },
-    { key: 'idCliente',   label: 'Seleccionar Cliente',  type: 'search', required: false, placeholder: 'Buscar cliente...', visibleSi: (rol) => rol === 'CLIENTE' },
-    { key: 'idEmpleado',  label: 'Seleccionar Empleado', type: 'search', required: false, placeholder: 'Buscar empleado...', visibleSi: (rol) => rol === 'EMPLEADO' },
-    { key: 'imagenUrl',   label: 'Foto de perfil',     type: 'text',    required: false, placeholder: 'https://...' },
-    { key: 'email',       label: 'Correo electrónico', type: 'email',    required: false, placeholder: 'correo@berrysw.com' },
+    {
+      key: 'rol',
+      label: 'Rol del sistema',
+      type: 'select',
+      required: true,
+      opciones: ['CLIENTE', 'EMPLEADO'],
+    },
+    {
+      key: 'idCliente',
+      label: 'Seleccionar Cliente',
+      type: 'search',
+      required: false,
+      placeholder: 'Buscar cliente...',
+      visibleSi: (rol) => rol === 'CLIENTE',
+    },
+    {
+      key: 'idEmpleado',
+      label: 'Seleccionar Empleado',
+      type: 'search',
+      required: false,
+      placeholder: 'Buscar empleado...',
+      visibleSi: (rol) => rol === 'EMPLEADO',
+    },
+    {
+      key: 'imagenUrl',
+      label: 'Foto de perfil',
+      type: 'text',
+      required: false,
+      placeholder: 'https://...',
+    },
+    {
+      key: 'email',
+      label: 'Correo electrónico',
+      type: 'email',
+      required: false,
+      placeholder: 'correo@berrysw.com',
+    },
   ],
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Estado reactivo
 // ─────────────────────────────────────────────────────────────────────────────
-const config   = computed(() => CONFIG[props.tipo])
-const camposForm = computed(() => CAMPOS_FORM[props.tipo])
+const config = computed<TipoConfig>(() => CONFIG[props.tipo])
+const camposForm = computed<CampoForm[]>(() => CAMPOS_FORM[props.tipo])
 
-const registros   = ref<any[]>([])
-const cargando    = ref(true)
-const busqueda    = ref('')
+const registros = ref<any[]>([])
+const cargando = ref(true)
+const busqueda = ref('')
 const paginaActual = ref(1)
-const POR_PAGINA   = 10
+const POR_PAGINA = 10
 
 // Modal form
-const showForm      = ref(false)
-const modoEdicion   = ref(false)
-const registroEdit  = ref<any>(null)
-const guardando     = ref(false)
-const form          = ref<Record<string, any>>({})
-const formErrors    = ref<Record<string, string>>({})
+const showForm = ref(false)
+const modoEdicion = ref(false)
+const registroEdit = ref<any>(null)
+const guardando = ref(false)
+const form = ref<Record<string, any>>({})
+const formErrors = ref<Record<string, string>>({})
 
 // Modal confirmar eliminar
-const showConfirm   = ref(false)
-const registroDel   = ref<any>(null)
-const eliminando    = ref(false)
+const showConfirm = ref(false)
+const registroDel = ref<any>(null)
+const eliminando = ref(false)
 
 // Búsqueda dinámica para usuarios (clientes/empleados)
-const busquedaActiva    = ref<Record<string, string>>({})  // por campo
-const listaResultados   = ref<Record<string, any[]>>({})   // por campo
-const cargandoLista     = ref<Record<string, boolean>>({}) // por campo
-const seleccionados     = ref<Record<string, any>>({})     // {idCliente: {...}, idEmpleado: {...}}
+const busquedaActiva = ref<Record<string, string>>({}) // por campo
+const listaResultados = ref<Record<string, any[]>>({}) // por campo
+const cargandoLista = ref<Record<string, boolean>>({}) // por campo
+const seleccionados = ref<Record<string, any>>({}) // {idCliente: {...}, idEmpleado: {...}}
 
 // Upload de imagen para usuarios
-const subiendoImagen    = ref(false)
-const dragOver          = ref(false)
-const inputFileRef      = ref<HTMLInputElement | null>(null)
+const subiendoImagen = ref(false)
+const dragOver = ref(false)
+const inputFileRef = ref<HTMLInputElement | null>(null)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Carga de datos
@@ -234,8 +311,12 @@ watch(() => props.tipo, cargar)
 const filtrados = computed(() => {
   const q = busqueda.value.trim().toLowerCase()
   if (!q) return registros.value
-  return registros.value.filter(r =>
-    Object.values(r).some(v => String(v ?? '').toLowerCase().includes(q))
+  return registros.value.filter((r) =>
+    Object.values(r).some((v) =>
+      String(v ?? '')
+        .toLowerCase()
+        .includes(q),
+    ),
   )
 })
 
@@ -252,7 +333,7 @@ function cambiarPagina(p: number) {
 
 const pageButtons = computed(() => {
   const total = totalPaginas.value
-  const cur   = paginaActual.value
+  const cur = paginaActual.value
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
   const pages: (number | '...')[] = [1]
   if (cur > 3) pages.push('...')
@@ -266,30 +347,30 @@ const pageButtons = computed(() => {
 // CRUD
 // ─────────────────────────────────────────────────────────────────────────────
 function abrirCrear() {
-  form.value      = {}
+  form.value = {}
   formErrors.value = {}
   seleccionados.value = {}
   busquedaActiva.value = {}
   listaResultados.value = {}
-  modoEdicion.value  = false
+  modoEdicion.value = false
   registroEdit.value = null
-  showForm.value  = true
+  showForm.value = true
 }
 
 function abrirEditar(r: any) {
   // Copia sin campos readonly ni relaciones anidadas
   const copia: Record<string, any> = {}
-  for (const c of camposForm.value) {
+  for (const c of camposForm.value ?? []) {
     if (c.soloCrear) continue
     copia[c.key] = r[c.key] ?? ''
   }
-  form.value       = copia
+  form.value = copia
   formErrors.value = {}
 
   // Para usuarios, cargar el empleado/cliente seleccionado
   if (props.tipo === 'usuarios') {
     form.value['rol'] = r.rol || ''
-    
+
     if (r.rol === 'CLIENTE' && r.cliente) {
       seleccionados.value['idCliente'] = r.cliente
       form.value['idCliente'] = r.idCliente
@@ -301,20 +382,20 @@ function abrirEditar(r: any) {
     }
   }
 
-  modoEdicion.value  = true
+  modoEdicion.value = true
   registroEdit.value = r
-  showForm.value  = true
+  showForm.value = true
 }
 
 function validarForm(): boolean {
   formErrors.value = {}
-  
+
   // Validar rol seleccionado
   const rolSeleccionado = form.value['rol']
   if (!rolSeleccionado) {
     formErrors.value['rol'] = 'El rol es obligatorio'
   }
-  
+
   // Validar que se seleccione el cliente o empleado según el rol
   if (rolSeleccionado === 'CLIENTE' && !form.value['idCliente']) {
     formErrors.value['idCliente'] = 'Debes seleccionar un cliente'
@@ -322,27 +403,27 @@ function validarForm(): boolean {
   if (rolSeleccionado === 'EMPLEADO' && !form.value['idEmpleado']) {
     formErrors.value['idEmpleado'] = 'Debes seleccionar un empleado'
   }
-  
+
   // Validar que el email esté presente (se hereda del cliente/empleado)
   if (!form.value['email']) {
     formErrors.value['email'] = 'El correo debe estar disponible (selecciona cliente/empleado)'
   }
-  
+
   // Validar campos requeridos
-  for (const c of camposForm.value) {
+  for (const c of camposForm.value ?? []) {
     if (c.soloCrear && modoEdicion.value) continue
-    
+
     // Verificar visibilidad dinámica
     if (c.visibleSi && !c.visibleSi(form.value['rol'] || '')) continue
-    
+
     // Skip email, rol, idCliente, idEmpleado, imagenUrl (ya validados o especiales)
     if (['email', 'rol', 'idCliente', 'idEmpleado', 'imagenUrl'].includes(c.key)) continue
-    
+
     if (c.required && !form.value[c.key]) {
       formErrors.value[c.key] = `${c.label} es obligatorio`
     }
   }
-  
+
   return Object.keys(formErrors.value).length === 0
 }
 
@@ -352,18 +433,18 @@ async function guardar() {
 
   // Construye payload limpio
   const payload: Record<string, any> = {}
-  for (const c of camposForm.value) {
+  for (const c of camposForm.value ?? []) {
     if (c.soloCrear && modoEdicion.value) continue
-    
+
     // En edición, omitir email y rol (son readonly)
     if (modoEdicion.value && ['email', 'rol'].includes(c.key)) continue
-    
+
     // En creación, omitir rol (ya viene con el payload)
     if (!modoEdicion.value && c.key === 'rol') continue
-    
+
     // Omitir imagenUrl si está vacía
     if (c.key === 'imagenUrl' && !form.value[c.key]) continue
-    
+
     const val = form.value[c.key]
     if (val !== '' && val !== null && val !== undefined) {
       payload[c.key] = c.type === 'number' ? Number(val) : val
@@ -389,7 +470,7 @@ async function guardar() {
 
 function confirmarEliminar(r: any) {
   registroDel.value = r
-  showConfirm.value  = true
+  showConfirm.value = true
 }
 
 async function eliminar() {
@@ -443,12 +524,16 @@ function getAvatarLabel(r: any, campo: string): string {
 
 function fmtFecha(iso?: string): string {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('es-BO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
 const ROL_CFG: Record<string, { bg: string; color: string }> = {
   EMPLEADO: { bg: '#e3f2fd', color: '#1565c0' },
-  CLIENTE:  { bg: '#fce4ec', color: '#c2185b' },
+  CLIENTE: { bg: '#fce4ec', color: '#c2185b' },
 }
 
 function getRolStyle(rol: string) {
@@ -457,8 +542,12 @@ function getRolStyle(rol: string) {
 
 // Colores de avatar por inicial
 const AVATAR_COLORS = [
-  ['#fce4ec','#e91e8c'], ['#e8eaf6','#3949ab'], ['#e8f5e9','#2e7d32'],
-  ['#fff3e0','#e65100'], ['#f3e5f5','#7b1fa2'], ['#e3f2fd','#1565c0'],
+  ['#fce4ec', '#e91e8c'],
+  ['#e8eaf6', '#3949ab'],
+  ['#e8f5e9', '#2e7d32'],
+  ['#fff3e0', '#e65100'],
+  ['#f3e5f5', '#7b1fa2'],
+  ['#e3f2fd', '#1565c0'],
 ]
 
 function avatarColor(r: any): { bg: string; color: string } {
@@ -492,7 +581,7 @@ async function buscarEntidad(campo: string, termino: string) {
   try {
     const { data } = await http.get(endpoint)
     const terminoLower = termino.toLowerCase()
-    
+
     // Obtener usuarios existentes para validar
     let usuariosExistentes: any[] = []
     try {
@@ -501,29 +590,32 @@ async function buscarEntidad(campo: string, termino: string) {
     } catch (e) {
       console.error('Error obteniendo usuarios:', e)
     }
-    
-    listaResultados.value[campo] = (data || []).filter((e: any) => {
-      const cumpleTermino = e.nombre?.toLowerCase().includes(terminoLower) ||
-        e.apellidoPaterno?.toLowerCase().includes(terminoLower) ||
-        e.email?.toLowerCase().includes(terminoLower) ||
-        e.cedulaIdentidad?.includes(termino)
-      
-      if (!cumpleTermino) return false
-      
-      // Si ya hay una selección, no mostrar esa misma entidad
-      if (e.id === form.value[campo]) return false
-      
-      // Validar que no exista un usuario para este cliente/empleado
-      const yaExiste = usuariosExistentes.some((u: any) => {
-        if (campo === 'idCliente') {
-          return u.idCliente === e.id && u.rol === 'CLIENTE'
-        } else {
-          return u.idEmpleado === e.id && u.rol === 'EMPLEADO'
-        }
+
+    listaResultados.value[campo] = (data || [])
+      .filter((e: any) => {
+        const cumpleTermino =
+          e.nombre?.toLowerCase().includes(terminoLower) ||
+          e.apellidoPaterno?.toLowerCase().includes(terminoLower) ||
+          e.email?.toLowerCase().includes(terminoLower) ||
+          e.cedulaIdentidad?.includes(termino)
+
+        if (!cumpleTermino) return false
+
+        // Si ya hay una selección, no mostrar esa misma entidad
+        if (e.id === form.value[campo]) return false
+
+        // Validar que no exista un usuario para este cliente/empleado
+        const yaExiste = usuariosExistentes.some((u: any) => {
+          if (campo === 'idCliente') {
+            return u.idCliente === e.id && u.rol === 'CLIENTE'
+          } else {
+            return u.idEmpleado === e.id && u.rol === 'EMPLEADO'
+          }
+        })
+
+        return !yaExiste
       })
-      
-      return !yaExiste
-    }).slice(0, 10)
+      .slice(0, 10)
   } catch (e: any) {
     console.error('Error buscando entidad:', e)
     listaResultados.value[campo] = []
@@ -544,7 +636,7 @@ function seleccionarEntidad(campo: string, entidad: any) {
 function limpiarSeleccion(campo: string) {
   form.value[campo] = null
   seleccionados.value[campo] = null
-  form.value['email'] = ''  // Limpiar email heredado
+  form.value['email'] = '' // Limpiar email heredado
   busquedaActiva.value[campo] = ''
   listaResultados.value[campo] = []
 }
@@ -601,7 +693,6 @@ function quitarImagen() {
 
 <template>
   <div class="admin-wrap">
-
     <!-- ── Header ──────────────────────────────────────────────────────────── -->
     <div class="page-header">
       <div class="header-left">
@@ -644,7 +735,6 @@ function quitarImagen() {
 
     <!-- ── Tabla ───────────────────────────────────────────────────────────── -->
     <div class="tabla-card">
-
       <!-- Skeleton loading -->
       <template v-if="cargando">
         <div class="skeleton-rows">
@@ -663,14 +753,13 @@ function quitarImagen() {
           <table>
             <thead>
               <tr>
-                <th style="width:52px">#</th>
+                <th style="width: 52px">#</th>
                 <th v-for="col in config.columnas" :key="col.campo">{{ col.label }}</th>
-                <th style="width:100px">Acciones</th>
+                <th style="width: 100px">Acciones</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(r, idx) in paginados" :key="r.id">
-
                 <!-- Número de fila -->
                 <td>
                   <span class="nro-badge">{{ (paginaActual - 1) * POR_PAGINA + idx + 1 }}</span>
@@ -678,14 +767,10 @@ function quitarImagen() {
 
                 <!-- Columnas dinámicas -->
                 <td v-for="col in config.columnas" :key="col.campo">
-
                   <!-- Avatar + texto -->
                   <div v-if="col.tipo === 'avatar'" class="avatar-cell">
                     <!-- Si es imagenUrl y tiene URL, mostrar imagen -->
-                    <div
-                      v-if="col.campo === 'imagenUrl' && r[col.campo]"
-                      class="avatar avatar-img"
-                    >
+                    <div v-if="col.campo === 'imagenUrl' && r[col.campo]" class="avatar avatar-img">
                       <img :src="r[col.campo]" :alt="getAvatarLabel(r, col.campo)" />
                     </div>
                     <!-- Si no, mostrar avatar con inicial -->
@@ -693,7 +778,9 @@ function quitarImagen() {
                       v-else
                       class="avatar"
                       :style="`background:${avatarColor(r).bg}; color:${avatarColor(r).color}`"
-                    >{{ getInitial(r) }}</div>
+                    >
+                      {{ getInitial(r) }}
+                    </div>
                     <span class="avatar-label">{{ getAvatarLabel(r, col.campo) }}</span>
                   </div>
 
@@ -703,7 +790,8 @@ function quitarImagen() {
                       v-if="col.campo === 'rol'"
                       class="rol-badge"
                       :style="`background:${getRolStyle(r.rol).bg}; color:${getRolStyle(r.rol).color}`"
-                    >{{ r.rol }}</span>
+                      >{{ r.rol }}</span
+                    >
                     <span v-else class="cargo-badge">{{ r[col.campo] || '—' }}</span>
                   </template>
 
@@ -729,7 +817,6 @@ function quitarImagen() {
 
                   <!-- Texto normal -->
                   <span v-else class="td-text">{{ getCellValue(r, col.campo) }}</span>
-
                 </td>
 
                 <!-- Acciones -->
@@ -738,7 +825,11 @@ function quitarImagen() {
                     <button class="btn-accion editar" @click="abrirEditar(r)" title="Editar">
                       <i class="pi pi-pencil"></i>
                     </button>
-                    <button class="btn-accion eliminar" @click="confirmarEliminar(r)" title="Eliminar">
+                    <button
+                      class="btn-accion eliminar"
+                      @click="confirmarEliminar(r)"
+                      title="Eliminar"
+                    >
                       <i class="pi pi-trash"></i>
                     </button>
                   </div>
@@ -763,7 +854,11 @@ function quitarImagen() {
 
         <!-- Paginación -->
         <div v-if="totalPaginas > 1" class="paginacion">
-          <button class="btn-pag" :disabled="paginaActual === 1" @click="cambiarPagina(paginaActual - 1)">
+          <button
+            class="btn-pag"
+            :disabled="paginaActual === 1"
+            @click="cambiarPagina(paginaActual - 1)"
+          >
             <i class="pi pi-chevron-left"></i>
           </button>
           <template v-for="btn in pageButtons" :key="String(btn)">
@@ -773,15 +868,20 @@ function quitarImagen() {
               class="btn-num"
               :class="{ activo: btn === paginaActual }"
               @click="cambiarPagina(btn as number)"
-            >{{ btn }}</button>
+            >
+              {{ btn }}
+            </button>
           </template>
-          <button class="btn-pag" :disabled="paginaActual === totalPaginas" @click="cambiarPagina(paginaActual + 1)">
+          <button
+            class="btn-pag"
+            :disabled="paginaActual === totalPaginas"
+            @click="cambiarPagina(paginaActual + 1)"
+          >
             <i class="pi pi-chevron-right"></i>
           </button>
           <span class="pag-info">{{ filtrados.length }} total</span>
         </div>
       </template>
-
     </div>
 
     <!-- ── Modal Crear / Editar ───────────────────────────────────────────── -->
@@ -789,7 +889,6 @@ function quitarImagen() {
       <Transition name="modal-fade">
         <div v-if="showForm" class="modal-overlay" @click.self="showForm = false">
           <div class="modal-panel">
-
             <div class="modal-header">
               <div class="modal-header-info">
                 <div class="modal-header-icon">
@@ -800,7 +899,11 @@ function quitarImagen() {
                     {{ modoEdicion ? `Editar ${config.singular}` : `Nuevo ${config.singular}` }}
                   </h3>
                   <p class="modal-subtitulo">
-                    {{ modoEdicion ? `Actualizando #${registroEdit?.id}` : 'Completa los datos del formulario' }}
+                    {{
+                      modoEdicion
+                        ? `Actualizando #${registroEdit?.id}`
+                        : 'Completa los datos del formulario'
+                    }}
                   </p>
                 </div>
               </div>
@@ -817,17 +920,26 @@ function quitarImagen() {
                   class="field"
                   :class="{
                     'field-hidden': c.soloCrear && modoEdicion,
-                    'field-full':   c.type === 'text' && c.key === 'direccion',
+                    'field-full': c.type === 'text' && c.key === 'direccion',
                   }"
                   v-show="!c.visibleSi || c.visibleSi(form['rol'] || '')"
                 >
                   <label class="field-label">
                     {{ c.label }}
-                    <span v-if="c.required && !(c.soloCrear && modoEdicion) && c.key !== 'email'" class="req">*</span>
+                    <span
+                      v-if="c.required && !(c.soloCrear && modoEdicion) && c.key !== 'email'"
+                      class="req"
+                      >*</span
+                    >
                   </label>
 
                   <!-- Select (rol, etc) -->
-                  <select v-if="c.type === 'select'" v-model="form[c.key]" class="field-input" :disabled="modoEdicion">
+                  <select
+                    v-if="c.type === 'select'"
+                    v-model="form[c.key]"
+                    class="field-input"
+                    :disabled="modoEdicion"
+                  >
                     <option value="" disabled>Selecciona...</option>
                     <option v-for="op in c.opciones" :key="op" :value="op">{{ op }}</option>
                   </select>
@@ -869,7 +981,10 @@ function quitarImagen() {
                     </div>
 
                     <!-- Resultados de búsqueda -->
-                    <div v-if="listaResultados[c.key]?.length && busquedaActiva[c.key]" class="search-results">
+                    <div
+                      v-if="listaResultados[c.key]?.length && busquedaActiva[c.key]"
+                      class="search-results"
+                    >
                       <div
                         v-for="item in listaResultados[c.key]"
                         :key="item.id"
@@ -878,7 +993,9 @@ function quitarImagen() {
                       >
                         <div class="result-main">
                           {{ item.nombre }}
-                          <span v-if="item.apellidoPaterno" class="text-muted">{{ item.apellidoPaterno }}</span>
+                          <span v-if="item.apellidoPaterno" class="text-muted">{{
+                            item.apellidoPaterno
+                          }}</span>
                         </div>
                         <div class="result-sub">
                           {{ item.email || item.cedulaIdentidad || `#${item.id}` }}
@@ -892,7 +1009,14 @@ function quitarImagen() {
                     </div>
 
                     <!-- Sin resultados -->
-                    <div v-if="busquedaActiva[c.key] && !cargandoLista[c.key] && !listaResultados[c.key]?.length" class="search-empty">
+                    <div
+                      v-if="
+                        busquedaActiva[c.key] &&
+                        !cargandoLista[c.key] &&
+                        !listaResultados[c.key]?.length
+                      "
+                      class="search-empty"
+                    >
                       No se encontraron resultados
                     </div>
                   </div>
@@ -903,14 +1027,23 @@ function quitarImagen() {
                     v-model="form[c.key]"
                     type="email"
                     class="field-input"
-                    :class="{ 'field-readonly': modoEdicion || (seleccionados['idCliente'] || seleccionados['idEmpleado']) }"
-                    :readonly="modoEdicion || !!(seleccionados['idCliente'] || seleccionados['idEmpleado'])"
+                    :class="{
+                      'field-readonly':
+                        modoEdicion || seleccionados['idCliente'] || seleccionados['idEmpleado'],
+                    }"
+                    :readonly="
+                      modoEdicion || !!(seleccionados['idCliente'] || seleccionados['idEmpleado'])
+                    "
                     :placeholder="c.placeholder"
                   />
 
                   <!-- Upload imagen (solo para usuarios/imagenUrl y cuando hay relación seleccionada) -->
                   <div
-                    v-else-if="c.key === 'imagenUrl' && props.tipo === 'usuarios' && (seleccionados['idCliente'] || seleccionados['idEmpleado'])"
+                    v-else-if="
+                      c.key === 'imagenUrl' &&
+                      props.tipo === 'usuarios' &&
+                      (seleccionados['idCliente'] || seleccionados['idEmpleado'])
+                    "
                     class="image-upload-field"
                   >
                     <div
@@ -926,10 +1059,17 @@ function quitarImagen() {
                           <img :src="form[c.key]" :alt="'Preview usuario'" />
                           <div class="img-overlay-actions">
                             <label for="file-input-usuario-img" class="btn-cambiar-img">
-                              <i :class="subiendoImagen ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"></i> 
+                              <i
+                                :class="subiendoImagen ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"
+                              ></i>
                               {{ subiendoImagen ? 'Subiendo...' : 'Cambiar' }}
                             </label>
-                            <button type="button" class="btn-quitar-img" @click="quitarImagen" :disabled="subiendoImagen">
+                            <button
+                              type="button"
+                              class="btn-quitar-img"
+                              @click="quitarImagen"
+                              :disabled="subiendoImagen"
+                            >
                               <i class="pi pi-trash"></i> Quitar
                             </button>
                           </div>
@@ -947,7 +1087,11 @@ function quitarImagen() {
                             {{ subiendoImagen ? 'Subiendo imagen...' : 'Arrastra una imagen aquí' }}
                           </p>
                           <p class="upload-sub">o</p>
-                          <label for="file-input-usuario-img" class="btn-upload" :class="{ disabled: subiendoImagen }">
+                          <label
+                            for="file-input-usuario-img"
+                            class="btn-upload"
+                            :class="{ disabled: subiendoImagen }"
+                          >
                             <i class="pi pi-folder-open"></i>
                             Seleccionar archivo
                           </label>
@@ -990,10 +1134,9 @@ function quitarImagen() {
               </button>
               <button class="btn-guardar" @click="guardar" :disabled="guardando">
                 <i :class="guardando ? 'pi pi-spin pi-spinner' : 'pi pi-save'"></i>
-                {{ guardando ? 'Guardando...' : (modoEdicion ? 'Actualizar' : 'Crear') }}
+                {{ guardando ? 'Guardando...' : modoEdicion ? 'Actualizar' : 'Crear' }}
               </button>
             </div>
-
           </div>
         </div>
       </Transition>
@@ -1008,8 +1151,8 @@ function quitarImagen() {
             <h3>Eliminar {{ config.singular }}</h3>
             <p>
               ¿Confirmas eliminar a
-              <strong>{{ nombreRegistro(registroDel) }}</strong>?
-              Esta acción no se puede deshacer.
+              <strong>{{ nombreRegistro(registroDel) }}</strong
+              >? Esta acción no se puede deshacer.
             </p>
             <div class="confirm-actions">
               <button class="btn-cancelar" @click="showConfirm = false" :disabled="eliminando">
@@ -1024,7 +1167,6 @@ function quitarImagen() {
         </div>
       </Transition>
     </Teleport>
-
   </div>
 </template>
 
@@ -1046,36 +1188,67 @@ function quitarImagen() {
   gap: 1rem;
 }
 
-.header-left { display: flex; align-items: center; gap: 1rem; }
-
-.page-icon {
-  width: 48px; height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #e91e8c, #f06292);
-  display: flex; align-items: center; justify-content: center;
-  color: white; font-size: 1.2rem; flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(233,30,140,0.3);
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.page-titulo { font-size: 1.5rem; font-weight: 800; color: #880e4f; margin: 0 0 0.15rem; }
-.page-sub    { font-size: 0.82rem; color: #f48fb1; margin: 0; }
+.page-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
+}
 
-.header-actions { display: flex; align-items: center; gap: 0.75rem; }
+.page-titulo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.15rem;
+}
+.page-sub {
+  font-size: 0.82rem;
+  color: #f48fb1;
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
 
 .btn-recargar {
-  width: 38px; height: 38px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 1.5px solid #f8bbd0;
   background: white;
   color: #c2185b;
   font-size: 0.9rem;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s;
 }
 
-.btn-recargar:hover:not(:disabled) { background: #fce4ec; border-color: #e91e8c; }
-.btn-recargar:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-recargar:hover:not(:disabled) {
+  background: #fce4ec;
+  border-color: #e91e8c;
+}
+.btn-recargar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btn-crear {
   display: flex;
@@ -1089,12 +1262,17 @@ function quitarImagen() {
   font-weight: 700;
   font-size: 0.875rem;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(233,30,140,0.3);
-  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
   white-space: nowrap;
 }
 
-.btn-crear:hover { opacity: 0.9; transform: translateY(-2px); }
+.btn-crear:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
 
 /* ── Toolbar ────────────────────────────────────────────────────────────────── */
 .toolbar {
@@ -1106,7 +1284,11 @@ function quitarImagen() {
   flex-wrap: wrap;
 }
 
-.search-wrap { position: relative; flex: 1; max-width: 420px; }
+.search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+}
 
 .search-icon {
   position: absolute;
@@ -1126,16 +1308,22 @@ function quitarImagen() {
   font-size: 0.875rem;
   outline: none;
   background: white;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   box-sizing: border-box;
 }
 
 .search-input:focus {
   border-color: #e91e8c;
-  box-shadow: 0 0 0 3px rgba(233,30,140,0.07);
+  box-shadow: 0 0 0 3px rgba(233, 30, 140, 0.07);
 }
 
-.toolbar-right { display: flex; align-items: center; gap: 0.75rem; }
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
 
 .total-badge {
   display: flex;
@@ -1151,13 +1339,17 @@ function quitarImagen() {
 .tabla-card {
   background: white;
   border-radius: 18px;
-  box-shadow: 0 4px 20px rgba(233,30,140,0.08);
+  box-shadow: 0 4px 20px rgba(233, 30, 140, 0.08);
   overflow: hidden;
   border: 1px solid #fce4ec;
 }
 
 /* ── Skeleton ───────────────────────────────────────────────────────────────── */
-.skeleton-rows { display: flex; flex-direction: column; gap: 0; }
+.skeleton-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
 
 .skeleton-row {
   display: flex;
@@ -1168,7 +1360,8 @@ function quitarImagen() {
 }
 
 .sk-avatar {
-  width: 36px; height: 36px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: linear-gradient(90deg, #fce4ec 25%, #fff9fb 50%, #fce4ec 75%);
   background-size: 200% 100%;
@@ -1176,7 +1369,12 @@ function quitarImagen() {
   flex-shrink: 0;
 }
 
-.sk-lines { flex: 1; display: flex; flex-direction: column; gap: 0.4rem; }
+.sk-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
 
 .sk-line {
   height: 12px;
@@ -1186,18 +1384,32 @@ function quitarImagen() {
   animation: shimmer 1.4s infinite;
 }
 
-.sk-line-lg { width: 55%; }
-.sk-line-sm { width: 35%; }
+.sk-line-lg {
+  width: 55%;
+}
+.sk-line-sm {
+  width: 35%;
+}
 
 @keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ── Tabla ──────────────────────────────────────────────────────────────────── */
-.table-wrap { overflow-x: auto; }
+.table-wrap {
+  overflow-x: auto;
+}
 
-table { width: 100%; border-collapse: collapse; min-width: 580px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 580px;
+}
 
 thead {
   background: linear-gradient(135deg, #e91e8c, #f06292);
@@ -1221,8 +1433,12 @@ td {
   vertical-align: middle;
 }
 
-tbody tr:last-child td { border-bottom: none; }
-tbody tr:hover td { background: #fff9fb; }
+tbody tr:last-child td {
+  border-bottom: none;
+}
+tbody tr:hover td {
+  background: #fff9fb;
+}
 
 /* ── Celdas ─────────────────────────────────────────────────────────────────── */
 .nro-badge {
@@ -1234,12 +1450,19 @@ tbody tr:hover td { background: #fff9fb; }
   font-size: 0.78rem;
 }
 
-.avatar-cell { display: flex; align-items: center; gap: 0.65rem; }
+.avatar-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
 
 .avatar {
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 800;
   font-size: 0.82rem;
   flex-shrink: 0;
@@ -1247,12 +1470,24 @@ tbody tr:hover td { background: #fff9fb; }
   border: 1px solid #f8bbd0;
 }
 
-.avatar-img { padding: 0; background: #f5f5f5; }
-.avatar-img img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-img {
+  padding: 0;
+  background: #f5f5f5;
+}
+.avatar-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
-.avatar-label { font-weight: 600; color: #333; font-size: 0.875rem; }
+.avatar-label {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.875rem;
+}
 
-.rol-badge, .cargo-badge {
+.rol-badge,
+.cargo-badge {
   display: inline-block;
   font-size: 0.72rem;
   font-weight: 700;
@@ -1263,7 +1498,10 @@ tbody tr:hover td { background: #fff9fb; }
   white-space: nowrap;
 }
 
-.cargo-badge { background: #fce4ec; color: #c2185b; }
+.cargo-badge {
+  background: #fce4ec;
+  color: #c2185b;
+}
 
 .bool-badge {
   display: inline-flex;
@@ -1275,37 +1513,89 @@ tbody tr:hover td { background: #fff9fb; }
   border-radius: 50px;
 }
 
-.bool-badge.activo   { background: #e8f5e9; color: #2e7d32; }
-.bool-badge.inactivo { background: #fce4ec; color: #c62828; }
+.bool-badge.activo {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.bool-badge.inactivo {
+  background: #fce4ec;
+  color: #c62828;
+}
 
-.td-fecha { font-size: 0.78rem; color: #aaa; white-space: nowrap; }
-.td-mono  { font-family: monospace; font-size: 0.82rem; color: #555; letter-spacing: 0.3px; }
-.td-text  { color: #555; }
+.td-fecha {
+  font-size: 0.78rem;
+  color: #aaa;
+  white-space: nowrap;
+}
+.td-mono {
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: #555;
+  letter-spacing: 0.3px;
+}
+.td-text {
+  color: #555;
+}
 
 /* ── Acciones ───────────────────────────────────────────────────────────────── */
-.acciones { display: flex; gap: 0.4rem; }
+.acciones {
+  display: flex;
+  gap: 0.4rem;
+}
 
 .btn-accion {
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
   border: none;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.82rem;
-  transition: background 0.2s, transform 0.15s;
+  transition:
+    background 0.2s,
+    transform 0.15s;
 }
 
-.btn-accion:hover { transform: scale(1.1); }
-.btn-accion.editar  { background: #e3f2fd; color: #1565c0; }
-.btn-accion.editar:hover  { background: #bbdefb; }
-.btn-accion.eliminar { background: #fce4ec; color: #c62828; }
-.btn-accion.eliminar:hover { background: #f8bbd0; }
+.btn-accion:hover {
+  transform: scale(1.1);
+}
+.btn-accion.editar {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+.btn-accion.editar:hover {
+  background: #bbdefb;
+}
+.btn-accion.eliminar {
+  background: #fce4ec;
+  color: #c62828;
+}
+.btn-accion.eliminar:hover {
+  background: #f8bbd0;
+}
 
 /* ── Vacío ──────────────────────────────────────────────────────────────────── */
-.td-vacio { padding: 3rem 1rem !important; }
-.vacio-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-.vacio-emoji { font-size: 2.5rem; opacity: 0.3; }
-.vacio-wrap p { color: #ccc; font-style: italic; font-size: 0.875rem; margin: 0; }
+.td-vacio {
+  padding: 3rem 1rem !important;
+}
+.vacio-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.vacio-emoji {
+  font-size: 2.5rem;
+  opacity: 0.3;
+}
+.vacio-wrap p {
+  color: #ccc;
+  font-style: italic;
+  font-size: 0.875rem;
+  margin: 0;
+}
 
 .btn-limpiar-busqueda {
   padding: 0.35rem 0.9rem;
@@ -1320,7 +1610,9 @@ tbody tr:hover td { background: #fff9fb; }
   margin-top: 0.25rem;
 }
 
-.btn-limpiar-busqueda:hover { background: #f8bbd0; }
+.btn-limpiar-busqueda:hover {
+  background: #f8bbd0;
+}
 
 /* ── Paginación ─────────────────────────────────────────────────────────────── */
 .paginacion {
@@ -1333,9 +1625,13 @@ tbody tr:hover td { background: #fff9fb; }
   flex-wrap: wrap;
 }
 
-.pag-dots { color: #ccc; font-weight: 600; }
+.pag-dots {
+  color: #ccc;
+  font-weight: 600;
+}
 
-.btn-pag, .btn-num {
+.btn-pag,
+.btn-num {
   padding: 0.45rem 0.75rem;
   border-radius: 8px;
   border: 1.5px solid #f8bbd0;
@@ -1347,16 +1643,31 @@ tbody tr:hover td { background: #fff9fb; }
   transition: all 0.2s;
 }
 
-.btn-pag:hover:not(:disabled), .btn-num:hover { background: #fce4ec; border-color: #f48fb1; }
-.btn-pag:disabled { opacity: 0.35; cursor: not-allowed; }
-.btn-num.activo { background: linear-gradient(135deg,#e91e8c,#f06292); color: white; border-color: #e91e8c; }
-.pag-info { font-size: 0.75rem; color: #bbb; margin-left: 0.25rem; }
+.btn-pag:hover:not(:disabled),
+.btn-num:hover {
+  background: #fce4ec;
+  border-color: #f48fb1;
+}
+.btn-pag:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.btn-num.activo {
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  color: white;
+  border-color: #e91e8c;
+}
+.pag-info {
+  font-size: 0.75rem;
+  color: #bbb;
+  margin-left: 0.25rem;
+}
 
 /* ── Modal overlay ──────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(136,14,79,0.4);
+  background: rgba(136, 14, 79, 0.4);
   backdrop-filter: blur(4px);
   z-index: 9999;
   display: flex;
@@ -1375,7 +1686,7 @@ tbody tr:hover td { background: #fff9fb; }
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(136,14,79,0.22);
+  box-shadow: 0 20px 60px rgba(136, 14, 79, 0.22);
 }
 
 .modal-header {
@@ -1387,36 +1698,57 @@ tbody tr:hover td { background: #fff9fb; }
   background: linear-gradient(135deg, #fff0f7, #fff9fb);
 }
 
-.modal-header-info { display: flex; align-items: center; gap: 0.85rem; }
+.modal-header-info {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
 
 .modal-header-icon {
-  width: 40px; height: 40px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
   background: linear-gradient(135deg, #e91e8c, #f06292);
   color: white;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1rem;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(233,30,140,0.25);
+  box-shadow: 0 4px 12px rgba(233, 30, 140, 0.25);
 }
 
-.modal-titulo    { font-size: 1rem; font-weight: 800; color: #880e4f; margin: 0 0 0.1rem; }
-.modal-subtitulo { font-size: 0.75rem; color: #bbb; margin: 0; }
+.modal-titulo {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.1rem;
+}
+.modal-subtitulo {
+  font-size: 0.75rem;
+  color: #bbb;
+  margin: 0;
+}
 
 .modal-close {
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: none;
   background: #fce4ec;
   color: #c2185b;
   font-size: 0.85rem;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.2s;
   flex-shrink: 0;
 }
 
-.modal-close:hover { background: #f8bbd0; }
+.modal-close:hover {
+  background: #f8bbd0;
+}
 
 .modal-body {
   flex: 1;
@@ -1433,9 +1765,17 @@ tbody tr:hover td { background: #fff9fb; }
   gap: 1rem;
 }
 
-.field { display: flex; flex-direction: column; gap: 0.3rem; }
-.field-hidden { display: none; }
-.field-full   { grid-column: 1 / -1; }
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.field-hidden {
+  display: none;
+}
+.field-full {
+  grid-column: 1 / -1;
+}
 
 .field-label {
   font-size: 0.78rem;
@@ -1444,7 +1784,9 @@ tbody tr:hover td { background: #fff9fb; }
   letter-spacing: 0.2px;
 }
 
-.req { color: #e91e8c; }
+.req {
+  color: #e91e8c;
+}
 
 .field-input {
   width: 100%;
@@ -1455,17 +1797,21 @@ tbody tr:hover td { background: #fff9fb; }
   color: #333;
   outline: none;
   background: #fff9fb;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   box-sizing: border-box;
 }
 
 .field-input:focus {
   border-color: #e91e8c;
-  box-shadow: 0 0 0 3px rgba(233,30,140,0.08);
+  box-shadow: 0 0 0 3px rgba(233, 30, 140, 0.08);
   background: white;
 }
 
-.field-input.field-error { border-color: #ef5350; }
+.field-input.field-error {
+  border-color: #ef5350;
+}
 
 .field-input.field-readonly {
   background: #f5f5f5;
@@ -1519,15 +1865,32 @@ tbody tr:hover td { background: #fff9fb; }
   width: 100%;
   max-width: 400px;
   text-align: center;
-  box-shadow: 0 20px 60px rgba(136,14,79,0.22);
+  box-shadow: 0 20px 60px rgba(136, 14, 79, 0.22);
 }
 
-.confirm-icono { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.confirm-icono {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
 
-.modal-confirm h3 { font-size: 1.1rem; font-weight: 800; color: #880e4f; margin: 0 0 0.65rem; }
-.modal-confirm p  { color: #666; font-size: 0.875rem; line-height: 1.5; margin: 0 0 1.5rem; }
+.modal-confirm h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #880e4f;
+  margin: 0 0 0.65rem;
+}
+.modal-confirm p {
+  color: #666;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
 
-.confirm-actions { display: flex; justify-content: center; gap: 0.75rem; }
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
 
 /* ── Botones comunes ────────────────────────────────────────────────────────── */
 .btn-cancelar {
@@ -1542,8 +1905,13 @@ tbody tr:hover td { background: #fff9fb; }
   transition: background 0.2s;
 }
 
-.btn-cancelar:hover:not(:disabled) { background: #f5f5f5; }
-.btn-cancelar:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-cancelar:hover:not(:disabled) {
+  background: #f5f5f5;
+}
+.btn-cancelar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btn-guardar {
   display: inline-flex;
@@ -1557,12 +1925,21 @@ tbody tr:hover td { background: #fff9fb; }
   font-weight: 700;
   font-size: 0.875rem;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(233,30,140,0.3);
-  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 
-.btn-guardar:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-.btn-guardar:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn-guardar:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.btn-guardar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
 
 .btn-eliminar {
   display: inline-flex;
@@ -1576,15 +1953,26 @@ tbody tr:hover td { background: #fff9fb; }
   font-weight: 700;
   font-size: 0.875rem;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(229,57,53,0.3);
-  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 
-.btn-eliminar:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-.btn-eliminar:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn-eliminar:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.btn-eliminar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
 
 /* ── Campos de búsqueda dinámica ───────────────────────────────────────────── */
-.search-field { position: relative; }
+.search-field {
+  position: relative;
+}
 
 .search-input-wrap {
   position: relative;
@@ -1607,8 +1995,13 @@ tbody tr:hover td { background: #fff9fb; }
   z-index: 10;
 }
 
-.btn-limpiar-seleccion:hover { color: #e91e8c; }
-.btn-limpiar-seleccion:disabled { color: #ddd; cursor: not-allowed; }
+.btn-limpiar-seleccion:hover {
+  color: #e91e8c;
+}
+.btn-limpiar-seleccion:disabled {
+  color: #ddd;
+  cursor: not-allowed;
+}
 
 .selected-item {
   display: flex;
@@ -1648,7 +2041,7 @@ tbody tr:hover td { background: #fff9fb; }
   max-height: 200px;
   overflow-y: auto;
   z-index: 1000;
-  box-shadow: 0 4px 12px rgba(233,30,140,0.1);
+  box-shadow: 0 4px 12px rgba(233, 30, 140, 0.1);
 }
 
 .result-item {
@@ -1658,7 +2051,9 @@ tbody tr:hover td { background: #fff9fb; }
   transition: background 0.15s;
 }
 
-.result-item:last-child { border-bottom: none; }
+.result-item:last-child {
+  border-bottom: none;
+}
 
 .result-item:hover {
   background: #fff9fb;
@@ -1700,9 +2095,13 @@ tbody tr:hover td { background: #fff9fb; }
 }
 
 /* ── Upload de imagen ──────────────────────────────────────────────────────────── */
-.image-upload-field { grid-column: 1 / -1; }
+.image-upload-field {
+  grid-column: 1 / -1;
+}
 
-.file-input-hidden { display: none; }
+.file-input-hidden {
+  display: none;
+}
 
 .upload-zone {
   border: 2px dashed #f8bbd0;
@@ -1736,18 +2135,34 @@ tbody tr:hover td { background: #fff9fb; }
 }
 
 .upload-icon-wrap {
-  width: 56px; height: 56px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: #fce4ec;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.5rem;
   color: #e91e8c;
   margin-bottom: 0.35rem;
 }
 
-.upload-titulo { font-weight: 700; color: #880e4f; font-size: 0.9rem; margin: 0; }
-.upload-sub    { font-size: 0.75rem; color: #ccc; margin: 0; }
-.upload-hint   { font-size: 0.7rem; color: #ccc; margin-top: 0.15rem; }
+.upload-titulo {
+  font-weight: 700;
+  color: #880e4f;
+  font-size: 0.9rem;
+  margin: 0;
+}
+.upload-sub {
+  font-size: 0.75rem;
+  color: #ccc;
+  margin: 0;
+}
+.upload-hint {
+  font-size: 0.7rem;
+  color: #ccc;
+  margin-top: 0.15rem;
+}
 
 .btn-upload {
   display: inline-flex;
@@ -1766,11 +2181,19 @@ tbody tr:hover td { background: #fff9fb; }
   border: none;
 }
 
-.btn-upload:hover:not(.disabled) { opacity: 0.9; }
-.btn-upload.disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-upload:hover:not(.disabled) {
+  opacity: 0.9;
+}
+.btn-upload.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* Preview */
-.img-preview { position: relative; display: block; }
+.img-preview {
+  position: relative;
+  display: block;
+}
 
 .img-preview img {
   width: 100%;
@@ -1791,7 +2214,9 @@ tbody tr:hover td { background: #fff9fb; }
   transition: opacity 0.2s;
 }
 
-.img-preview:hover .img-overlay-actions { opacity: 1; }
+.img-preview:hover .img-overlay-actions {
+  opacity: 1;
+}
 
 .btn-cambiar-img,
 .btn-quitar-img {
@@ -1818,20 +2243,44 @@ tbody tr:hover td { background: #fff9fb; }
   border: 1.5px solid rgba(255, 255, 255, 0.5);
 }
 
-.btn-cambiar-img:hover { background: #fce4ec; }
-.btn-quitar-img:hover { background: rgba(255, 255, 255, 0.3); }
-.btn-quitar-img:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-cambiar-img:hover {
+  background: #fce4ec;
+}
+.btn-quitar-img:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.btn-quitar-img:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 /* ── Transición modal ───────────────────────────────────────────────────────── */
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.22s ease; }
-.modal-fade-enter-from,  .modal-fade-leave-to      { opacity: 0; }
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.22s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
 
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .admin-wrap    { padding: 1rem; }
-  .page-header   { flex-direction: column; align-items: flex-start; }
-  .toolbar       { flex-direction: column; }
-  .search-wrap   { max-width: 100%; }
-  .form-grid     { grid-template-columns: 1fr; }
+  .admin-wrap {
+    padding: 1rem;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .toolbar {
+    flex-direction: column;
+  }
+  .search-wrap {
+    max-width: 100%;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

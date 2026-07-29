@@ -57,9 +57,7 @@ watch(
 <template>
   <section class="shop-section">
     <div class="container">
-      <h3 class="shop-title">
-        <i class="pi pi-heart-fill"></i> Todos los productos
-      </h3>
+      <h3 class="shop-title"><i class="pi pi-heart-fill"></i> Todos los productos</h3>
 
       <!-- Skeletons de carga -->
       <div v-if="cargando" class="productos-grid">
@@ -80,16 +78,9 @@ watch(
 
       <!-- Grid de productos -->
       <div v-else class="productos-grid">
-        <div
-          v-for="producto in productos"
-          :key="producto.id"
-          class="product-card"
-        >
+        <div v-for="producto in productos" :key="producto.id" class="product-card">
           <div class="img-wrapper">
-            <img
-              :src="producto.imagenUrl || '/assets/images/default.jpg'"
-              :alt="producto.nombre"
-            />
+            <img :src="producto.imagenUrl || '/assets/images/default.jpg'" :alt="producto.nombre" />
             <div class="overlay" @click="irADetalle(producto)">
               <i class="pi pi-eye"></i>
             </div>
@@ -164,7 +155,9 @@ watch(
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 .product-card:hover {
   transform: translateY(-5px);
@@ -270,7 +263,9 @@ watch(
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
-.skel-img { height: 180px; }
+.skel-img {
+  height: 180px;
+}
 .skel-line {
   height: 12px;
   border-radius: 6px;
@@ -282,7 +277,9 @@ watch(
   margin: 12px 1rem 0;
 }
 @keyframes shimmer {
-  to { background-position: -200% 0; }
+  to {
+    background-position: -200% 0;
+  }
 }
 
 /* ── Estado vacío ── */
@@ -346,7 +343,9 @@ watch(
   cursor: pointer;
   transition: background 0.2s;
 }
-.btn-outline:hover { background: #fce4ec; }
+.btn-outline:hover {
+  background: #fce4ec;
+}
 .btn-primary {
   background: linear-gradient(135deg, #e91e8c, #f06292);
   color: white;
@@ -357,7 +356,9 @@ watch(
   cursor: pointer;
   transition: opacity 0.2s;
 }
-.btn-primary:hover { opacity: 0.88; }
+.btn-primary:hover {
+  opacity: 0.88;
+}
 
 /* ── Transición del modal ── */
 .modal-fade-enter-active,

@@ -48,7 +48,10 @@ const seleccionarCategoria = (cat: Categoria) => {
 }
 
 const añadirAlCarrito = (producto: Producto) => {
-  if (!estaLogueado()) { mostrarModalLogin.value = true; return }
+  if (!estaLogueado()) {
+    mostrarModalLogin.value = true
+    return
+  }
   agregarProducto(producto, 1)
 }
 
@@ -70,12 +73,9 @@ onMounted(async () => {
 
 <template>
   <div class="catalogo-container">
-
     <!-- Sidebar de categorías -->
     <aside class="sidebar">
-      <h5 class="titulo-sidebar">
-        <i class="pi pi-list"></i> Categorías
-      </h5>
+      <h5 class="titulo-sidebar"><i class="pi pi-list"></i> Categorías</h5>
 
       <ul class="lista-categorias">
         <li
@@ -92,7 +92,6 @@ onMounted(async () => {
 
     <!-- Contenido principal -->
     <main class="contenido">
-
       <!-- Estado inicial: ninguna categoría seleccionada -->
       <div v-if="!categoriaSeleccionada" class="estado-inicial">
         <i class="pi pi-th-large"></i>
@@ -103,7 +102,7 @@ onMounted(async () => {
         <!-- Cabecera de categoría -->
         <div class="cat-header">
           <h3 class="titulo-categoria">
-            {{ categorias.find(c => c.id === categoriaSeleccionada)?.nombre }}
+            {{ categorias.find((c) => c.id === categoriaSeleccionada)?.nombre }}
           </h3>
           <span v-if="!cargando" class="badge-count">
             {{ productos.length }} producto{{ productos.length !== 1 ? 's' : '' }}
@@ -123,11 +122,7 @@ onMounted(async () => {
 
         <!-- Grid de productos -->
         <div v-else-if="productos.length > 0" class="grid-productos">
-          <div
-            v-for="producto in productos"
-            :key="producto.id"
-            class="card-producto"
-          >
+          <div v-for="producto in productos" :key="producto.id" class="card-producto">
             <div class="imagen-wrapper" @click="irADetalle(producto)">
               <img
                 :src="producto.imagenUrl || '/assets/images/default.jpg'"
@@ -155,18 +150,13 @@ onMounted(async () => {
           <p>No hay productos en esta categoría.</p>
         </div>
       </template>
-
     </main>
   </div>
 
   <!-- Modal login con Teleport (sin PrimeVue) -->
   <Teleport to="body">
     <Transition name="modal-fade">
-      <div
-        v-if="mostrarModalLogin"
-        class="modal-backdrop"
-        @click.self="mostrarModalLogin = false"
-      >
+      <div v-if="mostrarModalLogin" class="modal-backdrop" @click.self="mostrarModalLogin = false">
         <div class="modal-box">
           <div class="modal-icon">
             <i class="pi pi-lock"></i>
@@ -216,7 +206,9 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
 }
-.titulo-sidebar i { color: #e91e8c; }
+.titulo-sidebar i {
+  color: #e91e8c;
+}
 
 .lista-categorias {
   list-style: none;
@@ -234,20 +226,35 @@ onMounted(async () => {
   font-size: 0.875rem;
   color: #666;
   margin-bottom: 4px;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
-.lista-categorias li i { color: #f48fb1; font-size: 0.85rem; }
-.lista-categorias li:hover { background: #fce4ec; color: #e91e8c; }
-.lista-categorias li:hover i { color: #e91e8c; }
+.lista-categorias li i {
+  color: #f48fb1;
+  font-size: 0.85rem;
+}
+.lista-categorias li:hover {
+  background: #fce4ec;
+  color: #e91e8c;
+}
+.lista-categorias li:hover i {
+  color: #e91e8c;
+}
 .lista-categorias li.activa {
   background: linear-gradient(135deg, #e91e8c, #f06292);
   color: white;
   font-weight: 600;
 }
-.lista-categorias li.activa i { color: white; }
+.lista-categorias li.activa i {
+  color: white;
+}
 
 /* ── Contenido ── */
-.contenido { flex: 1; min-width: 0; }
+.contenido {
+  flex: 1;
+  min-width: 0;
+}
 
 .cat-header {
   display: flex;
@@ -284,7 +291,9 @@ onMounted(async () => {
   border: 1px solid #fce4ec;
   display: flex;
   flex-direction: column;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 .card-producto:hover {
   transform: translateY(-4px);
@@ -305,7 +314,9 @@ onMounted(async () => {
   object-fit: cover;
   transition: transform 0.35s ease;
 }
-.card-producto:hover .imagen-wrapper img { transform: scale(1.05); }
+.card-producto:hover .imagen-wrapper img {
+  transform: scale(1.05);
+}
 .overlay {
   position: absolute;
   inset: 0;
@@ -316,8 +327,13 @@ onMounted(async () => {
   justify-content: center;
   transition: opacity 0.25s ease;
 }
-.overlay i { font-size: 1.75rem; color: white; }
-.imagen-wrapper:hover .overlay { opacity: 1; }
+.overlay i {
+  font-size: 1.75rem;
+  color: white;
+}
+.imagen-wrapper:hover .overlay {
+  opacity: 1;
+}
 
 /* Info */
 .info {
@@ -328,7 +344,12 @@ onMounted(async () => {
   flex: 1;
   gap: 4px;
 }
-.info h5 { font-size: 0.95rem; font-weight: 600; color: #880e4f; margin: 0; }
+.info h5 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #880e4f;
+  margin: 0;
+}
 .descripcion {
   font-size: 0.82rem;
   color: #bbb;
@@ -338,7 +359,12 @@ onMounted(async () => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
-.precio { display: block; font-size: 1.05rem; font-weight: 700; color: #e91e8c; }
+.precio {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #e91e8c;
+}
 .btn-agregar {
   margin-top: auto;
   background: linear-gradient(135deg, #e91e8c, #f06292);
@@ -353,9 +379,14 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
-.btn-agregar:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-agregar:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
 
 /* ── Skeletons ── */
 .skeleton-card {
@@ -370,10 +401,24 @@ onMounted(async () => {
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
-.skel-img { height: 180px; }
-.skel-line { height: 12px; border-radius: 6px; margin: 10px 1rem 0; }
-.skel-btn { height: 34px; border-radius: 50px; margin: 12px 1rem 0; }
-@keyframes shimmer { to { background-position: -200% 0; } }
+.skel-img {
+  height: 180px;
+}
+.skel-line {
+  height: 12px;
+  border-radius: 6px;
+  margin: 10px 1rem 0;
+}
+.skel-btn {
+  height: 34px;
+  border-radius: 50px;
+  margin: 12px 1rem 0;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
 
 /* ── Estados ── */
 .estado-inicial,
@@ -388,9 +433,15 @@ onMounted(async () => {
   text-align: center;
 }
 .estado-inicial i,
-.estado-vacio i { font-size: 3rem; }
+.estado-vacio i {
+  font-size: 3rem;
+}
 .estado-inicial p,
-.estado-vacio p { font-size: 0.95rem; margin: 0; color: #ccc; }
+.estado-vacio p {
+  font-size: 0.95rem;
+  margin: 0;
+  color: #ccc;
+}
 
 /* ── Modal ── */
 .modal-backdrop {
@@ -411,10 +462,27 @@ onMounted(async () => {
   border: 1.5px solid #fce4ec;
   text-align: center;
 }
-.modal-icon { font-size: 2.25rem; color: #e91e8c; margin-bottom: 10px; }
-.modal-title { font-size: 1.1rem; font-weight: 700; color: #880e4f; margin: 0 0 6px; }
-.modal-text { font-size: 0.875rem; color: #888; margin: 0 0 1.5rem; }
-.modal-actions { display: flex; gap: 10px; justify-content: center; }
+.modal-icon {
+  font-size: 2.25rem;
+  color: #e91e8c;
+  margin-bottom: 10px;
+}
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #880e4f;
+  margin: 0 0 6px;
+}
+.modal-text {
+  font-size: 0.875rem;
+  color: #888;
+  margin: 0 0 1.5rem;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
 .btn-outline {
   background: transparent;
   border: 1.5px solid #e91e8c;
@@ -425,7 +493,9 @@ onMounted(async () => {
   cursor: pointer;
   transition: background 0.15s;
 }
-.btn-outline:hover { background: #fce4ec; }
+.btn-outline:hover {
+  background: #fce4ec;
+}
 .btn-primary {
   background: linear-gradient(135deg, #e91e8c, #f06292);
   color: white;
@@ -436,19 +506,37 @@ onMounted(async () => {
   cursor: pointer;
   transition: opacity 0.2s;
 }
-.btn-primary:hover { opacity: 0.88; }
+.btn-primary:hover {
+  opacity: 0.88;
+}
 
 /* ── Transición modal ── */
 .modal-fade-enter-active,
-.modal-fade-leave-active { transition: opacity 0.2s ease; }
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
 .modal-fade-enter-from,
-.modal-fade-leave-to { opacity: 0; }
+.modal-fade-leave-to {
+  opacity: 0;
+}
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .catalogo-container { flex-direction: column; padding: 1rem; }
-  .sidebar { width: 100%; position: static; }
-  .lista-categorias { display: flex; flex-wrap: wrap; gap: 6px; }
-  .lista-categorias li { margin-bottom: 0; }
+  .catalogo-container {
+    flex-direction: column;
+    padding: 1rem;
+  }
+  .sidebar {
+    width: 100%;
+    position: static;
+  }
+  .lista-categorias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .lista-categorias li {
+    margin-bottom: 0;
+  }
 }
 </style>

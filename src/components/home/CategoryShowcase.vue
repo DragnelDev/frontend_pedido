@@ -35,8 +35,7 @@ const categoriasConImagen = computed(() =>
       ...c,
       slug,
       imagen:
-        imagenesCategorias[slug] ||
-        new URL('@/assets/images/default.jpg', import.meta.url).href,
+        imagenesCategorias[slug] || new URL('@/assets/images/default.jpg', import.meta.url).href,
     }
   }),
 )
@@ -53,7 +52,6 @@ onMounted(() => {
 <template>
   <section class="categorias-section">
     <div class="container">
-
       <!-- Header -->
       <div class="section-header">
         <div class="header-left">
@@ -88,10 +86,13 @@ onMounted(() => {
           @click="irACategoria(categoria.id)"
         >
           <div class="card-categoria">
-
             <!-- Imagen -->
             <div class="img-wrap">
-              <img :src="categoria.imagenUrl || categoria.imagen" :alt="categoria.nombre" class="cat-img" />
+              <img
+                :src="categoria.imagenUrl || categoria.imagen"
+                :alt="categoria.nombre"
+                class="cat-img"
+              />
               <div class="img-gradient"></div>
               <span class="cat-badge">Ver productos</span>
             </div>
@@ -105,11 +106,9 @@ onMounted(() => {
                 <i class="pi pi-arrow-right"></i>
               </button>
             </div>
-
           </div>
         </SwiperSlide>
       </Swiper>
-
     </div>
   </section>
 </template>
@@ -222,8 +221,13 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(233, 30, 140, 0.1);
   transition: all 0.2s ease;
 }
-.categorias-swiper :deep(.swiper-button-prev) { left: calc(50% - 52px); }
-.categorias-swiper :deep(.swiper-button-next) { right: calc(50% - 52px); left: auto; }
+.categorias-swiper :deep(.swiper-button-prev) {
+  left: calc(50% - 52px);
+}
+.categorias-swiper :deep(.swiper-button-next) {
+  right: calc(50% - 52px);
+  left: auto;
+}
 .categorias-swiper :deep(.swiper-button-prev:hover),
 .categorias-swiper :deep(.swiper-button-next:hover) {
   /* CAMBIADO: Al hacer hover, adopta el degradado insignia dinámico */
@@ -252,7 +256,10 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
 }
 .card-categoria:hover {
   transform: translateY(-6px);
@@ -300,7 +307,9 @@ onMounted(() => {
   border: 1px solid #ffd6e8;
   opacity: 0;
   transform: translateY(-4px);
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 .card-categoria:hover .cat-badge {
   opacity: 1;
@@ -368,7 +377,11 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
   }
-  .header-deco { display: none; }
-  .categorias-section { padding: 3.5rem 0 3rem; }
+  .header-deco {
+    display: none;
+  }
+  .categorias-section {
+    padding: 3.5rem 0 3rem;
+  }
 }
 </style>

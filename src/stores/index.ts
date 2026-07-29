@@ -4,9 +4,9 @@ import http from '@/plugins/axios'
 import router from '@/router'
 
 interface UsuarioSesion {
-  id: number | null;
-  email: string;
-  rol: string;
+  id: number | null
+  email: string
+  rol: string
 }
 
 const useAuthStore = defineStore('auth', {
@@ -23,20 +23,20 @@ const useAuthStore = defineStore('auth', {
     async login(email: string, clave: string) {
       try {
         const response = await http.post('/auth/login', { email, clave })
-        
+
         this.token = response.data.access_token
         localStorage.setItem('token', this.token || '')
 
         // 👈 Usamos la respuesta del backend que ya tiene el usuario completo
         const usuarioDelBackend = response.data.user
         const decoded = parseJwt(this.token || '')
-        
+
         this.usuario = {
           id: usuarioDelBackend?.id || decoded?.id || null,
           email: usuarioDelBackend?.email || decoded?.email || '',
-          rol: usuarioDelBackend?.rol || decoded?.rol || 'CLIENTE'
+          rol: usuarioDelBackend?.rol || decoded?.rol || 'CLIENTE',
         }
-        
+
         localStorage.setItem('usuario', JSON.stringify(this.usuario))
 
         // Si el backend avisa que requiere cambio, detenemos el flujo aquí y avisamos a LoginView
@@ -53,7 +53,6 @@ const useAuthStore = defineStore('auth', {
         }
 
         return { debeCambiarClave: false }
-
       } catch (error) {
         this.logoutSilencioso()
         throw error
@@ -70,7 +69,7 @@ const useAuthStore = defineStore('auth', {
     logoutSilencioso() {
       localStorage.clear()
       this.$reset()
-    }
+    },
   },
 })
 

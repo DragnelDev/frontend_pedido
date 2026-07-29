@@ -34,7 +34,6 @@ const slides = ref([
         <div class="slide-inner">
           <div class="container">
             <div class="row align-items-center justify-content-center">
-
               <div class="col-12 col-md-6 text-section text-center text-md-start">
                 <span class="badge-label">🍰 Berry Sweet</span>
                 <h1 class="hero-titulo">{{ slide.titulo }}</h1>
@@ -45,7 +44,6 @@ const slides = ref([
               <div class="col-12 col-md-6 mt-4 mt-md-0 img-section">
                 <img :src="slide.imagen" alt="banner pastelería" class="hero-img" />
               </div>
-
             </div>
           </div>
         </div>

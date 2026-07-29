@@ -29,11 +29,7 @@ function closeSidebar() {
     </header>
 
     <!-- Overlay oscuro en móvil -->
-    <div
-      class="sidebar-overlay"
-      :class="{ visible: sidebarOpen }"
-      @click="closeSidebar"
-    ></div>
+    <div class="sidebar-overlay" :class="{ visible: sidebarOpen }" @click="closeSidebar"></div>
 
     <!-- Sidebar -->
     <aside class="sidebar" :class="{ 'sidebar--open': sidebarOpen }">
@@ -155,7 +151,9 @@ function closeSidebar() {
     height: 2px;
     background: #c2185b;
     border-radius: 2px;
-    transition: transform 0.3s ease, opacity 0.3s ease;
+    transition:
+      transform 0.3s ease,
+      opacity 0.3s ease;
     transform-origin: center;
   }
 

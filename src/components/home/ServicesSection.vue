@@ -26,7 +26,6 @@ const services = [
 <template>
   <section class="services-section">
     <div class="container">
-
       <!-- Header -->
       <div class="section-header">
         <span class="eyebrow"><span class="eyebrow-dot"></span> ¿Por qué elegirnos?</span>
@@ -36,11 +35,7 @@ const services = [
 
       <!-- Grid -->
       <div class="services-grid">
-        <div
-          v-for="(s, i) in services"
-          :key="i"
-          class="service-card"
-        >
+        <div v-for="(s, i) in services" :key="i" class="service-card">
           <div class="icon-wrap">
             <span class="service-icon">{{ s.icon }}</span>
           </div>
@@ -48,7 +43,6 @@ const services = [
           <p class="service-text">{{ s.text }}</p>
         </div>
       </div>
-
     </div>
   </section>
 </template>
@@ -122,7 +116,10 @@ const services = [
   border: 1px solid #ffd6e8;
   padding: 2rem 1.5rem;
   text-align: center;
-  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
 }
 .service-card:hover {
   transform: translateY(-6px);
@@ -143,7 +140,10 @@ const services = [
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.1rem;
-  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease;
 }
 .service-card:hover .icon-wrap {
   /* CAMBIADO: Degradado idéntico al botón principal en el estado hover */
@@ -178,10 +178,17 @@ const services = [
 
 /* ── Responsive ── */
 @media (max-width: 480px) {
-  .services-section { padding: 3.5rem 0 3rem; }
-  .services-grid { grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .services-section {
+    padding: 3.5rem 0 3rem;
+  }
+  .services-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
 }
 @media (max-width: 360px) {
-  .services-grid { grid-template-columns: 1fr; }
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
