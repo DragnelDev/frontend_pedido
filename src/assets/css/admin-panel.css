@@ -1,0 +1,335 @@
+/* =====================================================================
+   ADMIN PANEL — ESTILOS COMPARTIDOS
+   Extraído de PersonasView.vue para que todas las pantallas del panel
+   admin (Contabilidad, Configuración, Insumos, Cocina, etc.) mantengan
+   el mismo lenguaje visual sin duplicar CSS en cada componente.
+   ===================================================================== */
+
+.admin-wrap {
+  padding: 1.75rem 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-left { display: flex; align-items: center; gap: 1rem; }
+
+.page-icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 1.2rem; flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
+}
+
+.page-titulo { font-size: 1.5rem; font-weight: 800; color: #880e4f; margin: 0 0 0.15rem; }
+.page-sub    { font-size: 0.82rem; color: #f48fb1; margin: 0; }
+
+.header-actions { display: flex; align-items: center; gap: 0.75rem; }
+
+.btn-recargar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid #f8bbd0;
+  background: white;
+  color: #c2185b;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.btn-recargar:hover:not(:disabled) { background: #fce4ec; border-color: #e91e8c; }
+.btn-recargar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-crear,
+.btn-admin-primario {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 0.65rem 1.4rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+.btn-crear:hover:not(:disabled),
+.btn-admin-primario:hover:not(:disabled) { opacity: 0.9; transform: translateY(-2px); }
+.btn-crear:disabled,
+.btn-admin-primario:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.btn-admin-secundario {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  color: #c2185b;
+  border: 1.5px solid #f8bbd0;
+  border-radius: 50px;
+  padding: 0.6rem 1.3rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-admin-secundario:hover:not(:disabled) { background: #fce4ec; border-color: #e91e8c; }
+.btn-admin-secundario:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Variante verde para exportar (Excel) */
+.btn-admin-excel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #2e7d32, #43a047);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 0.6rem 1.3rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(46, 125, 50, 0.25);
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+.btn-admin-excel:hover:not(:disabled) { opacity: 0.9; transform: translateY(-2px); }
+.btn-admin-excel:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/* ── Toolbar ────────────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.search-wrap { position: relative; flex: 1; max-width: 420px; }
+
+.search-icon {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #f48fb1;
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.65rem 1rem 0.65rem 2.4rem;
+  border: 1.5px solid #f8bbd0;
+  border-radius: 50px;
+  font-size: 0.875rem;
+  outline: none;
+  background: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.search-input:focus {
+  border-color: #e91e8c;
+  box-shadow: 0 0 0 3px rgba(233, 30, 140, 0.07);
+}
+
+.toolbar-right { display: flex; align-items: center; gap: 0.75rem; }
+
+.total-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: #f48fb1;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Tarjeta contenedora de tabla ───────────────────────────────────── */
+.tabla-card {
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 4px 20px rgba(233, 30, 140, 0.08);
+  overflow: hidden;
+  border: 1px solid #fce4ec;
+}
+
+.tabla-card-header {
+  padding: 1.1rem 1.4rem;
+  background: #fff9fb;
+  border-bottom: 1px solid #fce4ec;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* ── Tablas ─────────────────────────────────────────────────────────── */
+.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table th,
+.admin-table td {
+  padding: 0.85rem 1.1rem;
+  text-align: left;
+  border-bottom: 1px solid #fce4ec;
+  font-size: 0.87rem;
+}
+.admin-table th {
+  color: #880e4f;
+  background: #fff9fb;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.admin-table tbody tr:hover { background: #fffafc; }
+.text-right { text-align: right; }
+
+/* ── Estados vacíos / carga / error ────────────────────────────────── */
+.admin-empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: #bbb;
+}
+.admin-empty-state i { font-size: 2rem; margin-bottom: 0.5rem; display: block; color: #f8bbd0; }
+
+.admin-alert-error {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+  padding: 0.7rem 1.1rem;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.admin-alert-success {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+  padding: 0.7rem 1.1rem;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.admin-alert-info {
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+  padding: 0.7rem 1.1rem;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* ── Badges ─────────────────────────────────────────────────────────── */
+.badge-cat {
+  background: #fce4ec;
+  color: #c2185b;
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-ok {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-warn {
+  background: #fff3e0;
+  color: #e65100;
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-danger {
+  background: #ffebee;
+  color: #c62828;
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ── Inputs de formulario reutilizables ────────────────────────────── */
+.admin-field-group { display: flex; flex-direction: column; gap: 0.35rem; }
+.admin-field-group label { font-size: 0.78rem; font-weight: 700; color: #880e4f; }
+.admin-field-input {
+  padding: 0.6rem 0.85rem;
+  border: 1.5px solid #f8bbd0;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+  width: 100%;
+  font-family: inherit;
+}
+.admin-field-input:focus { border-color: #e91e8c; }
+.admin-field-input:disabled { background: #f9f9f9; opacity: 0.7; }
+
+/* ── Skeleton loading ───────────────────────────────────────────────── */
+.skeleton-rows { display: flex; flex-direction: column; }
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.9rem 1.4rem;
+  border-bottom: 1px solid #fce4ec;
+}
+.sk-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(90deg, #fce4ec 25%, #fff0f5 50%, #fce4ec 75%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.4s infinite;
+  flex-shrink: 0;
+}
+.sk-lines { display: flex; flex-direction: column; gap: 0.4rem; flex: 1; }
+.sk-line {
+  height: 10px; border-radius: 6px;
+  background: linear-gradient(90deg, #fce4ec 25%, #fff0f5 50%, #fce4ec 75%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.4s infinite;
+}
+.sk-line-lg { width: 60%; }
+.sk-line-sm { width: 30%; }
+@keyframes sk-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

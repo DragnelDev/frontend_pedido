@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { libroVentasService } from '@/servicios/contabilidadService'
+import { exportarAExcel } from '@/funciones/exportarExcel'
 import type { FilaLibroVentas } from '@/models/contabilidad'
 
 const mesSeleccionado = ref(new Date().toISOString().slice(0, 7))
 const ventas = ref<FilaLibroVentas[]>([])
 const totalMes = ref(0)
 const cargando = ref(true)
+const exportando = ref(false)
 const error = ref<string | null>(null)
 
 async function cargarVentas() {
@@ -27,202 +29,144 @@ onMounted(cargarVentas)
 watch(mesSeleccionado, cargarVentas)
 
 function exportarExcel() {
-  alert('Generando y descargando Libro_Ventas_' + mesSeleccionado.value + '.xlsx')
+  error.value = null
+  exportando.value = true
+  try {
+    const filas = ventas.value.map((v, index) => ({
+      '#': index + 1,
+      Fecha: new Date(v.fecha).toLocaleDateString('es-BO'),
+      'Nº Recibo/Factura': v.nroFactura,
+      Cliente: v.cliente,
+      'NIT/CI': v.ciNit,
+      'Método de Pago': v.metodo,
+      'Monto (Bs.)': v.monto,
+    }))
+    exportarAExcel(filas, 'Libro de Ventas', `Libro_Ventas_${mesSeleccionado.value}`)
+  } catch (e: any) {
+    error.value = e?.message || 'No se pudo generar el archivo Excel'
+  } finally {
+    exportando.value = false
+  }
 }
 </script>
 
 <template>
-  <div class="modulo-container">
-    <div class="header-section">
-      <div class="header-title">
-        <div class="header-icon">📊</div>
+  <div class="admin-wrap">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="page-icon"><i class="pi pi-chart-line"></i></div>
         <div>
-          <h2>Libro de Ventas</h2>
-          <p>Consolidado de facturas y recibos para declaración impositiva</p>
+          <h2 class="page-titulo">Libro de Ventas</h2>
+          <p class="page-sub">Consolidado de facturas y recibos para declaración impositiva</p>
         </div>
       </div>
-      <button class="btn-excel" @click="exportarExcel">
-        <i class="pi pi-file-excel"></i> Exportar a Excel
-      </button>
+      <div class="header-actions">
+        <button class="btn-recargar" @click="cargarVentas" :disabled="cargando" title="Recargar">
+          <i :class="cargando ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"></i>
+        </button>
+        <button
+          class="btn-admin-excel"
+          @click="exportarExcel"
+          :disabled="exportando || ventas.length === 0"
+        >
+          <i class="pi pi-file-excel"></i> {{ exportando ? 'Generando...' : 'Exportar a Excel' }}
+        </button>
+      </div>
     </div>
 
-    <p v-if="error" class="error-text">{{ error }}</p>
+    <p v-if="error" class="admin-alert-error">
+      <i class="pi pi-exclamation-circle"></i> {{ error }}
+    </p>
 
-    <div class="card">
-      <div class="card-header border-bottom-0">
-        <div class="filter-group">
-          <label><i class="pi pi-filter"></i> Filtrar Período:</label>
-          <input v-model="mesSeleccionado" type="month" class="field-input-sm" />
-        </div>
-        <div class="total-mes">
-          Total del mes: <strong>Bs. {{ totalMes.toFixed(2) }}</strong>
-        </div>
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <i class="pi pi-filter search-icon"></i>
+        <input v-model="mesSeleccionado" type="month" class="search-input" />
       </div>
+      <div class="toolbar-right">
+        <span class="total-badge">
+          <i class="pi pi-wallet"></i>
+          Total del mes: Bs. {{ totalMes.toFixed(2) }}
+        </span>
+      </div>
+    </div>
 
-      <div class="card-body table-responsive">
-        <p v-if="cargando" class="empty-text">Cargando ventas...</p>
-        <p v-else-if="ventas.length === 0" class="empty-text">
-          No hay ventas registradas en este período
-        </p>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Fecha</th>
-              <th>Nº Recibo / Factura</th>
-              <th>Cliente</th>
-              <th>NIT / CI</th>
-              <th>Método Pago</th>
-              <th class="text-right">Total Monto (Bs.)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(v, index) in ventas" :key="v.id">
-              <td>{{ index + 1 }}</td>
-              <td>{{ new Date(v.fecha).toLocaleDateString('es-BO') }}</td>
-              <td>
-                <strong>#{{ v.nroFactura }}</strong>
-              </td>
-              <td>{{ v.cliente }}</td>
-              <td>{{ v.ciNit }}</td>
-              <td>
-                <span class="badge-pay">{{ v.metodo }}</span>
-              </td>
-              <td class="text-right text-pink">Bs. {{ v.monto.toFixed(2) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <!-- Tabla -->
+    <div class="tabla-card">
+      <template v-if="cargando">
+        <div class="skeleton-rows">
+          <div v-for="n in 5" :key="n" class="skeleton-row">
+            <div class="sk-avatar"></div>
+            <div class="sk-lines">
+              <div class="sk-line sk-line-lg"></div>
+              <div class="sk-line sk-line-sm"></div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <template v-else-if="ventas.length === 0">
+        <div class="admin-empty-state">
+          <i class="pi pi-inbox"></i>
+          <p>No hay ventas registradas en este período</p>
+        </div>
+      </template>
+
+      <template v-else>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width: 52px">#</th>
+                <th>Fecha</th>
+                <th>Nº Recibo / Factura</th>
+                <th>Cliente</th>
+                <th>NIT / CI</th>
+                <th>Método Pago</th>
+                <th class="text-right">Total Monto (Bs.)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(v, index) in ventas" :key="v.id">
+                <td>
+                  <span class="nro-badge">{{ index + 1 }}</span>
+                </td>
+                <td>{{ new Date(v.fecha).toLocaleDateString('es-BO') }}</td>
+                <td>
+                  <strong>#{{ v.nroFactura }}</strong>
+                </td>
+                <td>{{ v.cliente }}</td>
+                <td>{{ v.ciNit }}</td>
+                <td>
+                  <span class="badge-cat">{{ v.metodo }}</span>
+                </td>
+                <td class="text-right text-pink">Bs. {{ v.monto.toFixed(2) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <style scoped>
-.modulo-container {
-  padding: 1.5rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.header-icon {
-  font-size: 2.2rem;
-  background: #fce4ec;
-  padding: 0.6rem;
-  border-radius: 16px;
-}
-.header-title h2 {
-  font-size: 1.6rem;
-  color: #880e4f;
-  margin: 0;
-}
-.header-title p {
-  font-size: 0.85rem;
-  color: #888;
-  margin: 0;
-}
-.btn-excel {
-  background: #2e7d32;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.4rem;
-  border-radius: 50px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
-}
-.card {
-  background: white;
-  border-radius: 20px;
-  border: 1px solid #f8bbd0;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
-}
-.card-header {
-  padding: 1.2rem 1.5rem;
-  background: #fff9fb;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-.total-mes {
-  color: #880e4f;
-  font-size: 0.9rem;
-}
-.total-mes strong {
-  color: #e91e8c;
-}
-.error-text {
-  color: #c62828;
-  font-size: 0.85rem;
-  margin: 0 0 1rem;
-}
-.empty-text {
-  color: #999;
-  font-size: 0.9rem;
-  padding: 1rem 0;
-  text-align: center;
-}
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: #880e4f;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-.field-input-sm {
-  padding: 0.4rem 0.8rem;
-  border: 1.5px solid #f8bbd0;
-  border-radius: 8px;
-  outline: none;
-  color: #333;
-}
-.table-responsive {
+.table-wrap {
   overflow-x: auto;
 }
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.data-table th,
-.data-table td {
-  padding: 0.85rem;
-  text-align: left;
-  border-bottom: 1px solid #fce4ec;
-  font-size: 0.9rem;
-}
-.data-table th {
-  color: #880e4f;
-  font-weight: 700;
-  background: #fff9fb;
-}
-.badge-pay {
-  background: #e3f2fd;
-  color: #1565c0;
-  padding: 0.25rem 0.6rem;
-  border-radius: 12px;
+.nro-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fce4ec;
+  color: #c2185b;
   font-size: 0.75rem;
-  font-weight: 600;
-}
-.text-right {
-  text-align: right;
+  font-weight: 700;
 }
 .text-pink {
   color: #e91e8c;

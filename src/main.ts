@@ -9,6 +9,7 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import 'primeicons/primeicons.css'
 import 'primeflex/primeflex.min.css'
 import '@/assets/css/style.css'
+import '@/assets/css/admin-panel.css'
 
 // ⚙️ Configuración de PrimeVue (tema Aura)
 import PrimeVue from 'primevue/config'

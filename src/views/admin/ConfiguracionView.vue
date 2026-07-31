@@ -106,32 +106,40 @@ async function guardarConfiguracion() {
 </script>
 
 <template>
-  <div class="config-container">
+  <div class="admin-wrap">
     <!-- Encabezado de la Sección -->
-    <div class="header-section">
-      <div class="header-title">
-        <div class="header-icon">⚙️</div>
+    <div class="page-header">
+      <div class="header-left">
+        <div class="page-icon"><i class="pi pi-cog"></i></div>
         <div>
-          <h2>Configuración del Sistema</h2>
-          <p>Gestiona la información del negocio y los métodos de pago para los clientes</p>
+          <h2 class="page-titulo">Configuración del Sistema</h2>
+          <p class="page-sub">
+            Gestiona la información del negocio y los métodos de pago para los clientes
+          </p>
         </div>
       </div>
-      <button class="btn-primary" @click="guardarConfiguracion" :disabled="guardando || cargando">
-        <i v-if="!guardando" class="pi pi-save"></i>
-        <span v-else class="loading-spinner"></span>
-        {{ guardando ? 'Guardando...' : 'Guardar Cambios' }}
-      </button>
+      <div class="header-actions">
+        <button
+          class="btn-admin-primario"
+          @click="guardarConfiguracion"
+          :disabled="guardando || cargando"
+        >
+          <i v-if="!guardando" class="pi pi-save"></i>
+          <span v-else class="loading-spinner"></span>
+          {{ guardando ? 'Guardando...' : 'Guardar Cambios' }}
+        </button>
+      </div>
     </div>
 
     <!-- Alerta de Error -->
-    <div v-if="error" class="alert-error">
+    <div v-if="error" class="admin-alert-error">
       <i class="pi pi-exclamation-circle"></i>
       {{ error }}
     </div>
 
     <!-- Alerta de Éxito -->
     <transition name="fade">
-      <div v-if="exitoMensaje" class="alert-success">
+      <div v-if="exitoMensaje" class="admin-alert-success">
         <i class="pi pi-check-circle"></i>
         ¡Configuración guardada exitosamente!
       </div>
@@ -349,76 +357,8 @@ async function guardarConfiguracion() {
 </template>
 
 <style scoped>
-/* ── CONTENEDOR PRINCIPAL ── */
-.config-container {
-  padding: 1.5rem;
-  max-width: 1280px;
-  margin: 0 auto;
-  color: #333;
-}
-
-/* ── HEADER ── */
-.header-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.header-icon {
-  font-size: 2.2rem;
-  background: #fce4ec;
-  padding: 0.6rem;
-  border-radius: 16px;
-}
-
-.header-title h2 {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: #880e4f;
-  margin: 0;
-}
-
-.header-title p {
-  font-size: 0.875rem;
-  color: #888;
-  margin: 0.2rem 0 0 0;
-}
-
-/* ── BOTÓN GUARDAR ── */
-.btn-primary {
-  background: linear-gradient(135deg, #e91e8c, #f06292);
-  color: white;
-  border: none;
-  border-radius: 50px;
-  padding: 0.75rem 1.75rem;
-  font-weight: 700;
-  font-size: 0.95rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
-  transition: all 0.2s ease;
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(233, 30, 140, 0.4);
-}
-
-.btn-primary:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
+/* Nota: contenedor, header y botón primario ahora usan las clases
+   compartidas de admin-panel.css (.admin-wrap, .page-header, .btn-admin-primario) */
 
 /* ── LAYOUT ── */
 .grid-layout {
@@ -713,34 +653,8 @@ input:checked + .slider:before {
   transform: translateX(20px);
 }
 
-/* ── ALERTAS ── */
-.alert-success {
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #a5d6a7;
-  padding: 0.8rem 1.2rem;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.alert-error {
-  background: #ffebee;
-  color: #c62828;
-  border: 1px solid #ffcdd2;
-  padding: 0.8rem 1.2rem;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
+/* Nota: las alertas de éxito/error ahora usan las clases compartidas
+   .admin-alert-success / .admin-alert-error de admin-panel.css */
 
 .empty-text {
   color: #999;

@@ -252,8 +252,8 @@ const CAMPOS_FORM: Record<string, CampoForm[]> = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Estado reactivo
 // ─────────────────────────────────────────────────────────────────────────────
-const config = computed<TipoConfig>(() => CONFIG[props.tipo])
-const camposForm = computed<CampoForm[]>(() => CAMPOS_FORM[props.tipo])
+const config = computed(() => CONFIG[props.tipo])
+const camposForm = computed(() => CAMPOS_FORM[props.tipo])
 
 const registros = ref<any[]>([])
 const cargando = ref(true)
@@ -360,7 +360,7 @@ function abrirCrear() {
 function abrirEditar(r: any) {
   // Copia sin campos readonly ni relaciones anidadas
   const copia: Record<string, any> = {}
-  for (const c of camposForm.value ?? []) {
+  for (const c of camposForm.value) {
     if (c.soloCrear) continue
     copia[c.key] = r[c.key] ?? ''
   }
@@ -410,7 +410,7 @@ function validarForm(): boolean {
   }
 
   // Validar campos requeridos
-  for (const c of camposForm.value ?? []) {
+  for (const c of camposForm.value) {
     if (c.soloCrear && modoEdicion.value) continue
 
     // Verificar visibilidad dinámica
@@ -433,7 +433,7 @@ async function guardar() {
 
   // Construye payload limpio
   const payload: Record<string, any> = {}
-  for (const c of camposForm.value ?? []) {
+  for (const c of camposForm.value) {
     if (c.soloCrear && modoEdicion.value) continue
 
     // En edición, omitir email y rol (son readonly)

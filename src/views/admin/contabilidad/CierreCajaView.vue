@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { cierreCajaService } from '@/servicios/contabilidadService'
+import { exportarAExcel } from '@/funciones/exportarExcel'
+import type { CierreCaja } from '@/models/contabilidad'
 
 const cargando = ref(true)
 const error = ref<string | null>(null)
 const guardando = ref(false)
+const exportando = ref(false)
 const mensajeExito = ref<string | null>(null)
 
 const fechaHoy = new Date().toISOString().slice(0, 10)
@@ -17,6 +20,8 @@ const yaCerrado = ref(false)
 const efectivoContado = ref(0)
 const observaciones = ref('')
 
+const historial = ref<CierreCaja[]>([])
+
 const totalEfectivoEsperado = computed(() => montoInicial.value + ventasEfectivoEsperadas.value)
 const diferenciaEfectivo = computed(() => efectivoContado.value - totalEfectivoEsperado.value)
 
@@ -24,10 +29,14 @@ async function cargarResumen() {
   cargando.value = true
   error.value = null
   try {
-    const resumen = await cierreCajaService.resumenDia(fechaHoy)
+    const [resumen, listaHistorial] = await Promise.all([
+      cierreCajaService.resumenDia(fechaHoy),
+      cierreCajaService.listar(),
+    ])
     ventasEfectivoEsperadas.value = resumen.ventasEfectivoSistema
     ventasQREsperadas.value = resumen.ventasDigitalSistema
     yaCerrado.value = resumen.yaCerrado
+    historial.value = listaHistorial
 
     if (resumen.cierre) {
       // Ya se cerró la caja hoy: mostramos los datos del cierre registrado
@@ -57,48 +66,90 @@ async function realizarCierre() {
     })
     mensajeExito.value = 'Cierre de caja registrado con éxito'
     yaCerrado.value = true
+    historial.value = await cierreCajaService.listar()
   } catch (e: any) {
     error.value = e?.response?.data?.message || 'No se pudo registrar el cierre de caja'
   } finally {
     guardando.value = false
   }
 }
+
+function exportarExcel() {
+  error.value = null
+  exportando.value = true
+  try {
+    const filas = historial.value.map((c) => ({
+      Fecha: c.fecha,
+      'Fondo Inicial (Bs.)': Number(c.montoInicial),
+      'Ventas Efectivo (Bs.)': Number(c.ventasEfectivoSistema),
+      'Ventas Digital (Bs.)': Number(c.ventasDigitalSistema),
+      'Efectivo Contado (Bs.)': Number(c.efectivoContado),
+      'Diferencia (Bs.)': Number(c.diferencia),
+      Observaciones: c.observaciones || '-',
+    }))
+    exportarAExcel(filas, 'Cierres de Caja', 'Historial_Cierres_Caja')
+  } catch (e: any) {
+    error.value = e?.message || 'No se pudo generar el archivo Excel'
+  } finally {
+    exportando.value = false
+  }
+}
 </script>
 
 <template>
-  <div class="modulo-container">
-    <div class="header-section">
-      <div class="header-title">
-        <div class="header-icon">💵</div>
+  <div class="admin-wrap">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="page-icon"><i class="pi pi-wallet"></i></div>
         <div>
-          <h2>Arqueo y Cierre de Caja</h2>
-          <p>Verificación de efectivo físico contra ventas del sistema — {{ fechaHoy }}</p>
+          <h2 class="page-titulo">Arqueo y Cierre de Caja</h2>
+          <p class="page-sub">
+            Verificación de efectivo físico contra ventas del sistema — {{ fechaHoy }}
+          </p>
         </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-recargar" @click="cargarResumen" :disabled="cargando" title="Recargar">
+          <i :class="cargando ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"></i>
+        </button>
+        <button
+          class="btn-admin-excel"
+          @click="exportarExcel"
+          :disabled="exportando || historial.length === 0"
+        >
+          <i class="pi pi-file-excel"></i> {{ exportando ? 'Generando...' : 'Exportar Historial' }}
+        </button>
       </div>
     </div>
 
-    <p v-if="cargando" class="empty-text">Cargando resumen del día...</p>
-    <p v-if="error" class="error-text">{{ error }}</p>
-    <p v-if="mensajeExito" class="success-text">{{ mensajeExito }}</p>
-    <p v-if="yaCerrado && !mensajeExito" class="info-text">
+    <p v-if="error" class="admin-alert-error">
+      <i class="pi pi-exclamation-circle"></i> {{ error }}
+    </p>
+    <p v-if="mensajeExito" class="admin-alert-success">
+      <i class="pi pi-check-circle"></i> {{ mensajeExito }}
+    </p>
+    <p v-if="yaCerrado && !mensajeExito" class="admin-alert-info">
       <i class="pi pi-lock"></i> La caja de hoy ya fue cerrada. Estos son los datos registrados.
     </p>
 
     <div v-if="!cargando" class="grid-layout">
       <!-- Tarjeta Resumen Sistema -->
-      <div class="card">
-        <div class="card-header">
-          <i class="pi pi-desktop card-icon"></i>
-          <h3>Esperado en Sistema (Hoy)</h3>
+      <div class="tabla-card">
+        <div class="tabla-card-header">
+          <div class="header-inline">
+            <i class="pi pi-desktop"></i>
+            <h3>Esperado en Sistema (Hoy)</h3>
+          </div>
         </div>
         <div class="card-body">
-          <div class="field-group">
+          <div class="admin-field-group">
             <label>Fondo Inicial de Caja (Bs.)</label>
             <input
               v-model.number="montoInicial"
               type="number"
               step="0.5"
-              class="field-input"
+              class="admin-field-input"
               :disabled="yaCerrado"
             />
           </div>
@@ -119,19 +170,21 @@ async function realizarCierre() {
       </div>
 
       <!-- Tarjeta Conteo Real -->
-      <div class="card">
-        <div class="card-header">
-          <i class="pi pi-calculator card-icon"></i>
-          <h3>Conteo Físico de Caja</h3>
+      <div class="tabla-card">
+        <div class="tabla-card-header">
+          <div class="header-inline">
+            <i class="pi pi-calculator"></i>
+            <h3>Conteo Físico de Caja</h3>
+          </div>
         </div>
         <div class="card-body">
-          <div class="field-group">
+          <div class="admin-field-group">
             <label>Efectivo Real en Caja (Bs.)</label>
             <input
               v-model.number="efectivoContado"
               type="number"
               step="0.5"
-              class="field-input main-input"
+              class="admin-field-input main-input"
               :disabled="yaCerrado"
             />
           </div>
@@ -153,19 +206,19 @@ async function realizarCierre() {
             <small v-else> (Faltante)</small>
           </div>
 
-          <div class="field-group margin-top">
+          <div class="admin-field-group margin-top">
             <label>Observaciones o Justificación</label>
             <textarea
               v-model="observaciones"
               rows="3"
-              class="field-input"
+              class="admin-field-input"
               placeholder="Opcional: motivos de sobrante o faltante..."
               :disabled="yaCerrado"
             ></textarea>
           </div>
 
           <button
-            class="btn-primary full-width margin-top"
+            class="btn-admin-primario full-width margin-top"
             @click="realizarCierre"
             :disabled="guardando || yaCerrado"
           >
@@ -175,68 +228,81 @@ async function realizarCierre() {
         </div>
       </div>
     </div>
+
+    <!-- Historial -->
+    <div class="tabla-card margin-top-lg">
+      <div class="tabla-card-header">
+        <div class="header-inline">
+          <i class="pi pi-history"></i>
+          <h3>Historial de Cierres</h3>
+        </div>
+        <span class="total-badge"
+          ><i class="pi pi-database"></i> {{ historial.length }}
+          {{ historial.length === 1 ? 'registro' : 'registros' }}</span
+        >
+      </div>
+
+      <div v-if="!cargando && historial.length === 0" class="admin-empty-state">
+        <i class="pi pi-inbox"></i>
+        <p>Aún no hay cierres de caja registrados</p>
+      </div>
+
+      <div v-else-if="!cargando" class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th class="text-right">Fondo Inicial</th>
+              <th class="text-right">Ventas Efectivo</th>
+              <th class="text-right">Ventas Digital</th>
+              <th class="text-right">Contado</th>
+              <th class="text-right">Diferencia</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in historial" :key="c.id">
+              <td>{{ c.fecha }}</td>
+              <td class="text-right">Bs. {{ Number(c.montoInicial).toFixed(2) }}</td>
+              <td class="text-right">Bs. {{ Number(c.ventasEfectivoSistema).toFixed(2) }}</td>
+              <td class="text-right">Bs. {{ Number(c.ventasDigitalSistema).toFixed(2) }}</td>
+              <td class="text-right">Bs. {{ Number(c.efectivoContado).toFixed(2) }}</td>
+              <td class="text-right">
+                <span
+                  :class="
+                    Number(c.diferencia) === 0
+                      ? 'badge-ok'
+                      : Number(c.diferencia) > 0
+                        ? 'badge-warn'
+                        : 'badge-danger'
+                  "
+                >
+                  {{ Number(c.diferencia) > 0 ? '+' : '' }}Bs. {{ Number(c.diferencia).toFixed(2) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.modulo-container {
-  padding: 1.5rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-.header-section {
-  display: flex;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.header-icon {
-  font-size: 2.2rem;
-  background: #fce4ec;
-  padding: 0.6rem;
-  border-radius: 16px;
-}
-.header-title h2 {
-  font-size: 1.6rem;
-  color: #880e4f;
-  margin: 0;
-}
-.header-title p {
-  font-size: 0.85rem;
-  color: #888;
-  margin: 0;
-}
 .grid-layout {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
   gap: 1.5rem;
+  margin-bottom: 1.5rem;
 }
-.card {
-  background: white;
-  border-radius: 20px;
-  border: 1px solid #f8bbd0;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
-}
-.card-header {
-  background: #fff9fb;
-  padding: 1.2rem 1.5rem;
-  border-bottom: 1px solid #fce4ec;
+.header-inline {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-}
-.card-icon {
+  gap: 0.6rem;
   color: #e91e8c;
-  font-size: 1.2rem;
 }
-.card-header h3 {
+.header-inline h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   color: #880e4f;
 }
 .card-body {
@@ -262,23 +328,6 @@ async function realizarCierre() {
   border: none;
   border-top: 1px solid #fce4ec;
   margin: 1rem 0;
-}
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-.field-group label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #880e4f;
-}
-.field-input {
-  width: 100%;
-  padding: 0.65rem 0.9rem;
-  border: 1.5px solid #f8bbd0;
-  border-radius: 10px;
-  outline: none;
 }
 .main-input {
   font-size: 1.4rem;
@@ -308,47 +357,16 @@ async function realizarCierre() {
 .margin-top {
   margin-top: 1rem;
 }
-.btn-primary {
-  background: linear-gradient(135deg, #e91e8c, #f06292);
-  color: white;
-  border: none;
-  padding: 0.85rem;
-  border-radius: 50px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+.margin-top-lg {
+  margin-top: 1.5rem;
 }
 .full-width {
   width: 100%;
 }
-.error-text {
-  color: #c62828;
-  font-size: 0.85rem;
-  margin: 0 0 1rem;
+.table-wrap {
+  overflow-x: auto;
 }
-.success-text {
-  color: #2e7d32;
-  font-size: 0.85rem;
-  margin: 0 0 1rem;
-  background: #e8f5e9;
-  padding: 0.6rem 1rem;
-  border-radius: 10px;
-}
-.info-text {
-  color: #1565c0;
-  font-size: 0.85rem;
-  margin: 0 0 1rem;
-  background: #e3f2fd;
-  padding: 0.6rem 1rem;
-  border-radius: 10px;
-}
-.empty-text {
-  color: #999;
-  font-size: 0.9rem;
-  padding: 1rem 0;
-  text-align: center;
+.text-right {
+  text-align: right;
 }
 </style>

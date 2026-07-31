@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { gastosService } from '@/servicios/contabilidadService'
+import { exportarAExcel } from '@/funciones/exportarExcel'
 import type { CategoriaGasto, Gasto } from '@/models/contabilidad'
 
 const egresos = ref<Gasto[]>([])
 const totalGastosMes = ref(0)
 const cargando = ref(true)
 const guardando = ref(false)
+const exportando = ref(false)
 const error = ref<string | null>(null)
 
 const nuevoGasto = ref<{
@@ -20,6 +22,14 @@ const nuevoGasto = ref<{
   comprobante: '',
   monto: null,
 })
+
+const ETIQUETAS_CATEGORIA: Record<CategoriaGasto, string> = {
+  insumos: 'Insumos',
+  servicios: 'Servicios',
+  empaques: 'Empaques',
+  mantenimiento: 'Mantenimiento',
+  otros: 'Otros',
+}
 
 async function cargarDatos() {
   cargando.value = true
@@ -66,45 +76,83 @@ async function eliminarGasto(id: number) {
     error.value = e?.response?.data?.message || 'No se pudo eliminar el gasto'
   }
 }
+
+function exportarExcel() {
+  error.value = null
+  exportando.value = true
+  try {
+    const filas = egresos.value.map((g) => ({
+      Fecha: g.fecha,
+      Concepto: g.concepto,
+      Categoría: ETIQUETAS_CATEGORIA[g.categoria],
+      Comprobante: g.comprobante || '-',
+      'Monto (Bs.)': Number(g.monto),
+    }))
+    exportarAExcel(filas, 'Gastos y Egresos', `Gastos_${new Date().toISOString().slice(0, 7)}`)
+  } catch (e: any) {
+    error.value = e?.message || 'No se pudo generar el archivo Excel'
+  } finally {
+    exportando.value = false
+  }
+}
 </script>
 
 <template>
-  <div class="modulo-container">
-    <div class="header-section">
-      <div class="header-title">
-        <div class="header-icon">💸</div>
+  <div class="admin-wrap">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="page-icon"><i class="pi pi-money-bill"></i></div>
         <div>
-          <h2>Gestión de Gastos y Egresos</h2>
-          <p>Control de salidas de dinero e insumos comprados</p>
+          <h2 class="page-titulo">Gastos y Egresos</h2>
+          <p class="page-sub">Control de salidas de dinero e insumos comprados</p>
         </div>
       </div>
-      <div class="kpi-badge">
-        <span>Gastos de este mes:</span>
-        <strong>Bs. {{ totalGastosMes.toFixed(2) }}</strong>
+      <div class="header-actions">
+        <span class="total-badge kpi-gasto">
+          <i class="pi pi-arrow-down"></i>
+          Gastos del mes: Bs. {{ totalGastosMes.toFixed(2) }}
+        </span>
+        <button class="btn-recargar" @click="cargarDatos" :disabled="cargando" title="Recargar">
+          <i :class="cargando ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"></i>
+        </button>
+        <button
+          class="btn-admin-excel"
+          @click="exportarExcel"
+          :disabled="exportando || egresos.length === 0"
+        >
+          <i class="pi pi-file-excel"></i> {{ exportando ? 'Generando...' : 'Exportar a Excel' }}
+        </button>
       </div>
     </div>
 
+    <p v-if="error" class="admin-alert-error">
+      <i class="pi pi-exclamation-circle"></i> {{ error }}
+    </p>
+
     <!-- Formulario Agregar Gasto -->
-    <div class="card margin-bottom">
-      <div class="card-header">
-        <i class="pi pi-plus-circle card-icon"></i>
-        <h3>Registrar Nuevo Egreso</h3>
+    <div class="tabla-card margin-bottom">
+      <div class="tabla-card-header">
+        <div class="header-inline">
+          <i class="pi pi-plus-circle"></i>
+          <h3>Registrar Nuevo Egreso</h3>
+        </div>
       </div>
       <div class="card-body">
         <form @submit.prevent="registrarGasto" class="form-grid">
-          <div class="field-group">
+          <div class="admin-field-group">
             <label>Concepto / Detalle</label>
             <input
               v-model="nuevoGasto.concepto"
               type="text"
               placeholder="Ej. Harina 25kg"
-              class="field-input"
+              class="admin-field-input"
               required
             />
           </div>
-          <div class="field-group">
+          <div class="admin-field-group">
             <label>Categoría</label>
-            <select v-model="nuevoGasto.categoria" class="field-input">
+            <select v-model="nuevoGasto.categoria" class="admin-field-input">
               <option value="insumos">Insumos / Materia Prima</option>
               <option value="servicios">Servicios Básicos</option>
               <option value="empaques">Empaques / Cajas</option>
@@ -112,150 +160,122 @@ async function eliminarGasto(id: number) {
               <option value="otros">Otros</option>
             </select>
           </div>
-          <div class="field-group">
+          <div class="admin-field-group">
             <label>Nº Comprobante / Nota</label>
             <input
               v-model="nuevoGasto.comprobante"
               type="text"
               placeholder="Ej. Factura 123"
-              class="field-input"
+              class="admin-field-input"
             />
           </div>
-          <div class="field-group">
+          <div class="admin-field-group">
             <label>Monto (Bs.)</label>
             <input
               v-model.number="nuevoGasto.monto"
               type="number"
               step="0.10"
               placeholder="0.00"
-              class="field-input"
+              class="admin-field-input"
               required
             />
           </div>
-          <div class="field-group button-align">
-            <button type="submit" class="btn-primary" :disabled="guardando">
+          <div class="admin-field-group button-align">
+            <button type="submit" class="btn-admin-primario" :disabled="guardando">
               <i class="pi pi-save"></i> {{ guardando ? 'Guardando...' : 'Guardar Gasto' }}
             </button>
           </div>
         </form>
-        <p v-if="error" class="error-text">{{ error }}</p>
       </div>
     </div>
 
     <!-- Tabla de Egresos -->
-    <div class="card">
-      <div class="card-header">
-        <i class="pi pi-list card-icon"></i>
-        <h3>Historial de Egresos</h3>
+    <div class="tabla-card">
+      <div class="tabla-card-header">
+        <div class="header-inline">
+          <i class="pi pi-list"></i>
+          <h3>Historial de Egresos</h3>
+        </div>
+        <span class="total-badge"
+          ><i class="pi pi-database"></i> {{ egresos.length }}
+          {{ egresos.length === 1 ? 'registro' : 'registros' }}</span
+        >
       </div>
-      <div class="card-body table-responsive">
-        <p v-if="cargando" class="empty-text">Cargando gastos...</p>
-        <p v-else-if="egresos.length === 0" class="empty-text">Aún no hay gastos registrados</p>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Concepto</th>
-              <th>Categoría</th>
-              <th>Comprobante</th>
-              <th class="text-right">Monto</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in egresos" :key="item.id">
-              <td>{{ item.fecha }}</td>
-              <td>
-                <strong>{{ item.concepto }}</strong>
-              </td>
-              <td>
-                <span class="badge">{{ item.categoria }}</span>
-              </td>
-              <td>{{ item.comprobante || '-' }}</td>
-              <td class="text-right text-red">- Bs. {{ Number(item.monto).toFixed(2) }}</td>
-              <td>
-                <button class="btn-icon-del" title="Eliminar gasto" @click="eliminarGasto(item.id)">
-                  <i class="pi pi-trash"></i>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+
+      <template v-if="cargando">
+        <div class="skeleton-rows">
+          <div v-for="n in 4" :key="n" class="skeleton-row">
+            <div class="sk-avatar"></div>
+            <div class="sk-lines">
+              <div class="sk-line sk-line-lg"></div>
+              <div class="sk-line sk-line-sm"></div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <template v-else-if="egresos.length === 0">
+        <div class="admin-empty-state">
+          <i class="pi pi-inbox"></i>
+          <p>Aún no hay gastos registrados</p>
+        </div>
+      </template>
+
+      <template v-else>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Concepto</th>
+                <th>Categoría</th>
+                <th>Comprobante</th>
+                <th class="text-right">Monto</th>
+                <th style="width: 60px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in egresos" :key="item.id">
+                <td>{{ item.fecha }}</td>
+                <td>
+                  <strong>{{ item.concepto }}</strong>
+                </td>
+                <td>
+                  <span class="badge-cat">{{ ETIQUETAS_CATEGORIA[item.categoria] }}</span>
+                </td>
+                <td>{{ item.comprobante || '-' }}</td>
+                <td class="text-right text-red">- Bs. {{ Number(item.monto).toFixed(2) }}</td>
+                <td>
+                  <button
+                    class="btn-icon-del"
+                    title="Eliminar gasto"
+                    @click="eliminarGasto(item.id)"
+                  >
+                    <i class="pi pi-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <style scoped>
-.modulo-container {
-  padding: 1.5rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.header-icon {
-  font-size: 2.2rem;
-  background: #fce4ec;
-  padding: 0.6rem;
-  border-radius: 16px;
-}
-.header-title h2 {
-  font-size: 1.6rem;
-  color: #880e4f;
-  margin: 0;
-}
-.header-title p {
-  font-size: 0.85rem;
-  color: #888;
-  margin: 0;
-}
-.kpi-badge {
-  background: #ffebee;
-  border: 1px solid #ffcdd2;
-  color: #c62828;
-  padding: 0.75rem 1.25rem;
-  border-radius: 50px;
-  font-size: 0.9rem;
-  display: flex;
-  gap: 0.5rem;
-}
-.card {
-  background: white;
-  border-radius: 20px;
-  border: 1px solid #f8bbd0;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
-}
 .margin-bottom {
   margin-bottom: 1.5rem;
 }
-.card-header {
-  background: #fff9fb;
-  padding: 1.2rem 1.5rem;
-  border-bottom: 1px solid #fce4ec;
+.header-inline {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-}
-.card-icon {
+  gap: 0.6rem;
   color: #e91e8c;
-  font-size: 1.2rem;
 }
-.card-header h3 {
+.header-inline h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   color: #880e4f;
 }
 .card-body {
@@ -267,63 +287,11 @@ async function eliminarGasto(id: number) {
   gap: 1rem;
   align-items: flex-end;
 }
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+.button-align {
+  justify-content: flex-end;
 }
-.field-group label {
-  font-size: 0.825rem;
-  font-weight: 600;
-  color: #880e4f;
-}
-.field-input {
-  padding: 0.65rem 0.9rem;
-  border: 1.5px solid #f8bbd0;
-  border-radius: 10px;
-  outline: none;
-  font-size: 0.9rem;
-}
-.btn-primary {
-  background: linear-gradient(135deg, #e91e8c, #f06292);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.2rem;
-  border-radius: 50px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  height: 42px;
-}
-.table-responsive {
+.table-wrap {
   overflow-x: auto;
-}
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.data-table th,
-.data-table td {
-  padding: 0.85rem;
-  text-align: left;
-  border-bottom: 1px solid #fce4ec;
-  font-size: 0.9rem;
-}
-.data-table th {
-  color: #880e4f;
-  font-weight: 700;
-  background: #fff9fb;
-}
-.badge {
-  background: #fce4ec;
-  color: #c2185b;
-  padding: 0.25rem 0.6rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
 }
 .text-right {
   text-align: right;
@@ -332,16 +300,11 @@ async function eliminarGasto(id: number) {
   color: #c62828;
   font-weight: 700;
 }
-.error-text {
+.kpi-gasto {
+  background: #ffebee;
   color: #c62828;
-  font-size: 0.85rem;
-  margin: 0.75rem 0 0;
-}
-.empty-text {
-  color: #999;
-  font-size: 0.9rem;
-  padding: 1rem 0;
-  text-align: center;
+  padding: 0.4rem 0.85rem;
+  border-radius: 50px;
 }
 .btn-icon-del {
   background: #ffebee;

@@ -114,7 +114,7 @@ onUnmounted(() => {
       <div class="container middle-bar-inner">
         <!-- Logo -->
         <RouterLink to="/" class="logo">
-          <img src="@/assets/images/logoSansa.png" alt="Berry Sweet" />
+          <img src="@/assets/images/logoBerrySweet.png" alt="Berry Sweet" />
         </RouterLink>
 
         <!-- Buscador -->
