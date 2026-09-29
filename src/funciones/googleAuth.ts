@@ -13,7 +13,10 @@ declare global {
             use_fedcm_for_prompt?: boolean
           }) => void
           prompt: (
-            notification?: (notification: { isNotDisplayed: () => boolean; isSkippedMoment: () => boolean }) => void,
+            notification?: (notification: {
+              isNotDisplayed: () => boolean
+              isSkippedMoment: () => boolean
+            }) => void,
           ) => void
         }
       }
@@ -78,7 +81,11 @@ export async function solicitarCredentialGoogle(): Promise<string> {
 
     window.google.accounts.id.prompt((notification) => {
       if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        reject(new Error('El diálogo de Google no se pudo mostrar. Verifica que los pop-ups estén permitidos.'))
+        reject(
+          new Error(
+            'El diálogo de Google no se pudo mostrar. Verifica que los pop-ups estén permitidos.',
+          ),
+        )
       }
     })
   })

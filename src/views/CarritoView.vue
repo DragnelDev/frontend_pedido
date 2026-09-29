@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { usarCarrito } from '@/funciones/UsarCarrito'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import http from '@/plugins/axios'
 
 const {
   carrito,
@@ -16,40 +15,9 @@ const router = useRouter()
 
 const subtotal = computed(() => totalCarrito().toFixed(2))
 
-const erroresStock = ref<Record<number, { solicitado: number; disponible: number }>>({})
-const cargandoStock = ref(false)
-const mostrarModalStock = ref(false)
-
-async function verificarStockCarrito(): Promise<boolean> {
-  erroresStock.value = {}
-  if (carrito.value.length === 0) return true
-  cargandoStock.value = true
-  try {
-    const resultados = await Promise.all(
-      carrito.value.map(async (item) => {
-        const { data } = await http.get(`/productos/${item.producto.id}`)
-        return { item, stock: data.stock as number }
-      }),
-    )
-    for (const { item, stock } of resultados) {
-      if (item.cantidad > stock) {
-        erroresStock.value[item.producto.id] = { solicitado: item.cantidad, disponible: stock }
-      }
-    }
-    return Object.keys(erroresStock.value).length === 0
-  } finally {
-    cargandoStock.value = false
-  }
-}
-
 async function procederAlPago() {
   if (carrito.value.length === 0) {
     alert('Tu carrito está vacío.')
-    return
-  }
-  const stockOk = await verificarStockCarrito()
-  if (!stockOk) {
-    mostrarModalStock.value = true
     return
   }
   router.push('/checkout')
@@ -147,9 +115,8 @@ async function procederAlPago() {
             <span>Bs. {{ subtotal }}</span>
           </div>
 
-          <button class="btn-pago" :disabled="cargandoStock" @click="procederAlPago">
-            <i v-if="cargandoStock" class="pi pi-spin pi-spinner"></i>
-            <template v-else> <i class="pi pi-credit-card"></i> Proceder al pago </template>
+          <button class="btn-pago" @click="procederAlPago">
+            <i class="pi pi-credit-card"></i> Proceder al pago
           </button>
 
           <button class="btn-seguir" @click="router.push('/')">
@@ -159,33 +126,6 @@ async function procederAlPago() {
       </div>
     </div>
   </section>
-
-  <!-- Modal stock -->
-  <Teleport to="body">
-    <Transition name="modal-fade">
-      <div v-if="mostrarModalStock" class="modal-backdrop" @click.self="mostrarModalStock = false">
-        <div class="modal-box">
-          <div class="modal-icon-wrap">
-            <i class="pi pi-exclamation-triangle"></i>
-          </div>
-          <h4 class="modal-title">Stock insuficiente</h4>
-          <p class="modal-text">
-            Algunos productos no tienen stock suficiente. Ajusta las cantidades:
-          </p>
-          <ul class="stock-lista">
-            <li v-for="(info, id) in erroresStock" :key="id">
-              <strong>{{
-                carrito.find((c) => c.producto.id === Number(id))?.producto.nombre ||
-                `Producto #${id}`
-              }}</strong
-              >: pediste {{ info.solicitado }}, disponibles {{ info.disponible }}
-            </li>
-          </ul>
-          <button class="btn-ok" @click="mostrarModalStock = false">Entendido</button>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
 </template>
 
 <style scoped>

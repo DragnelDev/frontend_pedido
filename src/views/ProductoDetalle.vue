@@ -30,8 +30,6 @@ function fmtBs(n?: number): string {
   return (Number(n) || 0).toFixed(2)
 }
 
-const stockDisponible = computed(() => (producto.value?.stock ?? 0) > 0)
-
 const stockClase = computed(() => {
   const s = producto.value?.stock ?? 0
   if (s === 0) return 'sin-stock'
@@ -70,8 +68,7 @@ watch(() => route.params.id, obtenerProducto)
 // Acciones
 // ─────────────────────────────────────────────────────────────────────────────
 function aumentar() {
-  const max = producto.value?.stock ?? 99
-  if (cantidad.value < max) cantidad.value++
+  if (cantidad.value < 99) cantidad.value++
 }
 
 function disminuir() {
@@ -148,7 +145,7 @@ function verRelacionado(id: number) {
               <span>
                 {{
                   producto.stock === 0
-                    ? 'Sin stock'
+                    ? 'Se prepara bajo pedido'
                     : producto.stock <= 5
                       ? `¡Solo ${producto.stock} disponibles!`
                       : `${producto.stock} en stock`
@@ -186,13 +183,7 @@ function verRelacionado(id: number) {
             <div class="cantidad-ctrl">
               <button class="qty-btn" @click="disminuir" :disabled="cantidad <= 1">−</button>
               <span class="qty-valor">{{ cantidad }}</span>
-              <button
-                class="qty-btn"
-                @click="aumentar"
-                :disabled="cantidad >= (producto.stock ?? 99)"
-              >
-                +
-              </button>
+              <button class="qty-btn" @click="aumentar" :disabled="cantidad >= 99">+</button>
             </div>
             <span class="cantidad-sub">
               Subtotal: <strong>Bs. {{ fmtBs(producto.precio * cantidad) }}</strong>
@@ -200,19 +191,14 @@ function verRelacionado(id: number) {
           </div>
 
           <!-- Botón agregar -->
-          <button
-            class="btn-agregar"
-            :class="{ agregado, 'sin-stock': !stockDisponible }"
-            @click="añadirAlCarrito"
-            :disabled="!stockDisponible"
-          >
+          <button class="btn-agregar" :class="{ agregado }" @click="añadirAlCarrito">
             <Transition name="btn-swap" mode="out-in">
               <span v-if="agregado" key="ok" class="btn-inner">
                 <i class="pi pi-check"></i> ¡Agregado al carrito!
               </span>
               <span v-else key="add" class="btn-inner">
                 <i class="pi pi-shopping-cart"></i>
-                {{ stockDisponible ? 'Agregar al carrito' : 'Sin stock disponible' }}
+                {{ producto.stock === 0 ? 'Pedir por encargo' : 'Agregar al carrito' }}
               </span>
             </Transition>
           </button>

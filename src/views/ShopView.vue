@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { productoService } from '@/servicios/productoService'
 import { usarCarrito } from '@/funciones/UsarCarrito'
@@ -175,7 +175,7 @@ function fmtBs(n?: number): string {
         <button
           v-if="categoriaActiva || busqueda"
           class="btn-limpiar"
-          @click="limpiarCategoria(); busqueda = ''"
+          @click="(limpiarCategoria(), (busqueda = ''))"
         >
           <i class="pi pi-times"></i> Limpiar filtros
         </button>
@@ -222,7 +222,7 @@ function fmtBs(n?: number): string {
               {{ p.categoria.nombre }}
             </span>
             <!-- Badge sin stock -->
-            <span v-if="(p.stock ?? 0) === 0" class="sin-stock-badge">Sin stock</span>
+            <span v-if="(p.stock ?? 0) === 0" class="sin-stock-badge">Se prepara bajo pedido</span>
           </div>
 
           <!-- Info -->
@@ -246,11 +246,7 @@ function fmtBs(n?: number): string {
             <span class="card-precio">Bs. {{ fmtBs(p.precio) }}</span>
             <button
               class="btn-agregar"
-              :class="{
-                agregado: agregados.has(p.id),
-                'sin-stock': (p.stock ?? 0) === 0,
-              }"
-              :disabled="(p.stock ?? 0) === 0"
+              :class="{ agregado: agregados.has(p.id) }"
               @click.stop="añadirAlCarrito(p)"
             >
               <Transition name="icon-swap" mode="out-in">
@@ -258,7 +254,7 @@ function fmtBs(n?: number): string {
                 <i v-else key="add" class="pi pi-shopping-cart"></i>
               </Transition>
               <span>{{
-                agregados.has(p.id) ? '¡Listo!' : (p.stock ?? 0) === 0 ? 'Agotado' : 'Añadir'
+                agregados.has(p.id) ? '¡Listo!' : (p.stock ?? 0) === 0 ? 'Encargar' : 'Añadir'
               }}</span>
             </button>
           </div>
@@ -278,7 +274,7 @@ function fmtBs(n?: number): string {
         <button
           v-if="categoriaActiva || busqueda"
           class="btn-reset"
-          @click="limpiarCategoria(); busqueda = ''"
+          @click="(limpiarCategoria(), (busqueda = ''))"
         >
           Ver todos los productos
         </button>

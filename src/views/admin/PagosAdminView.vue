@@ -41,6 +41,7 @@ const filtroMetodo = ref<FiltroMetodo>('todos')
 const q = ref('')
 const paginaActual = ref(1)
 const POR_PAGINA = 10
+const actualizandoPagoId = ref<number | null>(null)
 
 // Modal comprobante
 const modalImg = ref('')
@@ -151,6 +152,25 @@ function verComprobante(pago: Pago) {
     metodo: pago.metodo,
   }
   showModalImg.value = true
+  if (pago.estado === 'pendiente') void actualizarEstadoPago(pago, 'en_revision')
+}
+
+async function actualizarEstadoPago(pago: Pago, estado: Pago['estado']) {
+  if (actualizandoPagoId.value !== null) return
+  actualizandoPagoId.value = pago.id
+  try {
+    await http.patch(`/pagos/${pago.id}`, { estado })
+    pago.estado = estado
+    if (estado === 'rechazado' && pago.pedido) pago.pedido.estado = 'cancelado'
+  } catch {
+    alert('No se pudo actualizar el estado del pago')
+  } finally {
+    actualizandoPagoId.value = null
+  }
+}
+
+function aprobarPago(pago: Pago) {
+  void actualizarEstadoPago(pago, 'aprobado')
 }
 
 function cerrarModal() {
@@ -400,7 +420,7 @@ const METODOS_FILTRO: { value: FiltroMetodo; label: string; icon: string }[] = [
               <th style="width: 130px">Monto</th>
               <th style="width: 140px">Estado pago</th>
               <th style="width: 130px">Estado pedido</th>
-              <th style="width: 110px">Comprobante</th>
+              <th style="width: 180px">Comprobante / acción</th>
               <th style="width: 150px">Fecha pago</th>
             </tr>
           </thead>
@@ -472,10 +492,30 @@ const METODOS_FILTRO: { value: FiltroMetodo; label: string; icon: string }[] = [
 
                 <!-- Comprobante -->
                 <td>
-                  <button v-if="p.comprobante" class="btn-comprobante" @click="verComprobante(p)">
-                    <i class="pi pi-image"></i> Ver
-                  </button>
-                  <span v-else class="td-null">Sin archivo</span>
+                  <div class="pago-acciones">
+                    <button
+                      v-if="p.comprobante"
+                      class="btn-comprobante"
+                      :disabled="actualizandoPagoId === p.id"
+                      @click="verComprobante(p)"
+                    >
+                      <i class="pi pi-image"></i> Ver
+                    </button>
+                    <span v-else class="td-null">Sin archivo</span>
+                    <button
+                      v-if="p.estado === 'pendiente' || p.estado === 'en_revision'"
+                      class="btn-aprobar-pago"
+                      :disabled="actualizandoPagoId === p.id"
+                      @click="aprobarPago(p)"
+                    >
+                      <i
+                        :class="
+                          actualizandoPagoId === p.id ? 'pi pi-spin pi-spinner' : 'pi pi-check'
+                        "
+                      ></i>
+                      Aprobar
+                    </button>
+                  </div>
                 </td>
 
                 <!-- Fecha -->
@@ -1057,6 +1097,38 @@ tr:hover td {
   cursor: pointer;
   transition: background 0.2s;
   white-space: nowrap;
+}
+
+.pago-acciones {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.btn-aprobar-pago {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid #c8e6c9;
+  border-radius: 50px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-aprobar-pago:hover:not(:disabled) {
+  background: #c8e6c9;
+}
+
+.btn-aprobar-pago:disabled,
+.btn-comprobante:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 .btn-comprobante:hover {

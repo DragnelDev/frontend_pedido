@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { usarCarrito } from '@/funciones/UsarCarrito'
 
-const { carrito, totalCarrito, eliminarProducto } = usarCarrito()
+const { carrito, totalCarrito, eliminarProducto, incrementarCantidad, disminuirCantidad } =
+  usarCarrito()
 
 const emit = defineEmits(['cerrar'])
 </script>
@@ -39,12 +40,32 @@ const emit = defineEmits(['cerrar'])
               />
               <div class="item-info">
                 <h6>{{ item.producto.nombre }}</h6>
-                <p class="item-precio">Bs. {{ item.producto.precio }} × {{ item.cantidad }}</p>
+                <p class="item-precio">Bs. {{ item.producto.precio }}</p>
                 <p class="item-subtotal">
                   Bs. {{ (item.producto.precio * item.cantidad).toFixed(2) }}
                 </p>
               </div>
+              <div class="cantidad-ctrl" aria-label="Cantidad del producto">
+                <button
+                  type="button"
+                  class="btn-qty"
+                  aria-label="Disminuir cantidad"
+                  @click="disminuirCantidad(item.producto.id)"
+                >
+                  −
+                </button>
+                <span class="qty-val">{{ item.cantidad }}</span>
+                <button
+                  type="button"
+                  class="btn-qty"
+                  aria-label="Aumentar cantidad"
+                  @click="incrementarCantidad(item.producto.id)"
+                >
+                  +
+                </button>
+              </div>
               <button
+                type="button"
                 class="btn-eliminar"
                 @click="eliminarProducto(item.producto.id)"
                 aria-label="Eliminar"
@@ -236,6 +257,39 @@ const emit = defineEmits(['cerrar'])
   color: #e91e8c;
   font-size: 0.9rem;
   margin: 0;
+}
+
+.cantidad-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.btn-qty {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #f0d0db;
+  border-radius: 7px;
+  background: #fff8fb;
+  color: #c04070;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.btn-qty:hover {
+  background: #fce8f0;
+  border-color: #e8517a;
+}
+
+.qty-val {
+  min-width: 18px;
+  color: #1a0810;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
 }
 
 .btn-eliminar {

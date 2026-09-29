@@ -155,6 +155,7 @@ defineExpose({ obtenerLista })
       v-model:visible="mostrarConfirmDialog"
       header="Confirmar Eliminación"
       :style="{ width: '90vw', maxWidth: '420px' }"
+      :pt="{ root: { class: 'modal-custom' } }"
       modal
     >
       <div class="confirm-content">

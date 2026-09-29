@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { isAxiosError } from 'axios'
 import http from '@/plugins/axios'
 import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
 import L from 'leaflet'
@@ -8,7 +9,7 @@ import iconUrl from 'leaflet/dist/images/marker-icon.png'
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png'
 
-delete (L.Icon.Default.prototype as any)._getIconUrl
+delete (L.Icon.Default.prototype as L.Icon.Default & { _getIconUrl?: string })._getIconUrl
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -41,7 +42,8 @@ type Cliente = {
 }
 
 // Modos de la vista
-type ModoVenta = 'mostrador' | 'domicilio'
+type ModoVenta = 'mostrador' | 'reserva' | 'domicilio'
+type ModalidadDomicilio = 'inmediato' | 'programado'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Estado principal
@@ -55,12 +57,14 @@ const usuarioId = ref<number | null>(null)
 
 // Modo: mostrador (entrega inmediata) o domicilio (pedido con delivery)
 const modoVenta = ref<ModoVenta>('mostrador')
+const modalidadDomicilio = ref<ModalidadDomicilio>('programado')
 
 // Método de pago (tabla `pagos`: metodo)
 const metodo = ref<'efectivo' | 'qr' | 'transferencia' | 'tarjeta'>('efectivo')
 
-// Datos de pago extra — tabla `pagos`: comprobante, masked_card
-const comprobante = ref('')
+// Comprobante de pago subido como archivo; se guarda su URL en pagos.comprobante.
+const comprobanteFile = ref<File | null>(null)
+const comprobantePreviewUrl = ref('')
 const maskedCard = ref('')
 
 // Nota interna (va a `pedidos.referencia`)
@@ -117,6 +121,17 @@ const MESES_LABEL = [
   'Dic',
 ]
 
+function fechaIsoLocal(fecha: Date): string {
+  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`
+}
+
+const fechaMinimaProgramada = computed(() => {
+  const fecha = new Date()
+  fecha.setHours(0, 0, 0, 0)
+  fecha.setDate(fecha.getDate() + 2)
+  return fechaIsoLocal(fecha)
+})
+
 const diasOpciones = computed<DiaOpcion[]>(() => {
   const hoy = new Date()
   return Array.from({ length: 14 }, (_, i) => {
@@ -125,21 +140,44 @@ const diasOpciones = computed<DiaOpcion[]>(() => {
     const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     return {
       iso,
-      label: DIAS_LABEL[d.getDay()],
+      label: DIAS_LABEL[d.getDay()] ?? '',
       numero: d.getDate(),
-      mes: MESES_LABEL[d.getMonth()],
-      disponible: true,
+      mes: MESES_LABEL[d.getMonth()] ?? '',
+      disponible: iso >= fechaMinimaProgramada.value,
     }
   })
 })
 
 const diaSeleccionado = ref('')
 const horaSeleccionada = ref('')
+const horasDisponibles = computed(() => {
+  if (!diaSeleccionado.value) return HORAS_DISPONIBLES
+  const ahora = new Date()
+  const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`
+  if (diaSeleccionado.value !== hoy) return HORAS_DISPONIBLES
+  return HORAS_DISPONIBLES.filter((hora) => {
+    const [horas, minutos] = hora.split(':').map(Number)
+    const fechaHora = new Date(
+      ahora.getFullYear(),
+      ahora.getMonth(),
+      ahora.getDate(),
+      horas,
+      minutos,
+    )
+    return fechaHora > ahora
+  })
+})
 
-const fechaEntregaFinal = computed(() =>
-  diaSeleccionado.value && horaSeleccionada.value
-    ? `${diaSeleccionado.value}T${horaSeleccionada.value}:00Z`
-    : '',
+const fechaEntregaFinal = computed(() => {
+  if (!diaSeleccionado.value || !horaSeleccionada.value) return ''
+  const fecha = new Date(`${diaSeleccionado.value}T${horaSeleccionada.value}:00`)
+  return Number.isNaN(fecha.getTime()) ? '' : fecha.toISOString()
+})
+
+const requiereHorario = computed(
+  () =>
+    modoVenta.value === 'reserva' ||
+    (modoVenta.value === 'domicilio' && modalidadDomicilio.value === 'programado'),
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -246,8 +284,51 @@ function confirmarUbicacion() {
   cerrarMapa()
 }
 
+function limpiarComprobante() {
+  if (comprobantePreviewUrl.value) URL.revokeObjectURL(comprobantePreviewUrl.value)
+  comprobantePreviewUrl.value = ''
+  comprobanteFile.value = null
+}
+
+function seleccionarComprobante(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+    input.value = ''
+    alert('Selecciona una imagen o un archivo PDF.')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    input.value = ''
+    alert('El comprobante no puede superar 5 MB.')
+    return
+  }
+
+  limpiarComprobante()
+  comprobanteFile.value = file
+  if (file.type.startsWith('image/')) {
+    comprobantePreviewUrl.value = URL.createObjectURL(file)
+  }
+}
+
+async function subirComprobante(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const { data } = await http.post('/uploads', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  const url = data?.url || data?.path
+  if (typeof url !== 'string' || !url) {
+    throw new Error('El servidor no devolvió la URL del comprobante.')
+  }
+  return url
+}
+
 onUnmounted(() => {
   if (mapInstance) mapInstance.remove()
+  limpiarComprobante()
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -257,10 +338,16 @@ onMounted(async () => {
   const token = getTokenFromLocalStorage()
   if (token) usuarioId.value = Number(parseJwt(token)?.sub)
 
-  // Pre-seleccionar hoy como fecha de entrega
+  // Seleccionar el primer horario futuro, o mañana si hoy ya no tiene horarios.
   const hoy = new Date()
-  diaSeleccionado.value = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
-  horaSeleccionada.value = HORAS_DISPONIBLES[0]
+  const hoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
+  diaSeleccionado.value = hoyIso
+  if (horasDisponibles.value.length) {
+    horaSeleccionada.value = horasDisponibles.value[0] || ''
+  } else {
+    diaSeleccionado.value = diasOpciones.value[1]?.iso || hoyIso
+    horaSeleccionada.value = HORAS_DISPONIBLES[0] || ''
+  }
 
   await cargarProductos()
 })
@@ -287,8 +374,10 @@ const productosFiltrados = computed(() => {
 function agregarAlCarrito(p: Producto) {
   const item = carrito.value.find((i) => i.producto.id === p.id)
   if (item) {
-    if (item.cantidad < p.stock) item.cantidad++
-  } else carrito.value.push({ producto: p, cantidad: 1 })
+    if (!requiereStockInmediato.value || item.cantidad < p.stock) item.cantidad++
+  } else if (!requiereStockInmediato.value || p.stock > 0) {
+    carrito.value.push({ producto: p, cantidad: 1 })
+  }
 }
 
 function quitarItem(id: number) {
@@ -303,11 +392,21 @@ function cambiarCantidad(id: number, delta: number) {
     quitarItem(id)
     return
   }
-  if (nueva > item.producto.stock) return
+  if (requiereStockInmediato.value && nueva > item.producto.stock) return
   item.cantidad = nueva
 }
 
 const total = computed(() => carrito.value.reduce((s, i) => s + i.producto.precio * i.cantidad, 0))
+const requiereStockInmediato = computed(
+  () =>
+    modoVenta.value === 'mostrador' ||
+    (modoVenta.value === 'domicilio' && modalidadDomicilio.value === 'inmediato'),
+)
+const productosSinStock = computed(() =>
+  requiereStockInmediato.value
+    ? carrito.value.filter((item) => item.cantidad > item.producto.stock)
+    : [],
+)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Búsqueda de cliente por CI
@@ -332,14 +431,42 @@ async function buscarCliente(source: 'ci' | 'email' = 'ci') {
 // ─────────────────────────────────────────────────────────────────────────────
 function cambiarModo(modo: ModoVenta) {
   modoVenta.value = modo
+  if (modo === 'reserva' || (modo === 'domicilio' && modalidadDomicilio.value === 'programado')) {
+    seleccionarPrimerHorarioProgramado()
+  }
+  if (modo !== 'domicilio') {
+    coordenadas.value = null
+    direccionReversa.value = ''
+  }
   if (modo === 'mostrador') {
     envio.value.tipoEnvio = 'retiroTienda'
     envio.value.direccionEnvio = 'Sucursal Principal — Berry Sweet'
     metodo.value = 'efectivo'
+  } else if (modo === 'reserva') {
+    envio.value.tipoEnvio = 'retiroTienda'
+    envio.value.direccionEnvio = 'Sucursal Principal — Berry Sweet'
   } else {
     envio.value.tipoEnvio = 'delivery'
     envio.value.direccionEnvio = cliente.value.direccion || ''
   }
+}
+
+function seleccionarPrimerHorarioProgramado() {
+  const primerDia = diasOpciones.value.find((dia) => dia.disponible)
+  if (!primerDia) return
+  diaSeleccionado.value = primerDia.iso
+  horaSeleccionada.value = HORAS_DISPONIBLES[0] || ''
+}
+
+function cambiarModalidadDomicilio(modalidad: ModalidadDomicilio) {
+  modalidadDomicilio.value = modalidad
+  if (modalidad === 'programado') seleccionarPrimerHorarioProgramado()
+}
+
+function seleccionarDia(iso: string) {
+  if (!diasOpciones.value.some((dia) => dia.iso === iso && dia.disponible)) return
+  diaSeleccionado.value = iso
+  horaSeleccionada.value = horasDisponibles.value[0] || ''
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -348,83 +475,98 @@ function cambiarModo(modo: ModoVenta) {
 async function confirmarVenta() {
   if (!usuarioId.value) return alert('Usuario no identificado. Inicia sesión.')
   if (carrito.value.length === 0) return alert('Agrega al menos un producto.')
-  if (modoVenta.value === 'domicilio' && !fechaEntregaFinal.value)
-    return alert('Selecciona fecha y hora de entrega.')
-  if ((metodo.value === 'qr' || metodo.value === 'transferencia') && !comprobante.value)
-    return alert('Ingresa el número de comprobante.')
-  if (metodo.value === 'tarjeta' && maskedCard.value.length !== 4)
+  if (requiereHorario.value && !fechaEntregaFinal.value)
+    return alert('Selecciona fecha y hora para el pedido.')
+  if (requiereHorario.value && diaSeleccionado.value < fechaMinimaProgramada.value) {
+    seleccionarPrimerHorarioProgramado()
+    return alert('Las reservas y preparaciones deben programarse desde pasado mañana.')
+  }
+  if (requiereHorario.value && new Date(fechaEntregaFinal.value).getTime() <= Date.now()) {
+    horaSeleccionada.value = horasDisponibles.value[0] || ''
+    return alert('La hora seleccionada ya pasó. Elige otro horario.')
+  }
+  if (modoVenta.value === 'domicilio' && !envio.value.direccionEnvio.trim())
+    return alert('Ingresa la dirección de entrega.')
+  const requiereComprobante = metodo.value === 'qr' || metodo.value === 'transferencia'
+  if (requiereComprobante && !comprobanteFile.value) {
+    return alert('Adjunta la imagen o PDF del comprobante de pago.')
+  }
+  if (metodo.value === 'tarjeta' && !/^\d{4}$/.test(maskedCard.value))
     return alert('Ingresa los últimos 4 dígitos de la tarjeta.')
+
+  const datosCliente = [
+    cliente.value.cedulaIdentidad,
+    cliente.value.nombre,
+    cliente.value.apellidoPaterno,
+    cliente.value.apellidoMaterno,
+    cliente.value.celular,
+    cliente.value.email,
+    cliente.value.direccion,
+  ].map((valor) => valor.trim())
+  const hayDatosCliente = datosCliente.some(Boolean)
+  const requiereCliente = modoVenta.value !== 'mostrador'
+  const intentaRegistrarCliente = requiereCliente || hayDatosCliente
+  const camposClienteObligatorios = [0, 1, 2, 4, 5]
+  if (
+    intentaRegistrarCliente &&
+    camposClienteObligatorios.some((indice) => !datosCliente[indice])
+  ) {
+    return alert('Registra o busca los datos del cliente para reservar o enviar el pedido.')
+  }
+  if (modoVenta.value === 'domicilio' && !envio.value.direccionEnvio.trim()) {
+    return alert('Ingresa la dirección de entrega.')
+  }
+  const limitesCliente = [12, 50, 50, 50, 12, 40, 80]
+  if (datosCliente.some((valor, indice) => valor.length > (limitesCliente[indice] ?? Infinity))) {
+    return alert('Revisa la longitud de los datos del cliente antes de continuar.')
+  }
 
   procesando.value = true
 
   try {
-    // 1. Crear o actualizar cliente (tabla `clientes`)
-    let clienteId: number | null = null
-    if (cliente.value.cedulaIdentidad && cliente.value.nombre) {
-      if (cliente.value.id) {
-        // cliente ya existía — usar su id directamente
-        clienteId = cliente.value.id
-      } else {
-        const { data: clienteCreado } = await http.post('/clientes', {
-          cedulaIdentidad: cliente.value.cedulaIdentidad,
-          nombre: cliente.value.nombre,
-          apellidoPaterno: cliente.value.apellidoPaterno,
-          apellidoMaterno: cliente.value.apellidoMaterno,
-          celular: cliente.value.celular,
-          email: cliente.value.email,
-          direccion: cliente.value.direccion,
-        })
-        clienteId = clienteCreado.id
-      }
-    }
+    const comprobanteUrl =
+      requiereComprobante && comprobanteFile.value
+        ? await subirComprobante(comprobanteFile.value)
+        : undefined
 
-    // 2. Crear pedido (tabla `pedidos`)
-    const { data: pedido } = await http.post('/pedidos', {
-      idUsuario: usuarioId.value,
-      idCliente: clienteId,
-      fechaEntrega:
-        modoVenta.value === 'mostrador' ? new Date().toISOString() : fechaEntregaFinal.value,
-      total: total.value,
-      estado: modoVenta.value === 'mostrador' ? 'entregado' : 'pendiente',
-      direccionEnvio:
-        modoVenta.value === 'mostrador'
-          ? 'Sucursal Principal — Berry Sweet'
-          : envio.value.direccionEnvio,
-      referencia: notaVenta.value || envio.value.referencia,
+    // Registrar pedido, cliente, pago y stock en una sola operación del backend.
+    const { data: pedido } = await http.post('/pedidos/venta-empleado', {
+      modo: modoVenta.value,
+      modalidadEntrega: modoVenta.value === 'domicilio' ? modalidadDomicilio.value : undefined,
+      fechaEntrega: requiereHorario.value ? fechaEntregaFinal.value : undefined,
       tipoEnvio: envio.value.tipoEnvio,
+      direccionEnvio: envio.value.direccionEnvio,
+      referencia: [notaVenta.value, envio.value.referencia].filter(Boolean).join(' · '),
       latitud: coordenadas.value?.lat ?? null,
       longitud: coordenadas.value?.lng ?? null,
       metodoPago: metodo.value,
+      cliente: intentaRegistrarCliente
+        ? {
+            cedulaIdentidad: datosCliente[0],
+            nombre: datosCliente[1],
+            apellidoPaterno: datosCliente[2],
+            apellidoMaterno: datosCliente[3],
+            celular: datosCliente[4],
+            email: datosCliente[5],
+            direccion:
+              datosCliente[6] ||
+              (modoVenta.value === 'domicilio' ? envio.value.direccionEnvio.trim() : undefined),
+          }
+        : undefined,
+      comprobante: comprobanteUrl,
+      maskedCard: metodo.value === 'tarjeta' ? maskedCard.value : undefined,
+      items: carrito.value.map((item) => ({
+        idProducto: item.producto.id,
+        cantidad: item.cantidad,
+      })),
     })
 
-    // 3. Crear detalles (tabla `detalle_pedidos`)
-    await Promise.all(
-      carrito.value.map((item) =>
-        http.post('/detalle-pedidos', {
-          idPedido: pedido.id,
-          idProducto: item.producto.id,
-          cantidad: item.cantidad,
-          precioUnitario: item.producto.precio,
-        }),
-      ),
-    )
-
-    // 4. Registrar pago (tabla `pagos`)
-    await http.post('/pagos', {
-      idPedido: pedido.id,
-      metodo: metodo.value,
-      monto: total.value,
-      estado: modoVenta.value === 'mostrador' ? 'aprobado' : 'pendiente',
-      comprobante:
-        metodo.value === 'qr' || metodo.value === 'transferencia' ? comprobante.value : '',
-      maskedCard: metodo.value === 'tarjeta' ? `****${maskedCard.value}` : '',
-    })
-
+    if (pedido.idCliente) cliente.value.id = pedido.idCliente
     ventaExitosa.value = pedido.id
     await cargarProductos()
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error(e)
-    alert(e?.response?.data?.message || 'Error al registrar la venta.')
+    alert(mensajeError(e, 'Error al registrar la venta.'))
   } finally {
     procesando.value = false
   }
@@ -434,14 +576,17 @@ function limpiarVenta() {
   carrito.value = []
   metodo.value = 'efectivo'
   notaVenta.value = ''
-  comprobante.value = ''
+  limpiarComprobante()
   maskedCard.value = ''
   coordenadas.value = null
   direccionReversa.value = ''
   clienteBuscado.value = false
   envio.value = {
-    tipoEnvio: modoVenta.value === 'mostrador' ? 'retiroTienda' : 'delivery',
-    direccionEnvio: modoVenta.value === 'mostrador' ? 'Sucursal Principal — Berry Sweet' : '',
+    tipoEnvio: modoVenta.value === 'domicilio' ? 'delivery' : 'retiroTienda',
+    direccionEnvio:
+      modoVenta.value === 'domicilio'
+        ? cliente.value.direccion
+        : 'Sucursal Principal — Berry Sweet',
     referencia: '',
   }
   cliente.value = {
@@ -462,7 +607,18 @@ function fmtBs(v: number) {
 
 const labelModo: Record<ModoVenta, string> = {
   mostrador: 'Venta en mostrador',
+  reserva: 'Reserva para recoger en local',
   domicilio: 'Pedido a domicilio',
+}
+
+function mensajeError(error: unknown, predeterminado: string): string {
+  if (!isAxiosError<{ message?: unknown }>(error)) return predeterminado
+  const message = error.response?.data?.message
+  if (typeof message === 'string') return message
+  if (Array.isArray(message) && message.every((part) => typeof part === 'string')) {
+    return message.join(', ')
+  }
+  return predeterminado
 }
 </script>
 
@@ -473,7 +629,7 @@ const labelModo: Record<ModoVenta, string> = {
       <div class="page-header">
         <span class="section-tag">Punto de venta</span>
         <h2 class="page-titulo">Registrar Venta</h2>
-        <p class="page-sub">Venta directa en mostrador o pedido a domicilio</p>
+        <p class="page-sub">Venta inmediata, reserva para recoger o pedido a domicilio</p>
       </div>
 
       <!-- ── Selector de modo ────────────────────────────────────────────── -->
@@ -491,13 +647,24 @@ const labelModo: Record<ModoVenta, string> = {
         </button>
         <button
           class="modo-btn"
+          :class="{ activo: modoVenta === 'reserva' }"
+          @click="cambiarModo('reserva')"
+        >
+          <span class="modo-icon">📅</span>
+          <div class="modo-texto">
+            <strong>Reserva para recoger</strong>
+            <small>Retiro en local · pedido pendiente</small>
+          </div>
+        </button>
+        <button
+          class="modo-btn"
           :class="{ activo: modoVenta === 'domicilio' }"
           @click="cambiarModo('domicilio')"
         >
           <span class="modo-icon">🚚</span>
           <div class="modo-texto">
             <strong>Domicilio</strong>
-            <small>Pedido con delivery · estado: pendiente</small>
+            <small>Envío inmediato o preparado para un horario</small>
           </div>
         </button>
       </div>
@@ -506,14 +673,36 @@ const labelModo: Record<ModoVenta, string> = {
       <Transition name="slide-fade" mode="out-in">
         <div v-if="ventaExitosa" key="exito" class="venta-exitosa-card">
           <div class="exito-anillo">
-            <span class="exito-icon">{{ modoVenta === 'mostrador' ? '🎉' : '📦' }}</span>
+            <span class="exito-icon">{{
+              modoVenta === 'mostrador'
+                ? '🎉'
+                : modoVenta === 'reserva'
+                  ? '📅'
+                  : modalidadDomicilio === 'inmediato'
+                    ? '🚚'
+                    : '📦'
+            }}</span>
           </div>
-          <h3>{{ modoVenta === 'mostrador' ? '¡Venta registrada!' : '¡Pedido creado!' }}</h3>
+          <h3>
+            {{
+              modoVenta === 'mostrador'
+                ? '¡Venta registrada!'
+                : modoVenta === 'reserva'
+                  ? '¡Reserva registrada!'
+                  : modalidadDomicilio === 'inmediato'
+                    ? '¡Envío listo para despacho!'
+                    : '¡Pedido creado!'
+            }}
+          </h3>
           <p>
             {{
               modoVenta === 'mostrador'
                 ? 'El pedido fue marcado como entregado.'
-                : 'El pedido fue registrado como pendiente de entrega.'
+                : modoVenta === 'reserva'
+                  ? 'La reserva quedó pendiente para preparar y recoger en el local.'
+                  : modalidadDomicilio === 'inmediato'
+                    ? 'El pedido quedó listo para salir y no pasó por cocina.'
+                    : 'El pedido pasó a cocina para prepararse en el horario elegido.'
             }}
           </p>
           <p class="exito-id">
@@ -521,7 +710,15 @@ const labelModo: Record<ModoVenta, string> = {
           </p>
           <button class="btn-nueva" @click="limpiarVenta">
             <i class="pi pi-plus"></i>
-            {{ modoVenta === 'mostrador' ? 'Nueva venta' : 'Nuevo pedido' }}
+            {{
+              modoVenta === 'mostrador'
+                ? 'Nueva venta'
+                : modoVenta === 'reserva'
+                  ? 'Nueva reserva'
+                  : modalidadDomicilio === 'inmediato'
+                    ? 'Nuevo envío inmediato'
+                    : 'Nuevo pedido'
+            }}
           </button>
         </div>
 
@@ -544,8 +741,8 @@ const labelModo: Record<ModoVenta, string> = {
                 v-for="p in productosFiltrados"
                 :key="p.id"
                 class="producto-tile"
-                :class="{ 'sin-stock': p.stock === 0 }"
-                @click="p.stock > 0 && agregarAlCarrito(p)"
+                :class="{ 'sin-stock': requiereStockInmediato && p.stock === 0 }"
+                @click="(!requiereStockInmediato || p.stock > 0) && agregarAlCarrito(p)"
               >
                 <img
                   :src="p.imagenUrl || '/assets/images/default.jpg'"
@@ -559,10 +756,18 @@ const labelModo: Record<ModoVenta, string> = {
                     class="tile-stock"
                     :class="{ bajo: p.stock <= 5 && p.stock > 0, agotado: p.stock === 0 }"
                   >
-                    {{ p.stock === 0 ? 'Sin stock' : `Stock: ${p.stock}` }}
+                    {{
+                      p.stock === 0
+                        ? requiereStockInmediato
+                          ? 'Sin stock'
+                          : 'Preparar por pedido'
+                        : `Stock: ${p.stock}`
+                    }}
                   </span>
                 </div>
-                <div v-if="p.stock > 0" class="tile-add"><i class="pi pi-plus"></i></div>
+                <div v-if="!requiereStockInmediato || p.stock > 0" class="tile-add">
+                  <i class="pi pi-plus"></i>
+                </div>
                 <div v-else class="tile-agotado">Sin stock</div>
               </div>
               <p v-if="productosFiltrados.length === 0" class="sin-resultados">
@@ -575,10 +780,19 @@ const labelModo: Record<ModoVenta, string> = {
           <div class="venta-panel">
             <!-- Badge modo activo -->
             <div class="modo-badge-activo">
-              <span>{{ modoVenta === 'mostrador' ? '🏪' : '🚚' }}</span>
+              <span>{{
+                modoVenta === 'mostrador' ? '🏪' : modoVenta === 'reserva' ? '📅' : '🚚'
+              }}</span>
               <span>{{ labelModo[modoVenta] }}</span>
               <span class="estado-hint">
-                → {{ modoVenta === 'mostrador' ? 'entregado' : 'pendiente' }}
+                →
+                {{
+                  modoVenta === 'mostrador'
+                    ? 'entregado'
+                    : modoVenta === 'domicilio' && modalidadDomicilio === 'inmediato'
+                      ? 'listo para envío'
+                      : 'pendiente'
+                }}
               </span>
             </div>
 
@@ -620,26 +834,32 @@ const labelModo: Record<ModoVenta, string> = {
               <div class="seccion-card">
                 <div class="seccion-header-mini">
                   <i class="pi pi-user"></i>
-                  <span>Datos del cliente</span>
+                  <span>{{
+                    modoVenta === 'mostrador' ? 'Datos del cliente (opcional)' : 'Datos del cliente'
+                  }}</span>
                   <span v-if="clienteBuscado" class="badge-encontrado">
                     <i class="pi pi-check-circle"></i> Encontrado
                   </span>
                 </div>
                 <div class="cliente-grid">
                   <div class="field">
-                    <label class="field-label">CI <span class="req">*</span></label>
+                    <label class="field-label">
+                      CI <span v-if="modoVenta !== 'mostrador'" class="req">*</span>
+                    </label>
                     <div class="input-wrap">
                       <i class="pi pi-id-card input-icon"></i>
                       <input
                         v-model="cliente.cedulaIdentidad"
-                        @blur="buscarCliente"
+                        @blur="() => buscarCliente()"
                         class="field-input has-icon"
                         placeholder="Carnet de identidad"
                       />
                     </div>
                   </div>
                   <div class="field">
-                    <label class="field-label">Nombre</label>
+                    <label class="field-label">
+                      Nombre <span v-if="modoVenta !== 'mostrador'" class="req">*</span>
+                    </label>
                     <div class="input-wrap">
                       <i class="pi pi-user input-icon"></i>
                       <input
@@ -650,7 +870,9 @@ const labelModo: Record<ModoVenta, string> = {
                     </div>
                   </div>
                   <div class="field">
-                    <label class="field-label">Ap. Paterno</label>
+                    <label class="field-label">
+                      Ap. Paterno <span v-if="modoVenta !== 'mostrador'" class="req">*</span>
+                    </label>
                     <input
                       v-model="cliente.apellidoPaterno"
                       class="field-input"
@@ -666,7 +888,9 @@ const labelModo: Record<ModoVenta, string> = {
                     />
                   </div>
                   <div class="field">
-                    <label class="field-label">Celular</label>
+                    <label class="field-label">
+                      Celular <span v-if="modoVenta !== 'mostrador'" class="req">*</span>
+                    </label>
                     <div class="input-wrap">
                       <i class="pi pi-mobile input-icon"></i>
                       <input
@@ -677,12 +901,14 @@ const labelModo: Record<ModoVenta, string> = {
                     </div>
                   </div>
                   <div class="field">
-                    <label class="field-label">Email</label>
+                    <label class="field-label">
+                      Email <span v-if="modoVenta !== 'mostrador'" class="req">*</span>
+                    </label>
                     <div class="input-wrap">
                       <i class="pi pi-envelope input-icon"></i>
                       <input
                         v-model="cliente.email"
-                        @blur="buscarCliente('email')"
+                        @blur="() => buscarCliente('email')"
                         class="field-input has-icon"
                         placeholder="correo@..."
                       />
@@ -703,14 +929,16 @@ const labelModo: Record<ModoVenta, string> = {
               </div>
 
               <!-- ── Entrega (solo domicilio) ───────────────────────────── -->
-              <div v-if="modoVenta === 'domicilio'" class="seccion-card">
+              <div v-if="modoVenta !== 'mostrador'" class="seccion-card">
                 <div class="seccion-header-mini">
-                  <i class="pi pi-truck"></i>
-                  <span>Entrega a domicilio</span>
+                  <i :class="modoVenta === 'reserva' ? 'pi pi-home' : 'pi pi-truck'"></i>
+                  <span>{{
+                    modoVenta === 'reserva' ? 'Retiro en local' : 'Entrega a domicilio'
+                  }}</span>
                 </div>
 
                 <!-- Tipo de envío -->
-                <div class="tipo-envio-group">
+                <div v-if="modoVenta === 'domicilio'" class="tipo-envio-group">
                   <label
                     class="tipo-card"
                     :class="{ activo: envio.tipoEnvio === 'delivery' }"
@@ -741,50 +969,84 @@ const labelModo: Record<ModoVenta, string> = {
                   </label>
                 </div>
 
-                <!-- Fecha de entrega -->
-                <div class="subseccion-label"><i class="pi pi-calendar"></i> Fecha de entrega</div>
-                <div class="dias-selector">
-                  <div
-                    v-for="dia in diasOpciones"
-                    :key="dia.iso"
-                    class="dia-chip"
-                    :class="{ activo: diaSeleccionado === dia.iso }"
-                    @click="diaSeleccionado = dia.iso"
-                  >
-                    <span class="dia-nombre">{{ dia.label }}</span>
-                    <span class="dia-numero">{{ dia.numero }}</span>
-                    <span class="dia-mes">{{ dia.mes }}</span>
-                  </div>
-                </div>
-                <div class="horas-grid">
+                <div v-if="modoVenta === 'domicilio'" class="modalidad-entrega">
                   <button
-                    v-for="hora in HORAS_DISPONIBLES"
-                    :key="hora"
                     type="button"
-                    class="hora-chip"
-                    :class="{ activo: horaSeleccionada === hora }"
-                    @click="horaSeleccionada = hora"
+                    class="modalidad-btn"
+                    :class="{ activo: modalidadDomicilio === 'inmediato' }"
+                    :aria-pressed="modalidadDomicilio === 'inmediato'"
+                    @click="cambiarModalidadDomicilio('inmediato')"
                   >
-                    {{ hora }}
+                    <i class="pi pi-send"></i>
+                    <strong>Listo para enviar ahora</strong>
+                    <small>Sale directo a despacho, no pasa por cocina.</small>
+                  </button>
+                  <button
+                    type="button"
+                    class="modalidad-btn"
+                    :class="{ activo: modalidadDomicilio === 'programado' }"
+                    :aria-pressed="modalidadDomicilio === 'programado'"
+                    @click="cambiarModalidadDomicilio('programado')"
+                  >
+                    <i class="pi pi-calendar-clock"></i>
+                    <strong>Preparar para un horario</strong>
+                    <small>Se envía a cocina y se agenda la entrega.</small>
                   </button>
                 </div>
-                <div v-if="fechaEntregaFinal" class="fecha-confirmada">
-                  <i class="pi pi-calendar-check"></i>
-                  <span
-                    >Entrega:
-                    <strong>{{
-                      new Date(diaSeleccionado + 'T12:00:00').toLocaleDateString('es-BO', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                      })
-                    }}</strong>
-                    · <strong>{{ horaSeleccionada }} hrs</strong></span
-                  >
+
+                <!-- Fecha de entrega -->
+                <div v-if="requiereHorario" class="horario-programado">
+                  <div class="subseccion-label">
+                    <i class="pi pi-calendar"></i>
+                    {{ modoVenta === 'reserva' ? 'Fecha y hora de retiro' : 'Fecha de entrega' }}
+                  </div>
+                  <div class="dias-selector">
+                    <div
+                      v-for="dia in diasOpciones"
+                      :key="dia.iso"
+                      class="dia-chip"
+                      :class="{ activo: diaSeleccionado === dia.iso, inactivo: !dia.disponible }"
+                      :aria-disabled="!dia.disponible"
+                      @click="dia.disponible && seleccionarDia(dia.iso)"
+                    >
+                      <span class="dia-nombre">{{ dia.label }}</span>
+                      <span class="dia-numero">{{ dia.numero }}</span>
+                      <span class="dia-mes">{{ dia.mes }}</span>
+                    </div>
+                  </div>
+                  <div class="horas-grid">
+                    <button
+                      v-for="hora in horasDisponibles"
+                      :key="hora"
+                      type="button"
+                      class="hora-chip"
+                      :class="{ activo: horaSeleccionada === hora }"
+                      @click="horaSeleccionada = hora"
+                    >
+                      {{ hora }}
+                    </button>
+                  </div>
+                  <p v-if="!horasDisponibles.length" class="sin-horarios">
+                    No quedan horarios para hoy. Selecciona otro día.
+                  </p>
+                  <div v-if="fechaEntregaFinal" class="fecha-confirmada">
+                    <i class="pi pi-calendar-check"></i>
+                    <span
+                      >{{ modoVenta === 'reserva' ? 'Retiro:' : 'Entrega:' }}
+                      <strong>{{
+                        new Date(diaSeleccionado + 'T12:00:00').toLocaleDateString('es-BO', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                        })
+                      }}</strong>
+                      · <strong>{{ horaSeleccionada }} hrs</strong></span
+                    >
+                  </div>
                 </div>
 
                 <!-- Dirección de envío (pedidos.direccion_envio) -->
-                <div class="field" style="margin-top: 0.75rem">
+                <div v-if="modoVenta === 'domicilio'" class="field" style="margin-top: 0.75rem">
                   <label class="field-label">Dirección de entrega <span class="req">*</span></label>
                   <div class="input-wrap">
                     <i class="pi pi-map-marker input-icon"></i>
@@ -797,7 +1059,12 @@ const labelModo: Record<ModoVenta, string> = {
                 </div>
 
                 <!-- Botón mapa -->
-                <button type="button" class="btn-mapa" @click="abrirMapa">
+                <button
+                  v-if="modoVenta === 'domicilio'"
+                  type="button"
+                  class="btn-mapa"
+                  @click="abrirMapa"
+                >
                   <i class="pi pi-map"></i>
                   <span>{{
                     coordenadas ? 'Cambiar ubicación en el mapa' : 'Marcar en el mapa'
@@ -854,16 +1121,45 @@ const labelModo: Record<ModoVenta, string> = {
                   class="field"
                   style="margin-top: 0.75rem"
                 >
-                  <label class="field-label"
-                    >Número de comprobante <span class="req">*</span></label
-                  >
-                  <div class="input-wrap">
-                    <i class="pi pi-receipt input-icon"></i>
-                    <input
-                      v-model="comprobante"
-                      class="field-input has-icon"
-                      placeholder="N° de comprobante"
-                    />
+                  <label class="field-label">
+                    Imagen del comprobante <span class="req">*</span>
+                  </label>
+                  <div class="comprobante-upload">
+                    <label
+                      class="comprobante-dropzone"
+                      :class="{ 'tiene-archivo': comprobanteFile }"
+                    >
+                      <template v-if="!comprobanteFile">
+                        <i class="pi pi-cloud-upload"></i>
+                        <strong>Seleccionar comprobante</strong>
+                        <small>Imagen o PDF, máximo 5 MB</small>
+                      </template>
+                      <template v-else>
+                        <img
+                          v-if="comprobantePreviewUrl"
+                          :src="comprobantePreviewUrl"
+                          alt="Vista previa del comprobante"
+                          class="comprobante-preview"
+                        />
+                        <i v-else class="pi pi-file-pdf comprobante-pdf-icon"></i>
+                        <span class="comprobante-nombre">{{ comprobanteFile.name }}</span>
+                      </template>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf,application/pdf"
+                        class="comprobante-input"
+                        @change="seleccionarComprobante"
+                      />
+                    </label>
+                    <button
+                      v-if="comprobanteFile"
+                      type="button"
+                      class="comprobante-quitar"
+                      aria-label="Quitar comprobante"
+                      @click="limpiarComprobante"
+                    >
+                      <i class="pi pi-times"></i> Quitar archivo
+                    </button>
                   </div>
                 </div>
 
@@ -897,16 +1193,36 @@ const labelModo: Record<ModoVenta, string> = {
 
               <!-- ── Total y confirmar ──────────────────────────────────── -->
               <div class="venta-footer">
+                <div v-if="productosSinStock.length" class="alerta-stock" role="alert">
+                  <i class="pi pi-exclamation-triangle"></i>
+                  <span>
+                    No hay stock para despacho inmediato de:
+                    {{ productosSinStock.map((item) => item.producto.nombre).join(', ') }}. Reduce
+                    las cantidades o programa la preparación.
+                  </span>
+                </div>
                 <div class="total-row">
                   <span>Total</span>
                   <span class="total-monto">Bs. {{ fmtBs(total) }}</span>
                 </div>
-                <button class="btn-confirmar" @click="confirmarVenta" :disabled="procesando">
+                <button
+                  class="btn-confirmar"
+                  @click="confirmarVenta"
+                  :disabled="procesando || productosSinStock.length > 0"
+                >
                   <span v-if="procesando">
                     <i class="pi pi-spin pi-spinner"></i> Procesando...
                   </span>
                   <span v-else>
-                    {{ modoVenta === 'mostrador' ? '✅ Confirmar venta' : '📦 Crear pedido' }}
+                    {{
+                      modoVenta === 'mostrador'
+                        ? '✅ Confirmar venta'
+                        : modoVenta === 'reserva'
+                          ? '📅 Registrar reserva'
+                          : modalidadDomicilio === 'inmediato'
+                            ? '🚚 Confirmar envío inmediato'
+                            : '📦 Crear pedido programado'
+                    }}
                   </span>
                 </button>
                 <button class="btn-limpiar" @click="limpiarVenta">
@@ -1501,6 +1817,53 @@ const labelModo: Record<ModoVenta, string> = {
   gap: 0.6rem;
 }
 
+.modalidad-entrega {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.modalidad-btn {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 0.25rem 0.55rem;
+  min-height: 82px;
+  padding: 0.7rem;
+  border: 1.5px solid #fce4ec;
+  border-radius: 10px;
+  background: #fff;
+  color: #880e4f;
+  text-align: left;
+  cursor: pointer;
+}
+
+.modalidad-btn.activo {
+  border-color: #e91e8c;
+  background: #fff0f7;
+  box-shadow: 0 3px 10px rgba(233, 30, 140, 0.1);
+}
+
+.modalidad-btn > i {
+  grid-row: span 2;
+  color: #e91e8c;
+}
+
+.modalidad-btn strong {
+  font-size: 0.78rem;
+}
+
+.modalidad-btn small {
+  color: #888;
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.horario-programado {
+  display: grid;
+  gap: 0.45rem;
+}
+
 .tipo-card {
   display: flex;
   align-items: center;
@@ -1585,6 +1948,14 @@ const labelModo: Record<ModoVenta, string> = {
   border-color: #f48fb1;
   background: #fce4ec;
 }
+.dia-chip.inactivo {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.dia-chip.inactivo:hover {
+  border-color: #fce4ec;
+  background: white;
+}
 .dia-chip.activo {
   background: linear-gradient(135deg, #e91e8c, #f06292);
   border-color: #e91e8c;
@@ -1618,6 +1989,30 @@ const labelModo: Record<ModoVenta, string> = {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+}
+
+.sin-horarios {
+  margin: 0;
+  color: #c62828;
+  font-size: 0.78rem;
+}
+
+.alerta-stock {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #ffcdd2;
+  border-left: 4px solid #c62828;
+  border-radius: 8px;
+  background: #fff5f5;
+  color: #a32121;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.alerta-stock i {
+  margin-top: 0.1rem;
 }
 
 .hora-chip {
@@ -1763,6 +2158,88 @@ const labelModo: Record<ModoVenta, string> = {
   background: linear-gradient(135deg, #e91e8c, #f06292);
   color: white;
   border-color: #e91e8c;
+}
+
+.comprobante-upload {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.comprobante-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 120px;
+  padding: 0.8rem;
+  border: 1.5px dashed #f48fb1;
+  border-radius: 10px;
+  background: #fff9fb;
+  color: #c2185b;
+  text-align: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.comprobante-dropzone:hover,
+.comprobante-dropzone.tiene-archivo {
+  border-color: #e91e8c;
+  background: #fff0f7;
+}
+
+.comprobante-dropzone > i {
+  font-size: 1.5rem;
+  color: #e91e8c;
+}
+
+.comprobante-dropzone small {
+  color: #999;
+  font-size: 0.72rem;
+}
+
+.comprobante-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.comprobante-preview {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
+.comprobante-pdf-icon {
+  color: #c62828;
+  font-size: 2rem;
+}
+
+.comprobante-nombre {
+  max-width: 100%;
+  color: #880e4f;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.comprobante-quitar {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid #f8bbd0;
+  border-radius: 50px;
+  background: #fff;
+  color: #c2185b;
+  font-size: 0.75rem;
+  cursor: pointer;
 }
 
 /* ── Footer venta ───────────────────────────────────────────────────────────── */
@@ -2047,6 +2524,9 @@ const labelModo: Record<ModoVenta, string> = {
     grid-template-columns: 1fr;
   }
   .tipo-envio-group {
+    grid-template-columns: 1fr;
+  }
+  .modalidad-entrega {
     grid-template-columns: 1fr;
   }
   .productos-grid {

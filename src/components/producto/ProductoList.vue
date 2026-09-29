@@ -8,6 +8,11 @@ const ENDPOINT = 'productos'
 const productos = ref<Producto[]>([])
 const productoDelete = ref<Producto | null>(null)
 const mostrarConfirmDialog = ref<boolean>(false)
+const productoStock = ref<Producto | null>(null)
+const mostrarStockDialog = ref(false)
+const cantidadStock = ref<number | null>(null)
+const guardandoStock = ref(false)
+const errorStock = ref('')
 const busqueda = ref<string>('')
 
 const paginaActual = ref(1)
@@ -53,6 +58,33 @@ async function eliminar() {
   await http.delete(`${ENDPOINT}/${productoDelete.value?.id}`)
   obtenerLista()
   mostrarConfirmDialog.value = false
+}
+
+function abrirAjusteStock(producto: Producto) {
+  productoStock.value = producto
+  cantidadStock.value = null
+  errorStock.value = ''
+  mostrarStockDialog.value = true
+}
+
+async function agregarStock() {
+  const cantidad = cantidadStock.value
+  if (!productoStock.value || !Number.isInteger(cantidad) || (cantidad ?? 0) <= 0) {
+    errorStock.value = 'Ingresa una cantidad entera mayor a 0'
+    return
+  }
+
+  guardandoStock.value = true
+  errorStock.value = ''
+  try {
+    await http.patch(`${ENDPOINT}/${productoStock.value.id}/ajustar-stock`, { cantidad })
+    mostrarStockDialog.value = false
+    await obtenerLista()
+  } catch {
+    errorStock.value = 'No se pudo actualizar el stock'
+  } finally {
+    guardandoStock.value = false
+  }
 }
 
 onMounted(obtenerLista)
@@ -118,6 +150,14 @@ defineExpose({ obtenerLista })
               </td>
               <td>
                 <div class="acciones">
+                  <button
+                    class="btn-accion stock"
+                    @click="abrirAjusteStock(producto)"
+                    :title="`Agregar stock listo para vender de ${producto.nombre}`"
+                    :aria-label="`Agregar stock listo para vender de ${producto.nombre}`"
+                  >
+                    <i class="pi pi-plus"></i>
+                  </button>
                   <button class="btn-accion editar" @click="emitirEdicion(producto)" title="Editar">
                     <i class="pi pi-pencil"></i>
                   </button>
@@ -176,6 +216,7 @@ defineExpose({ obtenerLista })
       v-model:visible="mostrarConfirmDialog"
       header="Confirmar Eliminación"
       :style="{ width: '90vw', maxWidth: '420px' }"
+      :pt="{ root: { class: 'modal-custom' } }"
       modal
     >
       <div class="confirm-content">
@@ -194,6 +235,47 @@ defineExpose({ obtenerLista })
           </button>
         </div>
       </template>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="mostrarStockDialog"
+      header="Agregar unidades listas para vender"
+      :style="{ width: '90vw', maxWidth: '440px' }"
+      :pt="{ root: { class: 'modal-custom' } }"
+      modal
+    >
+      <form class="stock-form" @submit.prevent="agregarStock">
+        <p class="stock-producto">{{ productoStock?.nombre }}</p>
+        <p class="stock-actual">
+          Stock actual: <strong>{{ productoStock?.stock ?? 0 }}</strong>
+        </p>
+        <label for="cantidad-stock">Unidades disponibles para vender hoy</label>
+        <input
+          id="cantidad-stock"
+          v-model.number="cantidadStock"
+          type="number"
+          min="1"
+          step="1"
+          required
+          autofocus
+          :disabled="guardandoStock"
+        />
+        <p v-if="errorStock" class="stock-error" role="alert">{{ errorStock }}</p>
+        <div class="dialog-footer">
+          <button
+            type="button"
+            class="btn-cancelar"
+            :disabled="guardandoStock"
+            @click="mostrarStockDialog = false"
+          >
+            Cancelar
+          </button>
+          <button type="submit" class="btn-guardar-stock" :disabled="guardandoStock">
+            <i class="pi pi-plus"></i>
+            {{ guardandoStock ? 'Guardando...' : 'Agregar al stock' }}
+          </button>
+        </div>
+      </form>
     </Dialog>
   </div>
 </template>
@@ -395,6 +477,15 @@ defineExpose({ obtenerLista })
   color: #1565c0;
 }
 
+.btn-accion.stock {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.btn-accion.stock:hover {
+  background: #c8e6c9;
+}
+
 .btn-accion.editar:hover {
   background: #bbdefb;
 }
@@ -514,6 +605,73 @@ defineExpose({ obtenerLista })
 
 .btn-cancelar:hover {
   background: #f5f5f5;
+}
+
+.stock-form {
+  display: grid;
+  gap: 0.65rem;
+  padding-top: 0.25rem;
+}
+
+.stock-producto,
+.stock-actual {
+  margin: 0;
+  color: #555;
+}
+
+.stock-producto {
+  color: #880e4f;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.stock-form label {
+  margin-top: 0.35rem;
+  color: #880e4f;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.stock-form input {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1.5px solid #f8bbd0;
+  border-radius: 10px;
+  color: #333;
+  background: #fff9fb;
+  font: inherit;
+}
+
+.stock-form input:focus {
+  outline: 2px solid rgba(233, 30, 140, 0.2);
+  border-color: #e91e8c;
+}
+
+.stock-error {
+  margin: 0;
+  color: #b42318;
+  font-size: 0.85rem;
+}
+
+.btn-guardar-stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.4rem;
+  border: 0;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
+}
+
+.btn-guardar-stock:disabled,
+.btn-cancelar:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 
 .btn-eliminar {

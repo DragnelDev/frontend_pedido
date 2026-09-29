@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import SidebarAdmin from '@/components/admin/SidebarAdmin.vue'
+import { configuracionService, logoUrlConfiguracion } from '@/servicios/configuracionService'
 
 const sidebarOpen = ref(false)
 
@@ -11,6 +12,18 @@ function toggleSidebar() {
 function closeSidebar() {
   sidebarOpen.value = false
 }
+
+const cargando = ref(true)
+
+onMounted(async () => {
+  try {
+    await configuracionService.obtener()
+  } catch (error) {
+    console.error('Error al recuperar el logo:', error)
+  } finally {
+    cargando.value = false
+  }
+})
 </script>
 
 <template>
@@ -23,7 +36,17 @@ function closeSidebar() {
         <span :class="['bar', { open: sidebarOpen }]"></span>
       </button>
       <div class="topbar-brand">
-        <span class="topbar-icon">🍓</span>
+        <!-- Muestra la imagen si existe logoPreview -->
+        <img
+          v-if="logoUrlConfiguracion"
+          :src="logoUrlConfiguracion"
+          alt="Logo de la Pastelería"
+          class="topbar-logo"
+        />
+
+        <!-- Si no hay imagen, muestra el icono por defecto -->
+        <span v-else class="topbar-icon">🍓</span>
+
         <span class="topbar-name">Berry Sweet</span>
       </div>
     </header>
@@ -46,6 +69,13 @@ function closeSidebar() {
 </template>
 
 <style scoped>
+.topbar-logo {
+  height: 32px; /* Ajusta la altura según el diseño de tu topbar */
+  width: auto;
+  object-fit: contain;
+  border-radius: 4px; /* Opcional: bordes redondeados */
+}
+
 /* ── Layout base (desktop) ── */
 .admin-layout {
   display: grid;

@@ -1,6 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import axios from 'axios'
 import { configuracionService } from '@/servicios/configuracionService'
+
+function mensajeDeError(error: unknown, mensajePorDefecto: string): string {
+  if (axios.isAxiosError<{ message?: string }>(error)) {
+    return error.response?.data?.message || mensajePorDefecto
+  }
+  return error instanceof Error ? error.message : mensajePorDefecto
+}
 
 // ── ESTADOS DE LA EMPRESA ──
 const empresa = ref({
@@ -13,6 +21,7 @@ const empresa = ref({
 })
 
 const logoPreview = ref<string | null>(null)
+const logoFile = ref<File | null>(null)
 
 // ── ESTADOS DE MÉTODOS DE PAGO ──
 const metodosPago = ref({
@@ -37,6 +46,7 @@ const metodosPago = ref({
 })
 
 const qrPreview = ref<string | null>(null)
+const qrFile = ref<File | null>(null)
 const cargando = ref(true)
 const guardando = ref(false)
 const exitoMensaje = ref(false)
@@ -56,30 +66,46 @@ onMounted(async () => {
     metodosPago.value = config.metodosPago
     logoPreview.value = config.logoUrl || null
     qrPreview.value = config.metodosPago?.qr?.imagenQrUrl || null
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || 'No se pudo cargar la configuración'
+  } catch (e: unknown) {
+    error.value = mensajeDeError(e, 'No se pudo cargar la configuración')
   } finally {
     cargando.value = false
   }
 })
 
 // ── MANEJO DE IMÁGENES ──
-// Nota: por ahora se usa una URL local de vista previa. La subida real del
-// archivo al backend se conecta con el módulo de /uploads cuando se defina
-// el flujo definitivo de imágenes de configuración.
-function handleLogoUpload(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (file) {
-    logoPreview.value = URL.createObjectURL(file)
+function seleccionarImagen(event: Event, tipo: 'logo' | 'qr') {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    error.value = 'Selecciona un archivo de imagen válido'
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    error.value = 'La imagen no puede superar los 5 MB'
+    return
+  }
+
+  error.value = null
+  const preview = URL.createObjectURL(file)
+  if (tipo === 'logo') {
+    if (logoPreview.value?.startsWith('blob:')) URL.revokeObjectURL(logoPreview.value)
+    logoFile.value = file
+    logoPreview.value = preview
+  } else {
+    if (qrPreview.value?.startsWith('blob:')) URL.revokeObjectURL(qrPreview.value)
+    qrFile.value = file
+    qrPreview.value = preview
   }
 }
 
-function handleQrUpload(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (file) {
-    qrPreview.value = URL.createObjectURL(file)
-  }
-}
+onBeforeUnmount(() => {
+  if (logoPreview.value?.startsWith('blob:')) URL.revokeObjectURL(logoPreview.value)
+  if (qrPreview.value?.startsWith('blob:')) URL.revokeObjectURL(qrPreview.value)
+})
 
 // ── GUARDAR CONFIGURACIÓN ──
 async function guardarConfiguracion() {
@@ -88,6 +114,17 @@ async function guardarConfiguracion() {
   error.value = null
 
   try {
+    if (logoFile.value) {
+      empresa.value.logoUrl = await configuracionService.subirImagen(logoFile.value)
+      logoPreview.value = empresa.value.logoUrl
+      logoFile.value = null
+    }
+    if (qrFile.value) {
+      metodosPago.value.qr.imagenQrUrl = await configuracionService.subirImagen(qrFile.value)
+      qrPreview.value = metodosPago.value.qr.imagenQrUrl
+      qrFile.value = null
+    }
+
     await configuracionService.actualizar({
       ...empresa.value,
       metodosPago: metodosPago.value,
@@ -97,8 +134,8 @@ async function guardarConfiguracion() {
     setTimeout(() => {
       exitoMensaje.value = false
     }, 4000)
-  } catch (err: any) {
-    error.value = err?.response?.data?.message || 'Error al guardar la configuración'
+  } catch (err: unknown) {
+    error.value = mensajeDeError(err, 'Error al guardar la configuración')
   } finally {
     guardando.value = false
   }
@@ -149,8 +186,8 @@ async function guardarConfiguracion() {
 
     <div v-else class="grid-layout">
       <!-- SECCIÓN 1: DATOS DE LA EMPRESA -->
-      <div class="card">
-        <div class="card-header">
+      <div class="tabla-card">
+        <div class="tabla-card-header">
           <i class="pi pi-building card-icon"></i>
           <h3>Datos de la Empresa</h3>
         </div>
@@ -172,7 +209,7 @@ async function guardarConfiguracion() {
                 id="logo-input"
                 type="file"
                 accept="image/*"
-                @change="handleLogoUpload"
+                @change="seleccionarImagen($event, 'logo')"
                 hidden
               />
               <span class="upload-hint">Formato recomendado: PNG o JPG (Máx. 2MB)</span>
@@ -234,8 +271,8 @@ async function guardarConfiguracion() {
       </div>
 
       <!-- SECCIÓN 2: MÉTODOS DE PAGO -->
-      <div class="card">
-        <div class="card-header">
+      <div class="tabla-card">
+        <div class="tabla-card-header">
           <i class="pi pi-wallet card-icon"></i>
           <h3>Métodos de Pago</h3>
         </div>
@@ -271,7 +308,7 @@ async function guardarConfiguracion() {
                     id="qr-input"
                     type="file"
                     accept="image/*"
-                    @change="handleQrUpload"
+                    @change="seleccionarImagen($event, 'qr')"
                     hidden
                   />
 
@@ -332,6 +369,10 @@ async function guardarConfiguracion() {
                   class="field-input"
                 />
               </div>
+              <div class="field-group">
+                <label>CI / NIT del Titular</label>
+                <input v-model="metodosPago.transferencia.ciNit" type="text" class="field-input" />
+              </div>
             </div>
           </div>
 
@@ -349,6 +390,17 @@ async function guardarConfiguracion() {
                 <span class="slider"></span>
               </label>
             </div>
+            <div v-if="metodosPago.efectivo.activo" class="method-content">
+              <div class="field-group">
+                <label>Instrucciones para el pago</label>
+                <input
+                  v-model="metodosPago.efectivo.descripcion"
+                  type="text"
+                  class="field-input"
+                  maxlength="255"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -363,26 +415,8 @@ async function guardarConfiguracion() {
 /* ── LAYOUT ── */
 .grid-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr));
   gap: 1.5rem;
-}
-
-/* ── TARJETAS (CARDS) ── */
-.card {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-  border: 1px solid #f8bbd0;
-  overflow: hidden;
-}
-
-.card-header {
-  background: #fff9fb;
-  padding: 1.2rem 1.5rem;
-  border-bottom: 1px solid #fce4ec;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
 }
 
 .card-icon {
@@ -390,7 +424,7 @@ async function guardarConfiguracion() {
   color: #e91e8c;
 }
 
-.card-header h3 {
+.tabla-card-header h3 {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
@@ -498,6 +532,7 @@ async function guardarConfiguracion() {
   border: 1.5px solid #f8bbd0;
   border-radius: 10px;
   font-size: 0.9rem;
+  color: #333;
   outline: none;
   background: #fff9fb;
   transition: border-color 0.2s;
@@ -505,6 +540,7 @@ async function guardarConfiguracion() {
 
 .field-input:focus {
   border-color: #e91e8c;
+  color: #333;
   background: white;
 }
 

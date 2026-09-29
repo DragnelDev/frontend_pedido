@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import http from '@/plugins/axios'
 import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
+import { cocinaService } from '@/servicios/cocinaService'
+import type { EstadoCocina } from '@/models/cocina'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos
@@ -24,10 +26,12 @@ type Pago = {
   fechaPago?: string
 }
 
+type EstadoPedido = EstadoCocina | 'cancelado' | 'enviado' | 'confirmado'
+
 type Pedido = {
   id: number
   total: number
-  estado: 'pendiente' | 'entregado' | 'cancelado'
+  estado: EstadoPedido
   metodoPago: string
   tipoEnvio: string
   direccionEnvio?: string
@@ -48,7 +52,7 @@ type Pedido = {
 const router = useRouter()
 const cargando = ref(true)
 const pedidos = ref<Pedido[]>([])
-const filtroEstado = ref<'todos' | 'pendiente' | 'entregado' | 'cancelado'>('todos')
+const filtroEstado = ref<'todos' | EstadoPedido>('todos')
 const q = ref('')
 const abierto = ref<number | null>(null)
 const paginaActual = ref(1)
@@ -156,14 +160,22 @@ async function toggleDetalle(id: number) {
 // Acciones de estado
 // ─────────────────────────────────────────────────────────────────────────────
 function pedirCambioEstadoPedido(pedido: Pedido, nuevoEstado: string) {
+  if (nuevoEstado !== 'cancelado' && estadoPago(pedido) !== 'aprobado') {
+    alert('Debes aprobar el pago antes de avanzar el estado del pedido.')
+    return
+  }
   const esRiesgoso = nuevoEstado === 'cancelado'
   confirm.value = {
     titulo: `Cambiar estado del pedido`,
-    mensaje: `¿Confirmas cambiar el pedido #${String(pedido.id).padStart(5, '0')} a "${nuevoEstado}"?`,
+    mensaje: `¿Confirmas cambiar el pedido #${String(pedido.id).padStart(5, '0')} a "${etiquetaEstadoPedido(nuevoEstado as EstadoPedido)}"?`,
     tipo: esRiesgoso ? 'peligro' : 'advertencia',
     accion: async () => {
-      await http.patch(`/pedidos/${pedido.id}/estado`, { estado: nuevoEstado })
-      pedido.estado = nuevoEstado as any
+      if (nuevoEstado === 'cancelado') {
+        await http.patch(`/pedidos/${pedido.id}/estado`, { estado: nuevoEstado })
+      } else {
+        await cocinaService.cambiarEstado(pedido.id, nuevoEstado as EstadoCocina)
+      }
+      pedido.estado = nuevoEstado as EstadoPedido
     },
   }
 }
@@ -179,7 +191,6 @@ function pedirCambioEstadoPago(pedido: Pedido, nuevoEstado: string) {
       await http.patch(`/pagos/${pago.id}`, { estado: nuevoEstado })
       pago.estado = nuevoEstado
       if (nuevoEstado === 'rechazado') {
-        await http.patch(`/pedidos/${pedido.id}/estado`, { estado: 'cancelado' })
         pedido.estado = 'cancelado'
       }
     },
@@ -203,12 +214,14 @@ async function ejecutarConfirm() {
 const kpis = computed(() => {
   const total = pedidos.value.length
   const pendientes = pedidos.value.filter((p) => p.estado === 'pendiente').length
+  const enPreparacion = pedidos.value.filter((p) => p.estado === 'en_preparacion').length
+  const listos = pedidos.value.filter((p) => p.estado === 'listo').length
   const entregados = pedidos.value.filter((p) => p.estado === 'entregado').length
   const cancelados = pedidos.value.filter((p) => p.estado === 'cancelado').length
   const ingresos = pedidos.value
     .filter((p) => p.estado === 'entregado')
     .reduce((s, p) => s + Number(p.total), 0)
-  return { total, pendientes, entregados, cancelados, ingresos }
+  return { total, pendientes, enPreparacion, listos, entregados, cancelados, ingresos }
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -246,6 +259,24 @@ function cambiarPagina(p: number) {
 // ─────────────────────────────────────────────────────────────────────────────
 function estadoPago(p: Pedido) {
   return p.pagos?.[0]?.estado || 'sin_pago'
+}
+
+function esRetiroLocal(tipoEnvio?: string) {
+  return ['local', 'retiro_tienda'].includes((tipoEnvio || '').toLowerCase())
+}
+
+async function abrirComprobante(pago: Pago) {
+  if (!pago.comprobante) return
+  modalImg.value = pago.comprobante
+  showModalImg.value = true
+  if (pago.estado !== 'pendiente') return
+
+  try {
+    await http.patch(`/pagos/${pago.id}`, { estado: 'en_revision' })
+    pago.estado = 'en_revision'
+  } catch {
+    alert('No se pudo marcar el pago en revisión')
+  }
 }
 
 function fmtFecha(iso?: string) {
@@ -309,7 +340,44 @@ const tipoEnvioLabel: Record<string, string> = {
   retiro_tienda: '🏪 Retiro tienda',
 }
 
-const ESTADOS_PEDIDO = ['pendiente', 'entregado', 'cancelado']
+const ESTADOS_FILTRO_PEDIDO: { value: 'todos' | EstadoPedido; label: string }[] = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'pendiente', label: 'Pendiente' },
+  { value: 'en_preparacion', label: 'En preparación' },
+  { value: 'listo', label: 'Listo' },
+  { value: 'entregado', label: 'Entregado' },
+  { value: 'cancelado', label: 'Cancelado' },
+]
+
+const SIGUIENTE_ESTADO_COCINA: Partial<Record<EstadoPedido, EstadoCocina>> = {
+  pendiente: 'en_preparacion',
+  en_preparacion: 'listo',
+  listo: 'entregado',
+}
+
+function opcionesEstadoPedido(pedido: Pedido): EstadoPedido[] {
+  const siguiente = SIGUIENTE_ESTADO_COCINA[pedido.estado]
+  const opciones: EstadoPedido[] = [pedido.estado]
+  if (siguiente && estadoPago(pedido) === 'aprobado') opciones.push(siguiente)
+  if (pedido.estado !== 'entregado' && pedido.estado !== 'cancelado') {
+    opciones.push('cancelado')
+  }
+  return opciones
+}
+
+function etiquetaEstadoPedido(estado: EstadoPedido): string {
+  const etiquetas: Record<EstadoPedido, string> = {
+    pendiente: 'Pendiente',
+    en_preparacion: 'En preparación',
+    listo: 'Listo',
+    entregado: 'Entregado',
+    cancelado: 'Cancelado',
+    enviado: 'Enviado',
+    confirmado: 'Confirmado',
+  }
+  return etiquetas[estado]
+}
+
 const ESTADOS_PAGO = ['pendiente', 'en_revision', 'aprobado', 'rechazado']
 
 // Páginas a mostrar en paginación
@@ -368,6 +436,27 @@ const pageButtons = computed(() => {
       </div>
       <div
         class="kpi-card kpi-clickable"
+        @click="((filtroEstado = 'en_preparacion'), (paginaActual = 1))"
+      >
+        <div class="kpi-icon" style="background: #fff8e1; color: #e65100">
+          <i class="pi pi-cog"></i>
+        </div>
+        <div>
+          <p class="kpi-valor" style="color: #e65100">{{ kpis.enPreparacion }}</p>
+          <p class="kpi-label">En preparación</p>
+        </div>
+      </div>
+      <div class="kpi-card kpi-clickable" @click="((filtroEstado = 'listo'), (paginaActual = 1))">
+        <div class="kpi-icon" style="background: #e8f5e9; color: #2e7d32">
+          <i class="pi pi-check"></i>
+        </div>
+        <div>
+          <p class="kpi-valor" style="color: #2e7d32">{{ kpis.listos }}</p>
+          <p class="kpi-label">Listos para entrega</p>
+        </div>
+      </div>
+      <div
+        class="kpi-card kpi-clickable"
         @click="((filtroEstado = 'entregado'), (paginaActual = 1))"
       >
         <div class="kpi-icon" style="background: #e8f5e9; color: #2e7d32">
@@ -414,20 +503,24 @@ const pageButtons = computed(() => {
       </div>
       <div class="filtro-tabs">
         <button
-          v-for="e in ['todos', 'pendiente', 'entregado', 'cancelado']"
-          :key="e"
+          v-for="e in ESTADOS_FILTRO_PEDIDO"
+          :key="e.value"
           class="tab-btn"
-          :class="{ activo: filtroEstado === e }"
+          :class="{ activo: filtroEstado === e.value }"
           @click="
             () => {
-              filtroEstado = e as 'todos' | 'pendiente' | 'entregado' | 'cancelado'
+              filtroEstado = e.value
               paginaActual = 1
             }
           "
         >
-          {{ e === 'todos' ? 'Todos' : e.charAt(0).toUpperCase() + e.slice(1) }}
+          {{ e.label }}
           <span class="tab-count">
-            {{ e === 'todos' ? pedidos.length : pedidos.filter((p) => p.estado === e).length }}
+            {{
+              e.value === 'todos'
+                ? pedidos.length
+                : pedidos.filter((p) => p.estado === e.value).length
+            }}
           </span>
         </button>
       </div>
@@ -446,7 +539,7 @@ const pageButtons = computed(() => {
               <th style="width: 130px">Tipo envío</th>
               <th style="width: 155px">Estado pago</th>
               <th style="width: 155px">Estado pedido</th>
-              <th style="width: 140px">Fecha</th>
+              <th style="width: 140px">Fecha pedido</th>
               <th style="width: 90px">Acciones</th>
             </tr>
           </thead>
@@ -513,8 +606,23 @@ const pageButtons = computed(() => {
                         pedirCambioEstadoPedido(p, ($event.target as HTMLSelectElement).value)
                       "
                     >
-                      <option v-for="s in ESTADOS_PEDIDO" :key="s" :value="s">{{ s }}</option>
+                      <option
+                        v-for="estado in opcionesEstadoPedido(p)"
+                        :key="estado"
+                        :value="estado"
+                      >
+                        {{ etiquetaEstadoPedido(estado) }}
+                      </option>
                     </select>
+                    <small
+                      v-if="
+                        estadoPago(p) !== 'aprobado' &&
+                        !['entregado', 'cancelado'].includes(p.estado)
+                      "
+                      class="pago-requerido"
+                    >
+                      Requiere pago aprobado
+                    </small>
                   </td>
                   <td class="td-fecha">{{ fmtFecha(p.fechaCreacion) }}</td>
                   <td>
@@ -592,11 +700,15 @@ const pageButtons = computed(() => {
                           </div>
                           <div v-if="pg.comprobante" class="info-fila">
                             <span>Comprobante</span>
-                            <button
-                              class="btn-comprobante"
-                              @click="((modalImg = pg.comprobante!), (showModalImg = true))"
-                            >
+                            <button class="btn-comprobante" @click="abrirComprobante(pg)">
                               <i class="pi pi-image"></i> Ver imagen
+                            </button>
+                            <button
+                              v-if="pg.estado === 'en_revision'"
+                              class="btn-aprobar-pago"
+                              @click="pedirCambioEstadoPago(p, 'aprobado')"
+                            >
+                              <i class="pi pi-check"></i> Aprobar pago
                             </button>
                           </div>
                         </div>
@@ -616,7 +728,10 @@ const pageButtons = computed(() => {
                             <span>Fecha entrega</span>
                             <small>{{ fmtFecha(p.fechaEntrega) }}</small>
                           </div>
-                          <div v-if="p.direccionEnvio" class="info-fila">
+                          <div
+                            v-if="p.direccionEnvio && !esRetiroLocal(p.tipoEnvio)"
+                            class="info-fila"
+                          >
                             <span>Dirección</span>
                             <span class="dir-text">{{ p.direccionEnvio }}</span>
                           </div>
@@ -631,7 +746,9 @@ const pageButtons = computed(() => {
 
                         <!-- Mapa estático si hay coordenadas -->
                         <div
-                          v-if="p.latitud != null && p.longitud != null"
+                          v-if="
+                            !esRetiroLocal(p.tipoEnvio) && p.latitud != null && p.longitud != null
+                          "
                           class="mapa-preview-wrap"
                         >
                           <div class="mapa-label">
@@ -857,7 +974,7 @@ const pageButtons = computed(() => {
 /* ── KPIs ───────────────────────────────────────────────────────────────────── */
 .kpis-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -1148,6 +1265,18 @@ tr.row-abierta td {
   color: #e65100;
   border-color: #ffe0b2;
 }
+.estado-select.en_preparacion,
+.estado-badge.en_preparacion {
+  background: #fff8e1;
+  color: #e65100;
+  border-color: #ffe082;
+}
+.estado-select.listo,
+.estado-badge.listo {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #c8e6c9;
+}
 .estado-select.en_revision,
 .estado-badge.en_revision {
   background: #e3f2fd;
@@ -1393,6 +1522,32 @@ tr.row-abierta td {
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s;
+}
+
+.btn-aprobar-pago {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.75rem;
+  border: none;
+  border-radius: 50px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-aprobar-pago:hover {
+  background: #c8e6c9;
+}
+
+.pago-requerido {
+  display: block;
+  margin-top: 0.3rem;
+  color: #c62828;
+  font-size: 0.68rem;
+  white-space: normal;
 }
 
 .btn-comprobante:hover {

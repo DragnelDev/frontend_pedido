@@ -89,7 +89,7 @@ async function loginConGoogle() {
     <div class="login-card">
       <!-- Logo / Marca -->
       <div class="login-brand">
-        <div class="brand-icon">🍓</div>
+        <img src="@/assets/images/logoBerrySweet.png" alt="Logo Berry Sweet" class="brand-logo" />
         <h1 class="brand-name">Berry Sweet</h1>
         <p class="brand-sub">Pastelería artesanal · Sucre, Bolivia</p>
       </div>
@@ -268,15 +268,26 @@ async function loginConGoogle() {
   z-index: 1;
 }
 
-/* ── MARCA ── */
+/* ── MARCA (CON LOGO RESPONSIVE) ── */
 .login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   margin-bottom: 1.5rem;
 }
-.brand-icon {
-  font-size: 3rem;
-  margin-bottom: 0.4rem;
+
+/* Estilo de la imagen del Logo */
+.login-brand img,
+.brand-logo {
+  width: 100%;
+  max-width: 130px; /* Tamaño máximo en pantallas normales */
+  height: auto; /* Mantiene la relación de aspecto sin deformar */
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 0.5rem auto;
 }
+
 .brand-name {
   font-size: 1.7rem;
   font-weight: 800;
@@ -284,6 +295,7 @@ async function loginConGoogle() {
   margin: 0 0 0.2rem;
   letter-spacing: -0.5px;
 }
+
 .brand-sub {
   font-size: 0.8rem;
   color: #bbb;
@@ -560,6 +572,11 @@ async function loginConGoogle() {
   }
   .deco {
     font-size: 2.5rem;
+  }
+  /* Ajuste de tamaño del logo para móviles */
+  .login-brand img,
+  .brand-logo {
+    max-width: 100px;
   }
 }
 </style>

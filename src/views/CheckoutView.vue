@@ -4,7 +4,8 @@ import { useRouter } from 'vue-router'
 import http from '@/plugins/axios'
 import { usarCarrito } from '@/funciones/UsarCarrito'
 import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
-import qrImage from '@/assets/images/qr-sansa.png'
+import { configuracionService } from '@/servicios/configuracionService'
+import type { Configuracion } from '@/models/configuracion'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -27,6 +28,31 @@ const EP_UPLOADS = '/uploads'
 
 const usuarioId = ref<number | null>(null)
 const enviandoPedido = ref(false)
+const configuracion = ref<Configuracion | null>(null)
+const cargandoConfiguracion = ref(true)
+const errorConfiguracion = ref<string | null>(null)
+
+type MetodoPagoCheckout = 'qr' | 'transferencia' | 'efectivo'
+const metodoPagoSeleccionado = ref<MetodoPagoCheckout>('qr')
+
+const metodosDisponibles = computed(() => {
+  const metodos = configuracion.value?.metodosPago
+  if (!metodos) return []
+
+  return [
+    { id: 'qr' as const, nombre: 'Código QR', activo: metodos.qr.activo },
+    {
+      id: 'transferencia' as const,
+      nombre: 'Transferencia bancaria',
+      activo: metodos.transferencia.activo,
+    },
+    { id: 'efectivo' as const, nombre: 'Efectivo', activo: metodos.efectivo.activo },
+  ].filter((metodo) => metodo.activo)
+})
+
+const requiereComprobante = computed(
+  () => metodoPagoSeleccionado.value === 'qr' || metodoPagoSeleccionado.value === 'transferencia',
+)
 
 const subtotal = computed(() => totalCarrito().toFixed(2))
 
@@ -207,8 +233,19 @@ function confirmarUbicacion() {
   cerrarMapa()
 }
 
+function seleccionarTipoEnvio(tipo: 'domicilio' | 'local') {
+  envio.value.tipoEnvio = tipo
+  if (tipo === 'local') {
+    envio.value.direccion = ''
+    envio.value.referencia = ''
+    coordenadas.value = null
+    direccionReversa.value = ''
+    cerrarMapa()
+  }
+}
+
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
-onMounted(() => {
+onMounted(async () => {
   const token = getTokenFromLocalStorage()
   if (!token) return router.replace('/checkout')
 
@@ -218,6 +255,16 @@ onMounted(() => {
 
   const primerDia = diasOpciones.value.find((d) => d.disponible)
   if (primerDia) diaSeleccionado.value = primerDia.iso
+
+  try {
+    configuracion.value = await configuracionService.obtener()
+    const primerMetodo = metodosDisponibles.value[0]
+    if (primerMetodo) metodoPagoSeleccionado.value = primerMetodo.id
+  } catch {
+    errorConfiguracion.value = 'No se pudieron cargar los métodos de pago. Recarga la página.'
+  } finally {
+    cargandoConfiguracion.value = false
+  }
 })
 
 onUnmounted(() => {
@@ -234,22 +281,61 @@ async function uploadComprobante(file: File): Promise<string> {
   return data?.url || data?.path || ''
 }
 
+async function descargarQr() {
+  const url = configuracion.value?.metodosPago.qr.imagenQrUrl
+  if (!url) return
+
+  let objectUrl: string | null = null
+  try {
+    const { data } = await http.get<Blob>(url, { responseType: 'blob' })
+    objectUrl = URL.createObjectURL(data)
+    const link = document.createElement('a')
+    const extension =
+      data.type === 'image/jpeg'
+        ? 'jpg'
+        : data.type === 'image/webp'
+          ? 'webp'
+          : data.type === 'image/svg+xml'
+            ? 'svg'
+            : 'png'
+    link.href = objectUrl
+    link.download = `codigo-qr-pago.${extension}`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  } catch {
+    alert('No se pudo descargar el código QR. Inténtalo nuevamente.')
+  } finally {
+    if (objectUrl) {
+      const urlToRevoke = objectUrl
+      window.setTimeout(() => URL.revokeObjectURL(urlToRevoke), 1000)
+    }
+  }
+}
+
 async function confirmarPedido() {
   if (!usuarioId.value) return router.replace('/checkout')
-  if (!envio.value.direccion.trim()) return alert('Por favor, ingresa una dirección válida.')
+  if (envio.value.tipoEnvio === 'domicilio' && !envio.value.direccion.trim()) {
+    return alert('Por favor, ingresa una dirección válida.')
+  }
   if (carrito.value.length === 0) {
     alert('Tu carrito está vacío.')
     return router.push('/carrito')
   }
   if (!fechaEntregaFinal.value) return alert('Por favor, selecciona fecha y hora de entrega.')
-  if (!pago.value.comprobanteFile)
-    return alert('Debes subir la foto o documento de tu comprobante QR.')
+  if (metodosDisponibles.value.length === 0)
+    return alert('En este momento no hay métodos de pago disponibles.')
+  if (requiereComprobante.value && !pago.value.comprobanteFile)
+    return alert('Debes subir el comprobante de pago.')
 
   enviandoPedido.value = true
 
   try {
-    // 1. Subir comprobante
-    const comprobanteUrl = await uploadComprobante(pago.value.comprobanteFile)
+    // 1. Subir comprobante cuando el método requiere verificación.
+    const comprobanteUrl =
+      requiereComprobante.value && pago.value.comprobanteFile
+        ? await uploadComprobante(pago.value.comprobanteFile)
+        : undefined
 
     // 2. Registrar cabecera del pedido (con latitud y longitud)
     const { data: pedido } = await http.post(EP_PEDIDOS, {
@@ -257,12 +343,16 @@ async function confirmarPedido() {
       fechaEntrega: fechaEntregaFinal.value,
       total: Number(totalCarrito()),
       estado: 'pendiente',
-      direccionEnvio: envio.value.direccion,
-      referencia: envio.value.referencia,
+      ...(envio.value.tipoEnvio === 'domicilio'
+        ? {
+            direccionEnvio: envio.value.direccion,
+            referencia: envio.value.referencia,
+            latitud: coordenadas.value?.lat ?? null,
+            longitud: coordenadas.value?.lng ?? null,
+          }
+        : {}),
       tipoEnvio: envio.value.tipoEnvio,
-      metodoPago: 'qr',
-      latitud: coordenadas.value?.lat ?? null,
-      longitud: coordenadas.value?.lng ?? null,
+      metodoPago: metodoPagoSeleccionado.value,
     })
 
     // 3. Registrar detalles en paralelo
@@ -280,10 +370,10 @@ async function confirmarPedido() {
     // 4. Registrar pago
     await http.post(EP_PAGOS, {
       idPedido: pedido.id,
-      metodo: 'qr',
+      metodo: metodoPagoSeleccionado.value,
       monto: Number(totalCarrito()),
       estado: 'pendiente',
-      comprobante: comprobanteUrl,
+      ...(comprobanteUrl ? { comprobante: comprobanteUrl } : {}),
     })
 
     // 5. Guardar en localStorage y limpiar
@@ -292,7 +382,7 @@ async function confirmarPedido() {
       JSON.stringify({
         id: pedido.id,
         total: Number(totalCarrito()),
-        metodoPago: 'qr',
+        metodoPago: metodoPagoSeleccionado.value,
         estado: 'pendiente',
         fecha: new Date().toISOString(),
       }),
@@ -345,19 +435,129 @@ async function confirmarPedido() {
         <!-- Formulario -->
         <div class="formulario-card">
           <form @submit.prevent="confirmarPedido" novalidate>
-            <!-- ── Sección 1: Fecha y hora ───────────────────────────────────── -->
+            <!-- ── Sección 1: Tipo de entrega ────────────────────────────────── -->
             <div class="form-seccion">
               <div class="seccion-header">
                 <span class="seccion-numero">1</span>
                 <div>
-                  <h4 class="seccion-titulo">¿Cuándo lo recibes?</h4>
-                  <p class="seccion-desc">
-                    Mínimo 2 días hábiles para preparar tu pedido con amor 🍰
-                  </p>
+                  <h4 class="seccion-titulo">¿Cómo quieres recibir tu pedido?</h4>
+                  <p class="seccion-desc">Elige envío a domicilio o recoger en el local</p>
                 </div>
               </div>
 
-              <!-- Selector de días -->
+              <div class="tipo-envio-group" role="group" aria-label="Tipo de entrega">
+                <button
+                  type="button"
+                  class="tipo-card"
+                  :class="{ activo: envio.tipoEnvio === 'domicilio' }"
+                  :aria-pressed="envio.tipoEnvio === 'domicilio'"
+                  @click="seleccionarTipoEnvio('domicilio')"
+                >
+                  <span class="tipo-icon">🚚</span>
+                  <span class="tipo-copy">
+                    <span class="tipo-nombre">Envío a domicilio</span>
+                    <span class="tipo-desc">Lo llevamos a tu puerta</span>
+                  </span>
+                  <span v-if="envio.tipoEnvio === 'domicilio'" class="tipo-check">
+                    <i class="pi pi-check-circle"></i>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="tipo-card"
+                  :class="{ activo: envio.tipoEnvio === 'local' }"
+                  :aria-pressed="envio.tipoEnvio === 'local'"
+                  @click="seleccionarTipoEnvio('local')"
+                >
+                  <span class="tipo-icon">🏪</span>
+                  <span class="tipo-copy">
+                    <span class="tipo-nombre">Recoger en el local</span>
+                    <span class="tipo-desc">Pasa por la tienda</span>
+                  </span>
+                  <span v-if="envio.tipoEnvio === 'local'" class="tipo-check">
+                    <i class="pi pi-check-circle"></i>
+                  </span>
+                </button>
+              </div>
+
+              <div v-if="envio.tipoEnvio === 'domicilio'" class="direccion-entrega">
+                <div class="seccion-header direccion-header">
+                  <div>
+                    <h4 class="seccion-titulo">Dirección de entrega</h4>
+                    <p class="seccion-desc">Escribe la dirección o selecciónala en el mapa</p>
+                  </div>
+                </div>
+
+                <div class="field-row">
+                  <div class="field">
+                    <label class="field-label" for="dir"
+                      >Dirección <span class="req">*</span></label
+                    >
+                    <div class="input-wrap">
+                      <i class="pi pi-map-marker input-icon"></i>
+                      <input
+                        id="dir"
+                        v-model="envio.direccion"
+                        type="text"
+                        class="field-input has-icon"
+                        placeholder="Calle, número, zona..."
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="ref">Referencia</label>
+                    <div class="input-wrap">
+                      <i class="pi pi-info-circle input-icon"></i>
+                      <input
+                        id="ref"
+                        v-model="envio.referencia"
+                        type="text"
+                        class="field-input has-icon"
+                        placeholder="Casa verde, portón negro..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button type="button" class="btn-mapa" @click="abrirMapa">
+                  <i class="pi pi-map"></i>
+                  <span>{{
+                    coordenadas
+                      ? 'Cambiar ubicación en el mapa'
+                      : 'Seleccionar ubicación en el mapa'
+                  }}</span>
+                  <span v-if="coordenadas" class="coordenadas-badge">
+                    <i class="pi pi-check-circle"></i> Guardada
+                  </span>
+                </button>
+
+                <div v-if="coordenadas" class="coords-preview">
+                  <i class="pi pi-map-marker"></i>
+                  <span>
+                    <strong
+                      >{{ coordenadas.lat.toFixed(5) }}, {{ coordenadas.lng.toFixed(5) }}</strong
+                    >
+                    <template v-if="direccionReversa">
+                      — {{ direccionReversa.split(',').slice(0, 2).join(',') }}
+                    </template>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="seccion-divider"></div>
+
+            <!-- ── Sección 2: Fecha y hora ───────────────────────────────────── -->
+            <div class="form-seccion">
+              <div class="seccion-header">
+                <span class="seccion-numero">2</span>
+                <div>
+                  <h4 class="seccion-titulo">¿Cuándo lo recibes o recoges?</h4>
+                  <p class="seccion-desc">Mínimo 2 días hábiles para preparar tu pedido</p>
+                </div>
+              </div>
+
               <div class="dias-selector">
                 <div
                   v-for="dia in diasOpciones"
@@ -372,7 +572,6 @@ async function confirmarPedido() {
                 </div>
               </div>
 
-              <!-- Selector de horas -->
               <div v-if="diaSeleccionado" class="horas-selector">
                 <p class="horas-label"><i class="pi pi-clock"></i> Elige un horario</p>
                 <div class="horas-grid">
@@ -389,7 +588,6 @@ async function confirmarPedido() {
                 </div>
               </div>
 
-              <!-- Confirmación visual -->
               <div v-if="fechaEntregaFinal" class="fecha-confirmada">
                 <i class="pi pi-calendar-check"></i>
                 <span>
@@ -410,160 +608,138 @@ async function confirmarPedido() {
 
             <div class="seccion-divider"></div>
 
-            <!-- ── Sección 2: Dirección ──────────────────────────────────────── -->
-            <div class="form-seccion">
-              <div class="seccion-header">
-                <span class="seccion-numero">2</span>
-                <div>
-                  <h4 class="seccion-titulo">¿Dónde te lo enviamos?</h4>
-                  <p class="seccion-desc">Ingresa tu dirección o marca en el mapa</p>
-                </div>
-              </div>
-
-              <div class="field-row">
-                <div class="field">
-                  <label class="field-label" for="dir">Dirección <span class="req">*</span></label>
-                  <div class="input-wrap">
-                    <i class="pi pi-map-marker input-icon"></i>
-                    <input
-                      id="dir"
-                      v-model="envio.direccion"
-                      type="text"
-                      class="field-input has-icon"
-                      placeholder="Calle, número, zona..."
-                      required
-                    />
-                  </div>
-                </div>
-                <div class="field">
-                  <label class="field-label" for="ref">Referencia</label>
-                  <div class="input-wrap">
-                    <i class="pi pi-info-circle input-icon"></i>
-                    <input
-                      id="ref"
-                      v-model="envio.referencia"
-                      type="text"
-                      class="field-input has-icon"
-                      placeholder="Casa verde, portón negro..."
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Botón abrir mapa -->
-              <button type="button" class="btn-mapa" @click="abrirMapa">
-                <i class="pi pi-map"></i>
-                <span>{{
-                  coordenadas ? 'Cambiar ubicación en el mapa' : 'Seleccionar ubicación en el mapa'
-                }}</span>
-                <span v-if="coordenadas" class="coordenadas-badge">
-                  <i class="pi pi-check-circle"></i> Guardada
-                </span>
-              </button>
-
-              <!-- Preview coordenadas -->
-              <div v-if="coordenadas" class="coords-preview">
-                <i class="pi pi-map-marker"></i>
-                <span>
-                  <strong
-                    >{{ coordenadas.lat.toFixed(5) }}, {{ coordenadas.lng.toFixed(5) }}</strong
-                  >
-                  <template v-if="direccionReversa">
-                    — {{ direccionReversa.split(',').slice(0, 2).join(',') }}
-                  </template>
-                </span>
-              </div>
-
-              <!-- Tipo de envío -->
-              <div class="tipo-envio-group">
-                <label
-                  class="tipo-card"
-                  :class="{ activo: envio.tipoEnvio === 'domicilio' }"
-                  @click="envio.tipoEnvio = 'domicilio'"
-                >
-                  <span class="tipo-icon">🚚</span>
-                  <div>
-                    <p class="tipo-nombre">Envío a domicilio</p>
-                    <p class="tipo-desc">Lo llevamos a tu puerta</p>
-                  </div>
-                  <span v-if="envio.tipoEnvio === 'domicilio'" class="tipo-check">
-                    <i class="pi pi-check-circle"></i>
-                  </span>
-                </label>
-                <label
-                  class="tipo-card"
-                  :class="{ activo: envio.tipoEnvio === 'local' }"
-                  @click="envio.tipoEnvio = 'local'"
-                >
-                  <span class="tipo-icon">🏪</span>
-                  <div>
-                    <p class="tipo-nombre">Recoger en local</p>
-                    <p class="tipo-desc">Pasa por la tienda</p>
-                  </div>
-                  <span v-if="envio.tipoEnvio === 'local'" class="tipo-check">
-                    <i class="pi pi-check-circle"></i>
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            <div class="seccion-divider"></div>
-
-            <!-- ── Sección 3: Pago QR ────────────────────────────────────────── -->
+            <!-- ── Sección 3: Método de pago ─────────────────────────────────── -->
             <div class="form-seccion">
               <div class="seccion-header">
                 <span class="seccion-numero">3</span>
                 <div>
-                  <h4 class="seccion-titulo">Pago mediante QR</h4>
-                  <p class="seccion-desc">Escanea y sube tu comprobante desde Simple</p>
+                  <h4 class="seccion-titulo">Método de pago</h4>
+                  <p class="seccion-desc">Elige una de las opciones disponibles</p>
                 </div>
               </div>
 
-              <div class="box-pago">
-                <div class="qr-side">
-                  <div class="qr-frame">
-                    <img :src="qrImage" alt="QR Simple Pago" class="qr-img" />
-                  </div>
-                  <span class="qr-badge">Simple</span>
-                </div>
+              <p v-if="cargandoConfiguracion" class="pago-estado">Cargando métodos de pago...</p>
+              <p v-else-if="errorConfiguracion" class="pago-estado pago-error" role="alert">
+                {{ errorConfiguracion }}
+              </p>
+              <p v-else-if="metodosDisponibles.length === 0" class="pago-estado">
+                No hay métodos de pago disponibles en este momento.
+              </p>
 
-                <div class="comprobante-side">
-                  <p class="comprobante-titulo">Sube tu comprobante <span class="req">*</span></p>
-                  <p class="comprobante-desc">Foto de pantalla o PDF de la transferencia</p>
-
-                  <label class="upload-area" :class="{ 'tiene-archivo': pago.comprobanteFile }">
-                    <div v-if="!pago.comprobanteFile" class="upload-placeholder">
-                      <i class="pi pi-cloud-upload upload-icon"></i>
-                      <span>Seleccionar archivo</span>
-                      <small>JPG, PNG, PDF</small>
-                    </div>
-                    <div v-else class="upload-preview">
-                      <i class="pi pi-file-check"></i>
-                      <span>{{ pago.comprobanteFile.name }}</span>
-                      <button
-                        type="button"
-                        class="remove-file"
-                        @click.prevent="pago.comprobanteFile = null"
-                      >
-                        <i class="pi pi-times"></i>
-                      </button>
-                    </div>
+              <template v-else>
+                <div class="metodos-pago-selector" role="radiogroup" aria-label="Método de pago">
+                  <label
+                    v-for="metodo in metodosDisponibles"
+                    :key="metodo.id"
+                    class="metodo-pago-opcion"
+                    :class="{ seleccionado: metodoPagoSeleccionado === metodo.id }"
+                  >
                     <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      class="file-hidden"
-                      @change="
-                        (e) =>
-                          (pago.comprobanteFile = (e.target as HTMLInputElement).files?.[0] || null)
-                      "
+                      v-model="metodoPagoSeleccionado"
+                      type="radio"
+                      name="metodo-pago"
+                      :value="metodo.id"
                     />
+                    <span>{{ metodo.nombre }}</span>
                   </label>
                 </div>
-              </div>
+
+                <div class="box-pago">
+                  <div v-if="metodoPagoSeleccionado === 'qr'" class="pago-detalle">
+                    <div v-if="configuracion?.metodosPago.qr.imagenQrUrl" class="qr-side">
+                      <div class="qr-frame">
+                        <img
+                          :src="configuracion.metodosPago.qr.imagenQrUrl"
+                          alt="Código QR de pago"
+                          class="qr-img"
+                        />
+                      </div>
+                      <button type="button" class="btn-descargar-qr" @click="descargarQr">
+                        <i class="pi pi-download"></i>
+                        Descargar QR
+                      </button>
+                      <span class="qr-badge">{{ configuracion.metodosPago.qr.banco || 'QR' }}</span>
+                    </div>
+                    <div class="pago-datos">
+                      <strong>Pago mediante código QR</strong>
+                      <span v-if="configuracion?.metodosPago.qr.banco">
+                        {{ configuracion.metodosPago.qr.banco }}
+                      </span>
+                      <span v-if="configuracion?.metodosPago.qr.titular">
+                        Titular: {{ configuracion.metodosPago.qr.titular }}
+                      </span>
+                      <span v-if="!configuracion?.metodosPago.qr.imagenQrUrl">
+                        El negocio no ha cargado una imagen QR. Contacta con la pastelería.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div v-else-if="metodoPagoSeleccionado === 'transferencia'" class="pago-datos">
+                    <strong>Transferencia bancaria</strong>
+                    <span v-if="configuracion?.metodosPago.transferencia.banco">
+                      Banco: {{ configuracion.metodosPago.transferencia.banco }}
+                    </span>
+                    <span v-if="configuracion?.metodosPago.transferencia.tipoCuenta">
+                      Tipo de cuenta: {{ configuracion.metodosPago.transferencia.tipoCuenta }}
+                    </span>
+                    <span v-if="configuracion?.metodosPago.transferencia.numeroCuenta">
+                      Número de cuenta: {{ configuracion.metodosPago.transferencia.numeroCuenta }}
+                    </span>
+                    <span v-if="configuracion?.metodosPago.transferencia.titular">
+                      Titular: {{ configuracion.metodosPago.transferencia.titular }}
+                    </span>
+                    <span v-if="configuracion?.metodosPago.transferencia.ciNit">
+                      CI / NIT: {{ configuracion.metodosPago.transferencia.ciNit }}
+                    </span>
+                  </div>
+
+                  <div v-else class="pago-datos">
+                    <strong>Pago en efectivo</strong>
+                    <span>{{ configuracion?.metodosPago.efectivo.descripcion }}</span>
+                  </div>
+
+                  <div v-if="requiereComprobante" class="comprobante-side">
+                    <p class="comprobante-titulo">Sube tu comprobante <span class="req">*</span></p>
+                    <p class="comprobante-desc">Foto de pantalla o PDF de la transferencia</p>
+                    <label class="upload-area" :class="{ 'tiene-archivo': pago.comprobanteFile }">
+                      <div v-if="!pago.comprobanteFile" class="upload-placeholder">
+                        <i class="pi pi-cloud-upload upload-icon"></i>
+                        <span>Seleccionar archivo</span>
+                        <small>JPG, PNG, PDF</small>
+                      </div>
+                      <div v-else class="upload-preview">
+                        <i class="pi pi-file-check"></i>
+                        <span>{{ pago.comprobanteFile.name }}</span>
+                        <button
+                          type="button"
+                          class="remove-file"
+                          @click.prevent="pago.comprobanteFile = null"
+                        >
+                          <i class="pi pi-times"></i>
+                        </button>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        class="file-hidden"
+                        @change="
+                          (e) =>
+                            (pago.comprobanteFile =
+                              (e.target as HTMLInputElement).files?.[0] || null)
+                        "
+                      />
+                    </label>
+                  </div>
+                </div>
+              </template>
             </div>
 
             <!-- Botón confirmar -->
-            <button class="btn-confirmar" type="submit" :disabled="enviandoPedido">
+            <button
+              class="btn-confirmar"
+              type="submit"
+              :disabled="enviandoPedido || cargandoConfiguracion || metodosDisponibles.length === 0"
+            >
               <span v-if="enviandoPedido">
                 <i class="pi pi-spin pi-spinner"></i> Procesando tu pedido...
               </span>
@@ -1112,6 +1288,10 @@ async function confirmarPedido() {
 }
 
 .tipo-card {
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  font: inherit;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -1136,6 +1316,11 @@ async function confirmarPedido() {
 
 .tipo-icon {
   font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.tipo-copy {
+  min-width: 0;
 }
 
 .tipo-nombre {
@@ -1159,14 +1344,82 @@ async function confirmarPedido() {
 }
 
 /* ── Box de pago QR ─────────────────────────────────────────────────────────── */
-.box-pago {
+.metodos-pago-selector {
   display: flex;
-  gap: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.metodo-pago-opcion {
+  display: inline-flex;
   align-items: center;
+  gap: 0.5rem;
+  min-height: 42px;
+  padding: 0.55rem 0.8rem;
+  border: 1.5px solid #fce4ec;
+  border-radius: 10px;
+  background: white;
+  color: #880e4f;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.metodo-pago-opcion.seleccionado {
+  border-color: #e91e8c;
+  background: #fff0f7;
+}
+
+.metodo-pago-opcion input {
+  accent-color: #e91e8c;
+}
+
+.pago-estado {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: #fff9fb;
+  color: #880e4f;
+  font-size: 0.85rem;
+}
+
+.pago-error {
+  color: #a51d2d;
+  background: #fff2f2;
+}
+
+.box-pago {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
   background: #fff9fb;
   border: 1.5px solid #fce4ec;
   border-radius: 16px;
   padding: 1.1rem;
+}
+
+.pago-detalle {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.pago-datos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: #6e3650;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.pago-datos strong {
+  color: #880e4f;
+  font-size: 0.9rem;
 }
 
 .qr-side {
@@ -1174,10 +1427,15 @@ async function confirmarPedido() {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  flex-shrink: 0;
+  min-width: 0;
 }
 
 .qr-frame {
+  display: grid;
+  place-items: center;
+  width: min(100%, 260px);
+  aspect-ratio: 1;
+  box-sizing: border-box;
   padding: 0.6rem;
   background: white;
   border-radius: 12px;
@@ -1186,13 +1444,38 @@ async function confirmarPedido() {
 }
 
 .qr-img {
-  width: 110px;
-  height: 110px;
   display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   border-radius: 6px;
 }
 
+.btn-descargar-qr {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 40px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #e91e8c;
+  border-radius: 8px;
+  background: white;
+  color: #c2185b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-descargar-qr:hover {
+  background: #fff0f7;
+}
+
 .qr-badge {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
   background: linear-gradient(135deg, #e91e8c, #f06292);
   color: white;
   font-size: 0.68rem;
@@ -1204,7 +1487,10 @@ async function confirmarPedido() {
 }
 
 .comprobante-side {
-  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding-top: 1rem;
+  border-top: 1px solid #fce4ec;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -1257,14 +1543,17 @@ async function confirmarPedido() {
   gap: 0.25rem;
   color: #e91e8c;
 }
+
 .upload-icon {
   font-size: 1.6rem;
 }
+
 .upload-placeholder span {
   font-size: 0.82rem;
   font-weight: 600;
   color: #c2185b;
 }
+
 .upload-placeholder small {
   font-size: 0.7rem;
   color: #ccc;
@@ -1286,6 +1575,8 @@ async function confirmarPedido() {
 }
 .upload-preview span {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1674,20 +1965,92 @@ async function confirmarPedido() {
 }
 
 @media (max-width: 640px) {
+  .checkout-page {
+    padding: 0.85rem 0.5rem 1.5rem;
+  }
+  .container {
+    width: 100%;
+    padding: 0 0.25rem;
+    box-sizing: border-box;
+  }
+  .checkout-layout {
+    gap: 1rem;
+  }
   .field-row {
     grid-template-columns: 1fr;
+  }
+  .formulario-card {
+    min-width: 0;
+    padding: 1rem;
+    border-radius: 16px;
   }
   .tipo-envio-group {
     grid-template-columns: 1fr;
   }
-  .box-pago {
-    flex-direction: column;
+  .tipo-card {
+    padding: 0.8rem;
   }
   .steps-bar {
-    padding: 0.75rem 1rem;
+    gap: 0.15rem;
+    padding: 0.6rem 0.55rem;
   }
-  .formulario-card {
-    padding: 1.25rem;
+  .step {
+    gap: 0.35rem;
+  }
+  .step-dot {
+    width: 30px;
+    height: 30px;
+  }
+  .step-label {
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+  .step-line {
+    min-width: 0.5rem;
+    margin: 0 0.25rem;
+  }
+  .dia-chip {
+    min-width: 49px;
+  }
+  .btn-mapa {
+    flex-wrap: wrap;
+    padding: 0.75rem;
+  }
+  .coordenadas-badge {
+    margin-left: 0;
+  }
+  .box-pago {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.85rem;
+  }
+  .pago-detalle {
+    width: 100%;
+    flex-basis: auto;
+    flex-wrap: wrap;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .qr-side {
+    width: 100%;
+  }
+  .qr-frame {
+    width: min(100%, 230px);
+  }
+  .qr-img {
+    width: 100%;
+    height: 100%;
+  }
+  .comprobante-side {
+    width: 100%;
+    min-width: 0;
+  }
+  .metodos-pago-selector {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .metodo-pago-opcion {
+    width: 100%;
+    box-sizing: border-box;
   }
   .modal-footer {
     flex-direction: column;

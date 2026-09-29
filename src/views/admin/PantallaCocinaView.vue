@@ -6,18 +6,36 @@ import type { EstadoCocina, PedidoCocina } from '@/models/cocina'
 const pedidos = ref<PedidoCocina[]>([])
 const cargando = ref(true)
 const error = ref<string | null>(null)
-const actualizandoId = ref<number | null>(null)
+const actualizandoIds = ref(new Set<number>())
 
 let intervalo: ReturnType<typeof setInterval> | null = null
+let solicitudEnCurso = false
+
+function mensajeError(error: unknown, predeterminado: string): string {
+  if (!error || typeof error !== 'object' || !('response' in error)) return predeterminado
+  const response = error.response
+  if (!response || typeof response !== 'object' || !('data' in response)) return predeterminado
+  const data = response.data
+  if (!data || typeof data !== 'object' || !('message' in data)) return predeterminado
+  const message = data.message
+  if (typeof message === 'string') return message
+  if (Array.isArray(message) && message.every((part) => typeof part === 'string')) {
+    return message.join(', ')
+  }
+  return predeterminado
+}
 
 async function cargarTablero() {
+  if (solicitudEnCurso || actualizandoIds.value.size > 0) return
+  solicitudEnCurso = true
   error.value = null
   try {
     pedidos.value = await cocinaService.tablero()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || 'No se pudo cargar el tablero de cocina'
+  } catch (e: unknown) {
+    error.value = mensajeError(e, 'No se pudo cargar el tablero de cocina')
   } finally {
     cargando.value = false
+    solicitudEnCurso = false
   }
 }
 
@@ -33,7 +51,8 @@ onUnmounted(() => {
 })
 
 async function cambiarEstado(pedido: PedidoCocina, nuevoEstado: EstadoCocina) {
-  actualizandoId.value = pedido.id
+  if (actualizandoIds.value.has(pedido.id)) return
+  actualizandoIds.value = new Set(actualizandoIds.value).add(pedido.id)
   error.value = null
   try {
     const actualizado = await cocinaService.cambiarEstado(pedido.id, nuevoEstado)
@@ -44,10 +63,12 @@ async function cambiarEstado(pedido: PedidoCocina, nuevoEstado: EstadoCocina) {
       const idx = pedidos.value.findIndex((p) => p.id === pedido.id)
       if (idx !== -1) pedidos.value[idx] = actualizado
     }
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || 'No se pudo actualizar el estado del pedido'
+  } catch (e: unknown) {
+    error.value = mensajeError(e, 'No se pudo actualizar el estado del pedido')
   } finally {
-    actualizandoId.value = null
+    const actualizando = new Set(actualizandoIds.value)
+    actualizando.delete(pedido.id)
+    actualizandoIds.value = actualizando
   }
 }
 
@@ -66,20 +87,49 @@ function horaEntrega(fecha: string): string {
   })
 }
 
-function resumenProductos(pedido: PedidoCocina): string {
-  return pedido.detallePedido.map((d) => `${d.cantidad}x ${d.producto?.nombre}`).join(', ')
+function pagoAprobado(pedido: PedidoCocina): boolean {
+  return pedido.pagos?.[0]?.estado === 'aprobado'
+}
+
+function mensajeBloqueoPago(pedido: PedidoCocina): string | null {
+  const estadoPago = pedido.pagos?.[0]?.estado
+  if (estadoPago === 'aprobado') return null
+  if (!estadoPago) {
+    return 'No hay un pago registrado. Verifica el pago en la pantalla de Pagos para continuar.'
+  }
+  if (estadoPago === 'en_revision') {
+    return 'El comprobante está en revisión. Aprueba el pago en Pagos para continuar.'
+  }
+  if (estadoPago === 'pendiente') {
+    return 'El pago está pendiente de aprobación. Apruébalo en Pagos para continuar.'
+  }
+  if (estadoPago === 'rechazado') {
+    return 'El pago fue rechazado. El pedido no puede avanzar.'
+  }
+  return `El pago está en estado "${estadoPago}". Debe aprobarse antes de continuar.`
+}
+
+function esRetiroLocal(tipoEnvio?: string | null): boolean {
+  const tipo = (tipoEnvio || '').trim().toLowerCase()
+  return tipo === 'local' || tipo.includes('retiro')
 }
 
 const pendientes = computed(() => pedidos.value.filter((p) => p.estado === 'pendiente'))
 const enPreparacion = computed(() => pedidos.value.filter((p) => p.estado === 'en_preparacion'))
 const listos = computed(() => pedidos.value.filter((p) => p.estado === 'listo'))
+
+const columnas = computed(() => [
+  { estado: 'pendiente' as const, titulo: 'Pendientes', pedidos: pendientes.value },
+  { estado: 'en_preparacion' as const, titulo: 'En preparación', pedidos: enPreparacion.value },
+  { estado: 'listo' as const, titulo: 'Listos para entrega', pedidos: listos.value },
+])
 </script>
 
 <template>
   <div class="admin-wrap">
     <!-- Header -->
     <div class="page-header">
-      <div class="header-left">
+      <div class="page-header-left">
         <div class="page-icon"><i class="pi pi-clock"></i></div>
         <div>
           <h2 class="page-titulo">Cocina / Producción</h2>
@@ -87,7 +137,13 @@ const listos = computed(() => pedidos.value.filter((p) => p.estado === 'listo'))
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn-recargar" @click="cargarTablero" :disabled="cargando" title="Recargar">
+        <button
+          class="btn-recargar"
+          @click="cargarTablero"
+          :disabled="cargando || actualizandoIds.size > 0"
+          title="Recargar tablero"
+          aria-label="Recargar tablero"
+        >
           <i :class="cargando ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"></i>
         </button>
       </div>
@@ -97,188 +153,463 @@ const listos = computed(() => pedidos.value.filter((p) => p.estado === 'listo'))
       <i class="pi pi-exclamation-circle"></i> {{ error }}
     </p>
 
-    <div class="resumen-bar">
-      <span class="resumen-item pendiente"
-        ><strong>{{ pendientes.length }}</strong> Pendientes</span
-      >
-      <span class="resumen-item preparacion"
-        ><strong>{{ enPreparacion.length }}</strong> En Preparación</span
-      >
-      <span class="resumen-item listo"
-        ><strong>{{ listos.length }}</strong> Listos para Entrega</span
-      >
-    </div>
+    <div class="page-content cocina-content">
+      <template v-if="cargando">
+        <div class="cocina-loading"><i class="pi pi-spin pi-spinner"></i> Cargando pedidos...</div>
+      </template>
 
-    <template v-if="cargando">
-      <div class="admin-empty-state"><i class="pi pi-spin pi-spinner"></i></div>
-    </template>
+      <template v-else-if="pedidos.length === 0">
+        <div class="cocina-vacio">
+          <i class="pi pi-check-circle"></i>
+          <p>No hay pedidos pendientes de preparación</p>
+        </div>
+      </template>
 
-    <template v-else-if="pedidos.length === 0">
-      <div class="admin-empty-state">
-        <i class="pi pi-check-circle"></i>
-        <p>No hay pedidos pendientes de preparación</p>
-      </div>
-    </template>
+      <div v-else class="tablero-cocina">
+        <section v-for="columna in columnas" :key="columna.estado" class="columna-cocina">
+          <header class="columna-header" :class="columna.estado">
+            <div>
+              <h3>{{ columna.titulo }}</h3>
+              <span>{{ columna.pedidos.length }} pedidos</span>
+            </div>
+            <strong>{{ columna.pedidos.length }}</strong>
+          </header>
 
-    <div v-else class="pedidos-grid">
-      <div v-for="p in pedidos" :key="p.id" class="pedido-card" :class="p.estado">
-        <div class="pedido-header">
-          <span class="pedido-id">#{{ p.id }}</span>
-          <span class="pedido-hora"
-            ><i class="pi pi-clock"></i> {{ horaEntrega(p.fechaEntrega) }}</span
-          >
-        </div>
-        <div class="pedido-body">
-          <h4>{{ nombreCliente(p) }}</h4>
-          <p class="detalles">{{ resumenProductos(p) }}</p>
-          <div
-            v-for="d in p.detallePedido.filter((d) => d.dedicatoria)"
-            :key="d.id"
-            class="nota-box"
-          >
-            <strong><i class="pi pi-pencil"></i> {{ d.producto?.nombre }}:</strong>
-            {{ d.dedicatoria }}
-          </div>
-        </div>
-        <div class="pedido-footer">
-          <button
-            v-if="p.estado === 'pendiente'"
-            class="btn-prep"
-            :disabled="actualizandoId === p.id"
-            @click="cambiarEstado(p, 'en_preparacion')"
-          >
-            {{ actualizandoId === p.id ? 'Actualizando...' : 'Comenzar Preparación' }}
-          </button>
-          <button
-            v-if="p.estado === 'en_preparacion'"
-            class="btn-ready"
-            :disabled="actualizandoId === p.id"
-            @click="cambiarEstado(p, 'listo')"
-          >
-            <i class="pi pi-check"></i>
-            {{ actualizandoId === p.id ? 'Actualizando...' : 'Marcar como Listo' }}
-          </button>
-          <button
-            v-if="p.estado === 'listo'"
-            class="btn-entregar"
-            :disabled="actualizandoId === p.id"
-            @click="cambiarEstado(p, 'entregado')"
-          >
-            <i class="pi pi-send"></i>
-            {{ actualizandoId === p.id ? 'Actualizando...' : 'Marcar como Entregado' }}
-          </button>
-        </div>
+          <div v-if="!columna.pedidos.length" class="columna-vacia">Sin pedidos en esta etapa</div>
+
+          <article v-for="p in columna.pedidos" :key="p.id" class="pedido-card" :class="p.estado">
+            <header class="pedido-header">
+              <strong class="pedido-id">Pedido #{{ p.id }}</strong>
+              <span class="pedido-hora" :title="`Entrega: ${horaEntrega(p.fechaEntrega)}`">
+                <i class="pi pi-clock"></i> {{ horaEntrega(p.fechaEntrega) }}
+              </span>
+            </header>
+
+            <div class="pedido-cliente">
+              <i class="pi pi-user"></i>
+              <h4>{{ nombreCliente(p) }}</h4>
+            </div>
+
+            <div v-if="mensajeBloqueoPago(p)" class="pedido-alerta-pago" role="status">
+              <i class="pi pi-lock"></i>
+              <span>{{ mensajeBloqueoPago(p) }}</span>
+            </div>
+
+            <div v-if="esRetiroLocal(p.tipoEnvio)" class="pedido-retiro-local">
+              <i class="pi pi-home"></i>
+              <strong>Retiro en local</strong>
+            </div>
+
+            <div class="productos-lista">
+              <div v-for="d in p.detallePedido" :key="d.id" class="producto-cocina">
+                <img
+                  v-if="d.producto?.imagenUrl"
+                  class="producto-imagen"
+                  :src="d.producto.imagenUrl"
+                  :alt="d.producto.nombre"
+                  loading="lazy"
+                />
+                <div v-else class="producto-imagen-placeholder" aria-hidden="true">
+                  <i class="pi pi-image"></i>
+                </div>
+                <div class="producto-info">
+                  <strong>{{ d.producto?.nombre || 'Producto' }}</strong>
+                </div>
+                <span class="producto-cantidad">×{{ d.cantidad }}</span>
+                <div v-if="d.dedicatoria?.trim()" class="dedicatoria-cocina">
+                  <strong><i class="pi pi-pencil"></i> Nota para el producto</strong>
+                  <p>{{ d.dedicatoria }}</p>
+                </div>
+              </div>
+            </div>
+
+            <p v-if="p.direccionEnvio && !esRetiroLocal(p.tipoEnvio)" class="pedido-direccion">
+              <i class="pi pi-map-marker"></i> {{ p.direccionEnvio }}
+            </p>
+
+            <footer class="pedido-footer">
+              <button
+                v-if="p.estado === 'pendiente'"
+                class="btn-estado btn-prep"
+                :disabled="actualizandoIds.has(p.id) || !pagoAprobado(p)"
+                @click="cambiarEstado(p, 'en_preparacion')"
+              >
+                <i :class="actualizandoIds.has(p.id) ? 'pi pi-spin pi-spinner' : 'pi pi-play'"></i>
+                {{
+                  actualizandoIds.has(p.id)
+                    ? 'Guardando...'
+                    : pagoAprobado(p)
+                      ? 'Iniciar preparación'
+                      : 'Esperando aprobación'
+                }}
+              </button>
+              <button
+                v-else-if="p.estado === 'en_preparacion'"
+                class="btn-estado btn-ready"
+                :disabled="actualizandoIds.has(p.id) || !pagoAprobado(p)"
+                @click="cambiarEstado(p, 'listo')"
+              >
+                <i :class="actualizandoIds.has(p.id) ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
+                {{
+                  actualizandoIds.has(p.id)
+                    ? 'Guardando...'
+                    : pagoAprobado(p)
+                      ? 'Marcar listo'
+                      : 'Esperando aprobación'
+                }}
+              </button>
+              <button
+                v-else-if="p.estado === 'listo'"
+                class="btn-estado btn-entregar"
+                :disabled="actualizandoIds.has(p.id) || !pagoAprobado(p)"
+                @click="cambiarEstado(p, 'entregado')"
+              >
+                <i :class="actualizandoIds.has(p.id) ? 'pi pi-spin pi-spinner' : 'pi pi-send'"></i>
+                {{
+                  actualizandoIds.has(p.id)
+                    ? 'Guardando...'
+                    : pagoAprobado(p)
+                      ? 'Confirmar entrega'
+                      : 'Esperando aprobación'
+                }}
+              </button>
+            </footer>
+          </article>
+        </section>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.resumen-bar {
+.admin-wrap {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem;
+}
+.page-header {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 1rem;
-  margin-bottom: 1.5rem;
   flex-wrap: wrap;
+  margin-bottom: 1.75rem;
 }
-.resumen-item {
-  padding: 0.5rem 1.1rem;
-  border-radius: 50px;
+.page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.page-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e91e8c, #f06292);
+  color: #fff;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
+}
+.page-titulo {
+  margin: 0 0 0.2rem;
+  color: #880e4f;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+.page-sub {
+  margin: 0;
+  color: #f48fb1;
   font-size: 0.85rem;
-  font-weight: 600;
 }
-.resumen-item strong {
+.btn-recargar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid #f8bbd0;
+  border-radius: 12px;
+  background: #fff;
+  color: #c2185b;
   font-size: 1rem;
-  margin-right: 0.3rem;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
 }
-.resumen-item.pendiente {
-  background: #ffebee;
-  color: #c62828;
+.btn-recargar:hover:not(:disabled) {
+  border-color: #e91e8c;
+  background: #fce4ec;
 }
-.resumen-item.preparacion {
-  background: #fff8e1;
-  color: #e65100;
+.btn-recargar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
-.resumen-item.listo {
-  background: #e8f5e9;
-  color: #2e7d32;
+.page-content {
+  overflow: hidden;
+  border: 1px solid #fce4ec;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(233, 30, 140, 0.08);
 }
-
-.pedidos-grid {
+.cocina-content {
+  padding: 1rem;
+}
+.cocina-loading,
+.cocina-vacio,
+.columna-vacia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  color: #737373;
+}
+.cocina-loading,
+.cocina-vacio {
+  min-height: 220px;
+  flex-direction: column;
+}
+.cocina-loading i,
+.cocina-vacio i {
+  font-size: 1.6rem;
+  color: #e91e8c;
+}
+.cocina-vacio p {
+  margin: 0;
+}
+.tablero-cocina {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(3, minmax(280px, 1fr));
+  align-items: start;
+  gap: 1rem;
+}
+.columna-cocina {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.8rem;
+  background: #fff9fb;
+  border: 1px solid #fce4ec;
+  border-radius: 12px;
+}
+.columna-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0.2rem 0.75rem;
+  border-bottom: 2px solid #f8bbd0;
+}
+.columna-header h3 {
+  margin: 0;
+  color: #880e4f;
+  font-size: 1rem;
+}
+.columna-header span {
+  color: #b06b85;
+  font-size: 0.78rem;
+}
+.columna-header > strong {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fce4ec;
+  color: #c2185b;
+}
+.columna-header.pendiente {
+  border-color: #e91e8c;
+}
+.columna-header.en_preparacion {
+  border-color: #ffa726;
+}
+.columna-header.listo {
+  border-color: #66a36e;
+}
+.columna-vacia {
+  min-height: 92px;
+  color: #b06b85;
+  font-size: 0.84rem;
 }
 .pedido-card {
-  background: white;
-  border-radius: 16px;
-  border: 1.5px solid #f8bbd0;
-  padding: 1rem;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  background: #fff;
+  border: 1px solid #f8bbd0;
+  border-left: 4px solid #e91e8c;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(233, 30, 140, 0.06);
 }
 .pedido-card.en_preparacion {
   border-color: #ffe082;
+  border-left-color: #ffa726;
   background: #fffde7;
 }
 .pedido-card.listo {
   border-color: #a5d6a7;
+  border-left-color: #2e7d32;
   background: #f1f8f2;
 }
 .pedido-header {
   display: flex;
   justify-content: space-between;
-  font-weight: bold;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid #fce4ec;
+}
+.pedido-id {
   color: #880e4f;
-  border-bottom: 1px dashed #f8bbd0;
-  padding-bottom: 0.5rem;
+  font-size: 0.93rem;
 }
 .pedido-hora {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.8rem;
-  font-weight: 600;
+  gap: 0.35rem;
   color: #888;
+  font-size: 0.76rem;
 }
-.pedido-body {
-  margin: 0.8rem 0;
-}
-.pedido-body h4 {
-  margin: 0 0 0.4rem 0;
-  color: #333;
-}
-.detalles {
-  font-size: 0.95rem;
-  font-weight: 600;
+.pedido-cliente {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: #c2185b;
-  margin: 0;
 }
-.nota-box {
-  background: #fff3e0;
-  border-left: 3px solid #ffa726;
-  padding: 0.5rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  margin-top: 0.6rem;
+.pedido-cliente h4 {
+  margin: 0;
+  color: #333;
+  font-size: 0.9rem;
+}
+.pedido-alerta-pago {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.7rem;
+  border: 1px solid #ffe0b2;
+  border-left: 4px solid #ffa726;
+  border-radius: 8px;
+  background: #fff8e1;
+  color: #8a4b00;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+.pedido-alerta-pago i {
+  margin-top: 0.1rem;
   color: #e65100;
 }
-.btn-prep,
-.btn-ready,
-.btn-entregar {
-  width: 100%;
-  border: none;
-  padding: 0.6rem;
+.pedido-retiro-local {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #bbdefb;
   border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  color: white;
+  background: #e3f2fd;
+  color: #1565c0;
+  font-size: 0.82rem;
 }
-.btn-prep:disabled,
-.btn-ready:disabled,
-.btn-entregar:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.productos-lista {
+  display: grid;
+  gap: 0.55rem;
+}
+.producto-cocina {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem;
+  background: #fff9fb;
+  border: 1px solid #fce4ec;
+  border-radius: 8px;
+}
+.producto-imagen,
+.producto-imagen-placeholder {
+  width: 104px;
+  height: 104px;
+  border-radius: 6px;
+}
+.producto-imagen {
+  object-fit: cover;
+}
+.producto-imagen-placeholder {
+  display: grid;
+  place-items: center;
+  background: #fce4ec;
+  color: #f48fb1;
+}
+.producto-info {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.producto-info > strong {
+  color: #880e4f;
+  font-size: 0.83rem;
+  overflow-wrap: anywhere;
+}
+.producto-cantidad {
+  align-self: start;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  background: #fce4ec;
+  color: #c2185b;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.dedicatoria-cocina {
+  grid-column: 1 / -1;
+  padding: 0.65rem 0.75rem;
+  background: #fff3e0;
+  border-left: 4px solid #ffa726;
+  border-radius: 4px;
+  color: #e65100;
+  overflow-wrap: anywhere;
+}
+.dedicatoria-cocina strong {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+}
+.dedicatoria-cocina p {
+  margin: 0.35rem 0 0;
+  color: #bf5700;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.pedido-direccion {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  color: #888;
+  font-size: 0.77rem;
+}
+.pedido-footer {
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+.btn-estado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 42px;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 .btn-prep {
   background: #ffa726;
@@ -288,5 +619,25 @@ const listos = computed(() => pedidos.value.filter((p) => p.estado === 'listo'))
 }
 .btn-entregar {
   background: #1565c0;
+}
+.btn-estado:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+@media (max-width: 1050px) {
+  .tablero-cocina {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .admin-wrap {
+    padding: 1rem;
+  }
+  .page-header {
+    margin-bottom: 1.25rem;
+  }
+  .cocina-content {
+    padding: 0.65rem;
+  }
 }
 </style>

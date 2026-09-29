@@ -8,7 +8,12 @@ export interface DetallePedidoCocina {
   producto: {
     id: number
     nombre: string
+    imagenUrl?: string | null
   }
+}
+
+export interface PagoCocina {
+  estado: string
 }
 
 export interface PedidoCocina {
@@ -16,8 +21,10 @@ export interface PedidoCocina {
   fechaPedido: string
   fechaEntrega: string
   estado: EstadoCocina
-  direccionEnvio: string
+  direccionEnvio?: string | null
+  tipoEnvio?: string | null
   detallePedido: DetallePedidoCocina[]
+  pagos?: PagoCocina[]
   usuario: {
     cliente?: {
       nombre: string

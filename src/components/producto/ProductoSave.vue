@@ -424,6 +424,8 @@ const categoriaNombre = computed(
 /* ── Panel ──────────────────────────────────────────────────────────────────── */
 .modal-panel {
   background: white;
+  color: #333;
+  color-scheme: light;
   border-radius: 24px;
   width: 100%;
   max-width: 560px;

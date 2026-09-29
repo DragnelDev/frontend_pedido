@@ -2,6 +2,7 @@
 import { useRouter, useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
+import { logoUrlConfiguracion } from '@/servicios/configuracionService'
 
 const emit = defineEmits<{ (e: 'close'): void }>()
 
@@ -136,7 +137,13 @@ const navItems = [
   <nav class="sidebar-nav">
     <!-- Marca -->
     <div class="sidebar-brand">
-      <div class="brand-icon">🍓</div>
+      <img
+        v-if="logoUrlConfiguracion"
+        :src="logoUrlConfiguracion"
+        alt="Logo de la Pastelería"
+        class="brand-logo"
+      />
+      <div v-else class="brand-icon">🍓</div>
       <div class="brand-text">
         <div class="brand-name">Berry Sweet</div>
         <div class="brand-sub">Panel de administración</div>
@@ -213,6 +220,14 @@ const navItems = [
   background: white;
   border-radius: 14px;
   box-shadow: 0 2px 12px rgba(233, 30, 140, 0.1);
+  flex-shrink: 0;
+}
+
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 4px;
   flex-shrink: 0;
 }
 
