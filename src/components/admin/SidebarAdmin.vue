@@ -3,6 +3,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
 import { logoUrlConfiguracion } from '@/servicios/configuracionService'
+import { useAuthStore } from '@/stores'
 
 const emit = defineEmits<{ (e: 'close'): void }>()
 
@@ -38,9 +39,7 @@ onMounted(() => {
 })
 
 function cerrarSesion() {
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
-  router.push('/login')
+  useAuthStore().logout()
 }
 
 function navigate(path?: string) {

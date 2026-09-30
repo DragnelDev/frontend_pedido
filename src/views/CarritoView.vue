@@ -13,6 +13,17 @@ const {
 } = usarCarrito()
 const router = useRouter()
 
+const erroresStock = computed(() =>
+  Object.fromEntries(
+    carrito.value
+      .filter((item) => item.cantidad > Number(item.producto.stock ?? 0))
+      .map((item) => [
+        item.producto.id,
+        { solicitado: item.cantidad, disponible: Number(item.producto.stock ?? 0) },
+      ]),
+  ),
+)
+
 const subtotal = computed(() => totalCarrito().toFixed(2))
 
 async function procederAlPago() {

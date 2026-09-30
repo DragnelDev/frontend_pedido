@@ -3,6 +3,7 @@ import { getTokenFromLocalStorage, parseJwt } from '@/helpers' // 👈 ¡Importa
 import http from '@/plugins/axios'
 import router from '@/router'
 import { solicitarCredentialGoogle } from '@/funciones/googleAuth'
+import { usarCarrito } from '@/funciones/UsarCarrito'
 
 interface UsuarioSesion {
   id: number | null
@@ -77,14 +78,15 @@ const useAuthStore = defineStore('auth', {
       return { debeCambiarClave: false, esNuevo: Boolean(data.esNuevo) }
     },
 
-    logout() {
-      localStorage.removeItem('carrito')
+    logout(redirectTo = '/login') {
+      usarCarrito().vaciarCarrito()
       localStorage.clear()
       this.$reset()
-      router.push('/login')
+      router.push(redirectTo)
     },
 
     logoutSilencioso() {
+      usarCarrito().vaciarCarrito()
       localStorage.clear()
       this.$reset()
     },

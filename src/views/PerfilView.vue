@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import http from '@/plugins/axios'
 import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
+import { useAuthStore } from '@/stores'
 
 const router = useRouter()
 
@@ -104,9 +105,7 @@ const irAEditar = () => {
 }
 
 const cerrarSesion = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
-  router.push('/login')
+  useAuthStore().logout()
 }
 </script>
 

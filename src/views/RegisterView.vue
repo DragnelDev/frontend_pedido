@@ -427,8 +427,8 @@ function irAInicio() {
           <!-- Nota contraseña -->
           <div class="pwd-nota">
             <i class="pi pi-info-circle"></i>
-            Tu contraseña inicial será <strong>{{ DEFAULT_PWD }}</strong
-            >. Cámbiala luego en tu perfil.
+            Tu contraseña inicial será
+            <strong>{{ DEFAULT_PWD }}</strong> + <strong>CI</strong> Cámbiala luego en tu perfil.
           </div>
 
           <!-- Acciones -->

@@ -6,6 +6,7 @@ import { usarCarrito } from '@/funciones/UsarCarrito'
 import CarritoPanel from './CarritoPanel.vue'
 import { getTokenFromLocalStorage, parseJwt } from '@/helpers'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores'
 
 const categorias = ref<{ id: number; nombre: string }[]>([])
 const cargandoCategorias = ref(false)
@@ -47,14 +48,9 @@ const verificarSesion = () => {
 }
 
 const cerrarSesion = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
-  localStorage.removeItem('carrito')
-  const { vaciarCarrito } = usarCarrito()
-  vaciarCarrito()
+  useAuthStore().logout('/')
   usuarioLogueado.value = false
   mostrarMenuUsuario.value = false
-  router.push('/')
 }
 
 const irALogin = () => {

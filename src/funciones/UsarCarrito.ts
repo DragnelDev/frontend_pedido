@@ -1,4 +1,6 @@
 import type { Producto } from '@/models/producto'
+import { getTokenFromLocalStorage } from '@/helpers'
+import router from '@/router'
 import { ref, watch } from 'vue'
 
 interface ItemCarrito {
@@ -7,17 +9,25 @@ interface ItemCarrito {
 }
 
 const carrito = ref<ItemCarrito[]>([])
+const mostrarAvisoLogin = ref(false)
+let returnUrlLogin = '/'
 
-// ✅ Cargar carrito guardado en localStorage al iniciar
-if (localStorage.getItem('carrito')) {
+// Restaurar el carrito solo mientras exista una sesión válida.
+if (getTokenFromLocalStorage() && localStorage.getItem('carrito')) {
   carrito.value = JSON.parse(localStorage.getItem('carrito')!)
+} else {
+  localStorage.removeItem('carrito')
 }
 
 // ✅ Guardar automáticamente cada vez que el carrito cambie
 watch(
   carrito,
   (nuevoValor) => {
-    localStorage.setItem('carrito', JSON.stringify(nuevoValor))
+    if (getTokenFromLocalStorage()) {
+      localStorage.setItem('carrito', JSON.stringify(nuevoValor))
+    } else {
+      localStorage.removeItem('carrito')
+    }
   },
   { deep: true },
 )
@@ -25,12 +35,26 @@ watch(
 export function usarCarrito() {
   // 🛒 Agregar producto al carrito
   const agregarProducto = (producto: Producto, cantidad = 1) => {
+    if (!getTokenFromLocalStorage()) {
+      carrito.value = []
+      localStorage.removeItem('carrito')
+      returnUrlLogin = router.currentRoute.value.fullPath
+      mostrarAvisoLogin.value = true
+      return false
+    }
+
     const existente = carrito.value.find((p) => p.producto.id === producto.id)
     if (existente) {
       existente.cantidad += cantidad
     } else {
       carrito.value.push({ producto, cantidad })
     }
+    return true
+  }
+
+  const irAInicioSesion = () => {
+    mostrarAvisoLogin.value = false
+    router.push({ name: 'login', query: { returnUrl: returnUrlLogin } })
   }
 
   // ➕ Incrementar cantidad
@@ -70,6 +94,8 @@ export function usarCarrito() {
   return {
     carrito,
     agregarProducto,
+    mostrarAvisoLogin,
+    irAInicioSesion,
     eliminarProducto,
     vaciarCarrito,
     totalCarrito,

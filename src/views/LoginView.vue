@@ -16,10 +16,15 @@ const mostrarClave = ref(false)
 function procesarNavegacionSegunRol(token: string) {
   const decoded = parseJwt(token)
   const userRole = decoded?.rol || decoded?.role || decoded?.tipo
+  const returnUrl = typeof route.query.returnUrl === 'string' ? route.query.returnUrl : ''
+
+  if (returnUrl.startsWith('/') && !returnUrl.startsWith('//')) {
+    router.push(returnUrl)
+    return
+  }
 
   if (userRole === 'EMPLEADO') {
-    const returnUrl = route.query.returnUrl as string
-    router.push(returnUrl || '/admin')
+    router.push('/admin')
   } else {
     router.push('/')
   }

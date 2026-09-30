@@ -247,11 +247,15 @@ function seleccionarTipoEnvio(tipo: 'domicilio' | 'local') {
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
   const token = getTokenFromLocalStorage()
-  if (!token) return router.replace('/checkout')
+  if (!token) {
+    return router.replace({ name: 'login', query: { returnUrl: '/checkout' } })
+  }
 
   const payload = parseJwt(token)
   usuarioId.value = payload?.sub ?? null
-  if (!usuarioId.value) return router.replace('/checkout')
+  if (!usuarioId.value) {
+    return router.replace({ name: 'login', query: { returnUrl: '/checkout' } })
+  }
 
   const primerDia = diasOpciones.value.find((d) => d.disponible)
   if (primerDia) diaSeleccionado.value = primerDia.iso
